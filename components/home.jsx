@@ -4,6 +4,9 @@ import { LocaleProvider, useLocale } from './locale'
 import { Frame } from './shell'
 import UploadForm from './upload-form'
 
+const HERO =
+  'https://raw.githubusercontent.com/jonjys/curl-to-buy/main/public/images/hero.jpg'
+
 function HomeInner({ stripeReady, blobReady, maxMB }) {
   const { t } = useLocale()
   const steps = [
@@ -32,7 +35,7 @@ function HomeInner({ stripeReady, blobReady, maxMB }) {
             </a>
           </div>
           <figure className="overflow-hidden rounded-md bg-sheet" style={{ boxShadow: '0 0 0 1px rgba(22,20,16,.06)' }}>
-            <img src="/images/hero.jpg" alt="" width={1600} height={900} className="aspect-video w-full object-cover" />
+            <img src={HERO} alt="" width={1600} height={900} className="aspect-video w-full object-cover" />
           </figure>
         </section>
 
