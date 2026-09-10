@@ -5,25 +5,25 @@ const OG = 'https://raw.githubusercontent.com/jonjys/curl-to-buy/main/public/og.
 
 export const metadata = {
   metadataBase: new URL(SITE),
-  title: 'Curl-to-Buy — Post a file. Get paid.',
+  title: 'Curl-to-Buy — Post a file. Get paid $$.',
   description:
-    'Upload a file. Set a dollar price. Share the link. Buyers pay by card through Stripe. You keep 95%.',
+    'Upload a file. Set a dollar price. Share the link. Buyers pay by card through Stripe. You keep 95%. Cards only — no Klarna.',
   applicationName: 'Curl-to-Buy',
   openGraph: {
-    title: 'Curl-to-Buy — Post a file. Get paid.',
+    title: 'Curl-to-Buy — Post a file. Get paid $$.',
     description:
-      'Upload a file. Set a dollar price. Share the link. Buyers pay by card through Stripe. You keep 95%.',
+      'Upload a file. Set a dollar price. Share the link. Buyers pay by card through Stripe. You keep 95%. Cards only — no Klarna.',
     url: SITE,
     siteName: 'Curl-to-Buy — Nytto Labs',
     locale: 'en_GB',
     type: 'website',
-    images: [{ url: OG, width: 1200, height: 630, alt: 'Curl-to-Buy — Post a file. Get paid.' }],
+    images: [{ url: OG, width: 1200, height: 630, alt: 'Curl-to-Buy — Post a file. Get paid $$.' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Curl-to-Buy — Post a file. Get paid.',
+    title: 'Curl-to-Buy — Post a file. Get paid $$.',
     description:
-      'Upload a file. Set a dollar price. Share the link. Buyers pay by card through Stripe. You keep 95%.',
+      'Upload a file. Set a dollar price. Share the link. Buyers pay by card through Stripe. You keep 95%. Cards only — no Klarna.',
     images: [OG],
   },
 }
