@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #f4efe6;
+  --color-paper-tint: #ebe4d6;
+  --color-sheet: #fffdf8;
+  --color-ink: #161410;
+  --color-ink-soft: #3d3830;
+  --color-muted: #6b6458;
+  --color-line: #d9d0c2;
+  --color-pine: #2f5c4f;
+  --color-pine-fg: #f4efe6;
+  --color-warn: #8a4b2a;
+  --font-display: "Fraunces", "Iowan Old Style", Palatino, Georgia, serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --text-display: clamp(2.25rem, 7.2vw, 4rem);
+  --tracking-kicker: 0.14em;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+body {
+  margin: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+button:not(:disabled),
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-pine);
+  outline-offset: 3px;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  font-weight: 560;
+}
+
+a { color: inherit; }
