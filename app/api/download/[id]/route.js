@@ -1,5 +1,5 @@
-import { stripe } from '../../../../../lib/stripe'
-import { getListing } from '../../../../../lib/store'
+import { stripe } from '../../../../lib/stripe'
+import { getListing } from '../../../../lib/store'
 
 export const runtime = 'nodejs'
 
