@@ -105,10 +105,8 @@ a { color: inherit; }
 }
 
 .nl-card-glow {
-  border-color: color-mix(in srgb, var(--color-pine) 28%, transparent);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-pine) 10%, transparent),
-    0 0 48px rgba(0, 255, 157, 0.12);
+  border-color: color-mix(in srgb, var(--color-pine) 16%, transparent);
+  box-shadow: 0 0 32px rgba(0, 255, 157, 0.05);
 }
 
 .nl-chip {
@@ -147,32 +145,32 @@ a { color: inherit; }
   inset: 0;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 80% 70% at 50% 120%, #00ff9d1f, transparent 70%),
-    linear-gradient(180deg, transparent, rgba(3, 3, 12, 0.35));
+    radial-gradient(ellipse 80% 70% at 50% 120%, #00ff9d12, transparent 70%),
+    linear-gradient(180deg, transparent, rgba(3, 3, 12, 0.45));
 }
 
-.nl-hero-orb::before,
+/* One soft, dim glow instead of two bright orbs — enough life without the
+   psychedelic glare. */
+.nl-hero-orb::before {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  width: 8rem;
+  height: 8rem;
+  top: 24%;
+  left: 22%;
+  background: radial-gradient(circle at 40% 40%, #00ff9d3a, #00c8781a 55%, transparent 72%);
+  filter: blur(14px);
+}
+
 .nl-hero-orb::after {
   content: "";
   position: absolute;
   border-radius: 999px;
-  filter: blur(1px);
-}
-
-.nl-hero-orb::before {
-  width: 7.5rem;
-  height: 7.5rem;
-  top: 18%;
-  left: 18%;
-  background: radial-gradient(circle at 35% 35%, #b8ffe0, #00ff9d 46%, #00c878 72%, transparent 74%);
-  box-shadow: 0 0 50px rgba(0, 255, 157, 0.4);
-}
-
-.nl-hero-orb::after {
-  width: 3.75rem;
-  height: 3.75rem;
-  right: 16%;
-  top: 28%;
-  background: radial-gradient(circle at 35% 35%, #d6ffff, #00f5ff 48%, transparent 74%);
-  box-shadow: 0 0 32px rgba(0, 245, 255, 0.35);
+  width: 4rem;
+  height: 4rem;
+  right: 22%;
+  top: 34%;
+  background: radial-gradient(circle at 40% 40%, #00f5ff2e, transparent 72%);
+  filter: blur(12px);
 }

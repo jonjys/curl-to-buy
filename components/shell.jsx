@@ -22,7 +22,7 @@ export function LangToggle() {
           type="button"
           aria-pressed={locale === code}
           className={`min-h-11 min-w-11 rounded-xs px-2.5 font-mono text-[11px] font-medium uppercase tracking-wider ${
-            locale === code ? 'bg-pine text-pine-fg' : 'text-muted'
+            locale === code ? 'bg-white/10 text-ink' : 'text-muted'
           }`}
           onClick={() => setLang(code)}
         >
@@ -49,7 +49,7 @@ export function SiteHeader() {
           <LangToggle />
           <Link
             href="/upload"
-            className="inline-flex min-h-11 items-center rounded-sm bg-pine px-3.5 text-sm font-medium text-pine-fg no-underline"
+            className="inline-flex min-h-11 items-center rounded-sm border border-white/15 px-3.5 text-sm font-medium text-ink no-underline transition-colors hover:border-pine/50"
           >
             {t.cta}
           </Link>
