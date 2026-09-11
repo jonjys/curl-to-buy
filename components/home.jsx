@@ -24,7 +24,8 @@ function HomeInner({ stripeReady, blobReady, maxMB }) {
               <br />
               {t.hero2}
             </h1>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-soft">{t.lede}</p>
+            <p className="mt-4 font-display text-lg font-semibold text-cyan sm:text-xl">{t.swish}</p>
+            <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">{t.lede}</p>
             <ul className="mt-5 flex flex-wrap gap-2">
               {t.chips.map((chip) => (
                 <li key={chip} className="nl-chip rounded-md px-3 py-1.5 text-[11px]">
