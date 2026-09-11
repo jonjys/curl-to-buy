@@ -23,11 +23,11 @@ export default function BuyBox({ listing, price }) {
   }
 
   return (
-    <div className="rounded-lg bg-sheet p-6 sm:p-8" style={{ boxShadow: '0 0 0 1px rgba(22,20,16,.06)' }}>
-      <p className="text-xs font-medium uppercase tracking-kicker text-pine">{t.buyKicker}</p>
-      <h1 className="mt-2 font-display text-3xl tracking-tight">{t.buyTitle}</h1>
+    <div className="nl-card nl-card-glow rounded-2xl p-6 sm:p-8">
+      <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.buyKicker}</p>
+      <h1 className="mt-2 font-display text-3xl font-black tracking-tight">{t.buyTitle}</h1>
       <p className="mt-4 break-words text-base text-ink-soft">{listing.name}</p>
-      <p className="mt-6 font-display text-5xl tabular-nums tracking-tight">{price.label}</p>
+      <p className="mt-6 font-display text-5xl font-black tabular-nums tracking-tight">{price.label}</p>
       <p className="mt-2 text-sm text-muted">{t.payCard}</p>
       <button
         type="button"

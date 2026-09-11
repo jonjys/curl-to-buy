@@ -124,8 +124,8 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     return (
       <div className="space-y-5">
         <div>
-          <p className="text-xs font-medium uppercase tracking-kicker text-pine">{t.linkReady}</p>
-          <p className="mt-2 font-display text-3xl tabular-nums tracking-tight">{label}</p>
+          <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.linkReady}</p>
+          <p className="mt-2 font-display text-3xl font-black tabular-nums tracking-tight">{label}</p>
           <p className="mt-1 break-words text-sm text-ink-soft">{listing.name}</p>
           {keepLabel ? (
             <p className="mt-2 text-sm text-muted">
@@ -133,7 +133,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             </p>
           ) : null}
         </div>
-        <div className="rounded-md bg-sheet p-4" style={{ boxShadow: '0 0 0 1px rgba(22,20,16,.06)' }}>
+        <div className="nl-card rounded-md p-4">
           <p className="break-all font-mono text-xs text-muted">{shareUrl}</p>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:flex">
             <button
@@ -146,14 +146,14 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             <button
               type="button"
               onClick={shareLink}
-              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-sm bg-ink px-4 text-sm font-medium text-paper"
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-sm border border-cyan/40 px-4 text-sm font-medium text-cyan"
             >
               {t.share}
             </button>
           </div>
           <a
             href={shareUrl}
-            className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-sm bg-paper-tint px-4 text-sm font-medium text-ink no-underline"
+            className="nl-chip mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-sm px-4 text-sm font-medium text-ink no-underline"
           >
             {t.test}
           </a>
@@ -191,7 +191,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             onFile(e.dataTransfer.files[0] ?? null)
           }}
           className={`flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed px-4 py-6 text-center ${
-            drag || file ? 'border-pine bg-sheet' : 'border-line bg-sheet hover:bg-paper-tint'
+            drag || file ? 'border-pine bg-sheet' : 'border-line bg-sheet hover:border-pine/50 hover:bg-paper-tint'
           }`}
         >
           <input
@@ -226,7 +226,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             inputMode="decimal"
             value={price}
             onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, ''))}
-            className="h-12 w-full rounded-sm border border-line bg-sheet pl-7 pr-3 text-base outline-none"
+            className="h-12 w-full rounded-sm border border-line bg-paper-tint pl-7 pr-3 text-base text-ink outline-none placeholder:text-muted"
             placeholder={String(DEFAULT_USD)}
           />
         </div>
@@ -237,7 +237,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
               type="button"
               onClick={() => setPrice(String(n))}
               aria-pressed={usd === n}
-              className={`min-h-11 rounded-sm px-3.5 text-sm font-medium ${usd === n ? 'bg-ink text-paper' : 'bg-paper-tint text-ink'}`}
+              className={`min-h-11 rounded-sm px-3.5 text-sm font-medium ${usd === n ? 'bg-pine text-pine-fg' : 'nl-chip text-ink'}`}
             >
               {formatUsd(n)}
             </button>

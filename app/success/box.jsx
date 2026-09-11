@@ -30,10 +30,10 @@ export default function SuccessBox() {
 
   if (state.error) {
     return (
-      <div className="rounded-lg bg-sheet p-6" style={{ boxShadow: '0 0 0 1px rgba(22,20,16,.06)' }}>
-        <h1 className="font-display text-3xl tracking-tight">{t.payFail}</h1>
+      <div className="nl-card rounded-2xl p-6">
+        <h1 className="font-display text-3xl font-black tracking-tight">{t.payFail}</h1>
         <p className="mt-3 text-sm text-ink-soft">{state.error}</p>
-        <Link href="/" className="mt-6 inline-flex min-h-11 items-center rounded-sm bg-ink px-4 text-sm font-medium text-paper no-underline">
+        <Link href="/" className="mt-6 inline-flex min-h-11 items-center rounded-sm bg-pine px-4 text-sm font-medium text-pine-fg no-underline">
           {t.back}
         </Link>
       </div>
@@ -41,9 +41,9 @@ export default function SuccessBox() {
   }
 
   return (
-    <div className="rounded-lg bg-sheet p-6 sm:p-8" style={{ boxShadow: '0 0 0 1px rgba(22,20,16,.06)' }}>
-      <p className="text-xs font-medium uppercase tracking-kicker text-pine">{t.successKicker}</p>
-      <h1 className="mt-2 font-display text-3xl tracking-tight">{t.success}</h1>
+    <div className="nl-card nl-card-glow rounded-2xl p-6 sm:p-8">
+      <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.successKicker}</p>
+      <h1 className="mt-2 font-display text-3xl font-black tracking-tight">{t.success}</h1>
       {state.data.customer_email ? (
         <p className="mt-3 text-sm text-ink-soft">{state.data.customer_email}</p>
       ) : null}
