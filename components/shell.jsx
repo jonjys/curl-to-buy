@@ -4,17 +4,25 @@ import Link from 'next/link'
 import { SUPPORT } from '../lib/site'
 import { useLocale } from './locale'
 
+export function Mark() {
+  return (
+    <span className="nl-mark" aria-hidden="true">
+      <span />
+    </span>
+  )
+}
+
 export function LangToggle() {
   const { locale, setLang } = useLocale()
   return (
-    <div className="flex rounded-sm bg-sheet p-0.5" style={{ boxShadow: '0 0 0 1px rgba(22,20,16,.06)' }}>
+    <div className="flex rounded-sm bg-sheet/80 p-0.5" style={{ boxShadow: '0 0 0 1px rgba(255,255,255,.08)' }}>
       {['en', 'sv'].map((code) => (
         <button
           key={code}
           type="button"
           aria-pressed={locale === code}
-          className={`min-h-11 min-w-11 rounded-xs px-2.5 text-xs font-medium uppercase ${
-            locale === code ? 'bg-ink text-paper' : 'text-muted'
+          className={`min-h-11 min-w-11 rounded-xs px-2.5 font-mono text-[11px] font-medium uppercase tracking-wider ${
+            locale === code ? 'bg-pine text-pine-fg' : 'text-muted'
           }`}
           onClick={() => setLang(code)}
         >
@@ -28,13 +36,13 @@ export function LangToggle() {
 export function SiteHeader() {
   const { t } = useLocale()
   return (
-    <header className="sticky top-0 z-20 border-b border-line/80 bg-paper/90 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <Link href="/" className="flex min-h-11 items-center gap-2 no-underline">
-          <span className="grid size-8 place-items-center rounded-sm bg-ink font-display text-sm text-paper">N</span>
+    <header className="sticky top-0 z-20 border-b border-white/5 bg-paper/70 backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
+        <Link href="/" className="flex min-h-11 items-center gap-2.5 no-underline">
+          <Mark />
           <span className="leading-tight">
-            <span className="block font-display text-base tracking-tight">{t.brand}</span>
-            <span className="block text-[11px] uppercase tracking-kicker text-muted">{t.product}</span>
+            <span className="block font-mono text-xs tracking-[0.3em] text-white">{t.brand.toUpperCase()}</span>
+            <span className="block font-mono text-[10px] uppercase tracking-kicker text-muted">{t.product}</span>
           </span>
         </Link>
         <div className="flex items-center gap-2">
@@ -55,9 +63,16 @@ export function SiteFooter() {
   const { t } = useLocale()
   const bits = [t.footerPay, t.footerFee, t.footerPayout]
   return (
-    <footer className="mt-16 border-t border-line px-4 py-8 sm:px-6" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
+    <footer
+      className="relative z-10 mt-16 border-t border-white/10 bg-black/35 px-4 py-8 sm:px-6"
+      style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+    >
       <div className="mx-auto max-w-5xl">
-        <ul className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+        <div className="flex items-center gap-2.5">
+          <Mark />
+          <span className="font-mono text-xs tracking-[0.3em] text-white">{t.brand.toUpperCase()}</span>
+        </div>
+        <ul className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
           {bits.map((bit, i) => (
             <li key={bit} className="flex items-center gap-2">
               {i > 0 ? <span aria-hidden="true">·</span> : null}
@@ -71,6 +86,11 @@ export function SiteFooter() {
             {t.mail}
           </a>
         </p>
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.22em] text-muted">
+          <a href="https://www.nyttolabs.com" className="text-pine no-underline hover:opacity-80">
+            www.nyttolabs.com
+          </a>
+        </p>
       </div>
     </footer>
   )
@@ -78,10 +98,13 @@ export function SiteFooter() {
 
 export function Frame({ children }) {
   return (
-    <div className="min-h-dvh bg-paper text-ink">
-      <SiteHeader />
-      {children}
-      <SiteFooter />
+    <div className="relative min-h-dvh bg-paper text-ink">
+      <div className="nl-grid" aria-hidden="true" />
+      <div className="relative z-10 flex min-h-dvh flex-col">
+        <SiteHeader />
+        {children}
+        <SiteFooter />
+      </div>
     </div>
   )
 }
