@@ -41,13 +41,15 @@ function HomeInner({ stripeReady, blobReady, maxMB }) {
             </a>
           </div>
           <figure className="nl-card nl-card-glow relative overflow-hidden rounded-2xl">
-            <div className="nl-hero-orb" aria-hidden="true" />
-            <figcaption className="relative p-5 sm:p-7">
+            <div className="relative h-40 sm:h-48">
+              <div className="nl-hero-orb" aria-hidden="true" />
+            </div>
+            <figcaption className="relative border-t border-white/5 bg-paper/40 p-5 sm:p-7">
               <div className="flex items-start justify-between gap-3">
                 <p className="font-mono text-[10px] uppercase tracking-kicker text-muted">{t.product}</p>
                 <p className="nl-badge rounded-full px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em]">{t.live}</p>
               </div>
-              <p className="mt-6 font-display text-6xl font-black tabular-nums tracking-tight">{formatUsd(DEFAULT_USD)}</p>
+              <p className="mt-4 font-display text-6xl font-black tabular-nums tracking-tight">{formatUsd(DEFAULT_USD)}</p>
               <p className="mt-2 text-sm text-ink-soft">{t.samplePay}</p>
               <p className="mt-0.5 text-sm text-muted">
                 {t.sampleKeep} {formatUsd(keepUsd(DEFAULT_USD))}

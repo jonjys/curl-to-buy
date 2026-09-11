@@ -146,6 +146,9 @@ a { color: inherit; }
   position: absolute;
   inset: 0;
   overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 120%, #00ff9d1f, transparent 70%),
+    linear-gradient(180deg, transparent, rgba(3, 3, 12, 0.35));
 }
 
 .nl-hero-orb::before,
@@ -153,23 +156,23 @@ a { color: inherit; }
   content: "";
   position: absolute;
   border-radius: 999px;
-  filter: blur(2px);
+  filter: blur(1px);
 }
 
 .nl-hero-orb::before {
-  width: 9rem;
-  height: 9rem;
+  width: 7.5rem;
+  height: 7.5rem;
   top: 18%;
-  left: 16%;
-  background: radial-gradient(circle at 35% 35%, #7dffc9, #00ff9d 42%, #00c878 70%, transparent 72%);
-  box-shadow: 0 0 60px rgba(0, 255, 157, 0.35);
+  left: 18%;
+  background: radial-gradient(circle at 35% 35%, #b8ffe0, #00ff9d 46%, #00c878 72%, transparent 74%);
+  box-shadow: 0 0 50px rgba(0, 255, 157, 0.4);
 }
 
 .nl-hero-orb::after {
-  width: 4.5rem;
-  height: 4.5rem;
-  right: 14%;
-  bottom: 22%;
-  background: radial-gradient(circle at 35% 35%, #9cffff, #00f5ff 45%, transparent 72%);
-  box-shadow: 0 0 36px rgba(0, 245, 255, 0.3);
+  width: 3.75rem;
+  height: 3.75rem;
+  right: 16%;
+  top: 28%;
+  background: radial-gradient(circle at 35% 35%, #d6ffff, #00f5ff 48%, transparent 74%);
+  box-shadow: 0 0 32px rgba(0, 245, 255, 0.35);
 }
