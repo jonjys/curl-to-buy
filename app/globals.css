@@ -6,11 +6,11 @@
   --color-sheet: #0c0d1a;
   --color-ink: #f4f7fb;
   --color-ink-soft: #b8c0cc;
-  --color-muted: #7d8696;
-  --color-line: #1c2333;
-  --color-pine: #00ff9d;
+  --color-muted: #9aa4b6;
+  --color-line: #283147;
+  --color-pine: #17e39a;
   --color-pine-fg: #03030c;
-  --color-cyan: #00f5ff;
+  --color-cyan: #46cfe0;
   --color-warn: #ff8a5b;
   --font-display: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
@@ -110,9 +110,9 @@ a { color: inherit; }
 }
 
 .nl-chip {
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .nl-badge {
