@@ -3,6 +3,7 @@ import { saveListing } from '../../../lib/store'
 import { newId } from '../../../lib/id'
 import { parsePrice } from '../../../lib/price'
 import { MAX_MB } from '../../../lib/site'
+import { storageErrorMessage } from '../../../lib/blob-error'
 
 export const runtime = 'nodejs'
 
@@ -27,28 +28,32 @@ export async function POST(req) {
   }
 
   const id = newId()
-  const blob = await put(`files/${id}/${file.name}`, file, {
-    access: 'public',
-    addRandomSuffix: false,
-  })
-  const listing = {
-    id,
-    name: file.name,
-    blobUrl: blob.url,
-    size: file.size,
-    type: file.type || 'application/octet-stream',
-    currency: price.currency,
-    priceUsd: price.priceUsd,
-    priceSek: price.priceSek,
-    priceCents: price.priceCents,
-    createdAt: Date.now(),
+  try {
+    const blob = await put(`files/${id}/${file.name}`, file, {
+      access: 'public',
+      addRandomSuffix: false,
+    })
+    const listing = {
+      id,
+      name: file.name,
+      blobUrl: blob.url,
+      size: file.size,
+      type: file.type || 'application/octet-stream',
+      currency: price.currency,
+      priceUsd: price.priceUsd,
+      priceSek: price.priceSek,
+      priceCents: price.priceCents,
+      createdAt: Date.now(),
+    }
+    await saveListing(listing)
+    return Response.json({
+      id,
+      name: listing.name,
+      priceUsd: listing.priceUsd,
+      priceSek: listing.priceSek,
+      currency: listing.currency,
+    })
+  } catch (err) {
+    return Response.json({ error: storageErrorMessage(err) }, { status: 500 })
   }
-  await saveListing(listing)
-  return Response.json({
-    id,
-    name: listing.name,
-    priceUsd: listing.priceUsd,
-    priceSek: listing.priceSek,
-    currency: listing.currency,
-  })
 }
