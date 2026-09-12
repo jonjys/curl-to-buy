@@ -86,7 +86,18 @@ export function SiteFooter() {
             {t.mail}
           </a>
         </p>
-        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.22em] text-muted">
+        <nav className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <Link href="/terms" className="text-muted no-underline transition-colors hover:text-ink">
+            {t.legalTerms}
+          </Link>
+          <Link href="/refunds" className="text-muted no-underline transition-colors hover:text-ink">
+            {t.legalRefunds}
+          </Link>
+          <Link href="/privacy" className="text-muted no-underline transition-colors hover:text-ink">
+            {t.legalPrivacy}
+          </Link>
+        </nav>
+        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-muted">
           <a href="https://www.nyttolabs.com" className="text-pine no-underline hover:opacity-80">
             www.nyttolabs.com
           </a>
