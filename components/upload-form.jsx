@@ -68,7 +68,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       let created
       if (blobReady && file.size > 4 * 1024 * 1024) {
         const blob = await upload(file.name, file, {
-          access: 'private',
+          access: 'public',
           handleUploadUrl: '/api/upload-url',
           onUploadProgress: ({ percentage }) => setProgress(Math.round(percentage)),
         })
