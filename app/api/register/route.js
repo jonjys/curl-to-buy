@@ -1,6 +1,7 @@
 import { saveListing } from '../../../lib/store'
 import { newId } from '../../../lib/id'
 import { parsePrice } from '../../../lib/price'
+import { storageErrorMessage } from '../../../lib/blob-error'
 
 export const runtime = 'nodejs'
 
@@ -26,7 +27,11 @@ export async function POST(req) {
     priceCents: price.priceCents,
     createdAt: Date.now(),
   }
-  await saveListing(listing)
+  try {
+    await saveListing(listing)
+  } catch (err) {
+    return Response.json({ error: storageErrorMessage(err) }, { status: 500 })
+  }
   return Response.json({
     id,
     name: listing.name,

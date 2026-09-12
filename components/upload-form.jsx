@@ -19,6 +19,16 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   const [copied, setCopied] = useState(false)
   const [drag, setDrag] = useState(false)
 
+  async function readJson(res) {
+    const text = await res.text()
+    if (!text) return {}
+    try {
+      return JSON.parse(text)
+    } catch {
+      return { error: text.slice(0, 200) }
+    }
+  }
+
   const usd = Number.parseFloat(price)
   const validUsd = Number.isFinite(usd) && usd >= MIN_USD
   const keep = validUsd ? keepOf(usd) : 0
@@ -67,7 +77,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ blobUrl: blob.url, name: file.name, priceUsd: String(usd) }),
         })
-        const json = await res.json()
+        const json = await readJson(res)
         if (!res.ok) throw new Error(json.error || 'Could not register the file.')
         created = json
       } else {
@@ -76,7 +86,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         body.append('priceUsd', String(usd))
         setProgress(45)
         const res = await fetch('/api/upload', { method: 'POST', body })
-        const json = await res.json()
+        const json = await readJson(res)
         if (!res.ok) throw new Error(json.error || 'Upload failed.')
         setProgress(100)
         created = json
