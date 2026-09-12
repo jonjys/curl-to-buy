@@ -1,3 +1,4 @@
+import { get } from '@vercel/blob'
 import { stripe } from '../../../../lib/stripe'
 import { getListing } from '../../../../lib/store'
 
@@ -26,18 +27,17 @@ export async function GET(req, { params }) {
     return Response.json({ error: 'Session does not match this file.' }, { status: 403 })
   }
   const listing = await getListing(id)
-  if (!listing?.blobUrl) {
+  if (!listing?.blobPathname) {
     return Response.json({ error: 'File is gone.' }, { status: 404 })
   }
-  const fileRes = await fetch(listing.blobUrl)
-  if (!fileRes.ok) {
+  const result = await get(listing.blobPathname, { access: 'private' })
+  if (!result || result.statusCode !== 200) {
     return Response.json({ error: 'File is gone.' }, { status: 404 })
   }
-  const buf = await fileRes.arrayBuffer()
   const filename = listing.name.replace(/[\r\n"]/g, '_')
-  return new Response(buf, {
+  return new Response(result.stream, {
     headers: {
-      'Content-Type': listing.type || fileRes.headers.get('content-type') || 'application/octet-stream',
+      'Content-Type': listing.type || result.blob.contentType || 'application/octet-stream',
       'Content-Disposition': `attachment; filename="${filename}"`,
       'Cache-Control': 'no-store',
     },

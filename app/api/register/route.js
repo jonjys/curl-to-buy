@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 
 export async function POST(req) {
   const body = await req.json().catch(() => null)
-  if (!body?.blobUrl || !body?.name) {
+  if (!body?.blobPathname || !body?.name) {
     return Response.json({ error: 'Missing file.' }, { status: 400 })
   }
   const price = parsePrice(body)
@@ -18,7 +18,7 @@ export async function POST(req) {
   const listing = {
     id,
     name: String(body.name).slice(0, 240),
-    blobUrl: String(body.blobUrl),
+    blobPathname: String(body.blobPathname),
     size: Number(body.size) || 0,
     type: body.type || 'application/octet-stream',
     currency: price.currency,

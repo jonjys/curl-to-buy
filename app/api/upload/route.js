@@ -30,13 +30,13 @@ export async function POST(req) {
   const id = newId()
   try {
     const blob = await put(`files/${id}/${file.name}`, file, {
-      access: 'public',
+      access: 'private',
       addRandomSuffix: false,
     })
     const listing = {
       id,
       name: file.name,
-      blobUrl: blob.url,
+      blobPathname: blob.pathname,
       size: file.size,
       type: file.type || 'application/octet-stream',
       currency: price.currency,

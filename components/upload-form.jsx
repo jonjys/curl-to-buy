@@ -68,14 +68,14 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       let created
       if (blobReady && file.size > 4 * 1024 * 1024) {
         const blob = await upload(file.name, file, {
-          access: 'public',
+          access: 'private',
           handleUploadUrl: '/api/upload-url',
           onUploadProgress: ({ percentage }) => setProgress(Math.round(percentage)),
         })
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ blobUrl: blob.url, name: file.name, priceUsd: String(usd) }),
+          body: JSON.stringify({ blobPathname: blob.pathname, name: file.name, size: file.size, priceUsd: String(usd) }),
         })
         const json = await readJson(res)
         if (!res.ok) throw new Error(json.error || 'Could not register the file.')
