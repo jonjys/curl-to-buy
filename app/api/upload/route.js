@@ -30,7 +30,7 @@ export async function POST(req) {
   const id = newId()
   try {
     const blob = await put(`files/${id}/${file.name}`, file, {
-      access: 'private',
+      access: 'public',
       addRandomSuffix: false,
     })
     const listing = {

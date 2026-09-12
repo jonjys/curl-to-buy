@@ -30,7 +30,7 @@ export async function GET(req, { params }) {
   if (!listing?.blobPathname) {
     return Response.json({ error: 'File is gone.' }, { status: 404 })
   }
-  const result = await get(listing.blobPathname, { access: 'private' })
+  const result = await get(listing.blobPathname, { access: 'public' })
   if (!result || result.statusCode !== 200) {
     return Response.json({ error: 'File is gone.' }, { status: 404 })
   }
