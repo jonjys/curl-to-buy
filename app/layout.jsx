@@ -1,7 +1,7 @@
 import './globals.css'
 import { SITE } from '../lib/site'
 
-const OG = 'https://raw.githubusercontent.com/jonjys/curl-to-buy/main/public/og.jpg'
+const OG = `${SITE}/og.jpg`
 
 export const metadata = {
   metadataBase: new URL(SITE),
