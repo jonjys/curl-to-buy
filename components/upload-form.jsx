@@ -163,7 +163,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           </div>
           <a
             href={shareUrl}
-            className="nl-chip mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-sm px-4 text-sm font-medium text-ink no-underline"
+            className="nl-chip mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-sm px-4 text-sm font-medium text-ink no-underline transition-colors hover:border-pine/60"
           >
             {t.test}
           </a>
