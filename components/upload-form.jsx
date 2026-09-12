@@ -192,7 +192,11 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           </div>
         )}
         <div className="nl-card rounded-md p-4">
-          {!payout.ready ? <p className="mb-2 text-xs text-muted">{t.payoutHint}</p> : null}
+          {payout.ready ? (
+            <p className="mb-2 text-xs font-medium text-ink-soft">{t.shareHint}</p>
+          ) : (
+            <p className="mb-2 text-xs text-muted">{t.payoutHint}</p>
+          )}
           <p className="break-all font-mono text-xs text-muted">{shareUrl}</p>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:flex">
             <button
@@ -212,9 +216,11 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           </div>
           <a
             href={shareUrl}
-            className="nl-chip mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-sm px-4 text-sm font-medium text-ink no-underline transition-colors hover:border-pine/60"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-block text-xs text-muted underline underline-offset-4 transition-colors hover:text-ink"
           >
-            {t.test}
+            {t.test} ↗
           </a>
         </div>
         <button
