@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { upload } from '@vercel/blob/client'
 import { DEFAULT_USD, FEE, MAX_MB, MIN_USD, PRESETS } from '../lib/site'
 import { formatUsd } from '../lib/copy'
@@ -18,6 +18,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   const [listing, setListing] = useState(null)
   const [copied, setCopied] = useState(false)
   const [drag, setDrag] = useState(false)
+  const [payout, setPayout] = useState({ checking: false, ready: false, busy: false, error: null })
 
   async function readJson(res) {
     const text = await res.text()
@@ -38,6 +39,36 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     if (!listing || typeof window === 'undefined') return ''
     return `${window.location.origin}/dl/${listing.id}`
   }, [listing])
+
+  useEffect(() => {
+    if (!listing?.id) return
+    let alive = true
+    setPayout({ checking: true, ready: false, busy: false, error: null })
+    fetch(`/api/connect/${listing.id}`)
+      .then(readJson)
+      .then((j) => {
+        if (alive) setPayout({ checking: false, ready: Boolean(j.chargesEnabled), busy: false, error: null })
+      })
+      .catch(() => {
+        if (alive) setPayout({ checking: false, ready: false, busy: false, error: null })
+      })
+    return () => {
+      alive = false
+    }
+  }, [listing?.id])
+
+  async function connectPayouts() {
+    if (!listing?.id) return
+    setPayout((p) => ({ ...p, busy: true, error: null }))
+    try {
+      const res = await fetch(`/api/connect/${listing.id}`, { method: 'POST' })
+      const json = await readJson(res)
+      if (!res.ok || !json.url) throw new Error(json.error || 'Could not start payout setup.')
+      window.location.href = json.url
+    } catch (err) {
+      setPayout((p) => ({ ...p, busy: false, error: err.message }))
+    }
+  }
 
   const onFile = useCallback(
     (next) => {
@@ -143,7 +174,25 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             </p>
           ) : null}
         </div>
+        {payout.ready ? (
+          <div className="nl-badge rounded-md px-4 py-3 text-sm font-medium">{t.payoutReady}</div>
+        ) : (
+          <div className="rounded-md border border-pine/30 bg-pine/5 p-4">
+            <p className="font-display text-base font-bold text-ink">{t.payoutTitle}</p>
+            <p className="mt-1 text-sm leading-relaxed text-ink-soft">{t.payoutLede}</p>
+            <button
+              type="button"
+              onClick={connectPayouts}
+              disabled={payout.busy || payout.checking}
+              className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-sm bg-pine px-4 text-sm font-medium text-pine-fg disabled:opacity-50"
+            >
+              {payout.checking ? t.payoutChecking : payout.busy ? t.payoutChecking : t.payoutCta}
+            </button>
+            {payout.error ? <p className="mt-2 text-sm text-warn">{payout.error}</p> : null}
+          </div>
+        )}
         <div className="nl-card rounded-md p-4">
+          {!payout.ready ? <p className="mb-2 text-xs text-muted">{t.payoutHint}</p> : null}
           <p className="break-all font-mono text-xs text-muted">{shareUrl}</p>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:flex">
             <button

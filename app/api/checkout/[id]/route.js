@@ -1,7 +1,7 @@
 import { stripe } from '../../../../lib/stripe'
 import { getListing } from '../../../../lib/store'
 import { displayPrice } from '../../../../lib/price'
-import { SITE } from '../../../../lib/site'
+import { SITE, FEE } from '../../../../lib/site'
 
 export const runtime = 'nodejs'
 
@@ -21,6 +21,23 @@ export async function POST(_req, { params }) {
     return Response.json({ error: 'Price must be at least $1.' }, { status: 400 })
   }
 
+  // Marketplace: the seller must have connected a Stripe payout account, and it
+  // must be able to accept charges, before anyone can buy. The money is split
+  // at checkout — the seller keeps (1 - FEE), the platform keeps FEE.
+  if (!listing.stripeAccountId) {
+    return Response.json({ error: 'This file is not ready for sale yet.' }, { status: 409 })
+  }
+  try {
+    const acct = await client.accounts.retrieve(listing.stripeAccountId)
+    if (!acct.charges_enabled) {
+      return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
+    }
+  } catch {
+    return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
+  }
+
+  const applicationFee = Math.round(price.amount * FEE)
+
   const session = await client.checkout.sessions.create({
     mode: 'payment',
     payment_method_types: ['card'],
@@ -37,6 +54,10 @@ export async function POST(_req, { params }) {
         },
       },
     ],
+    payment_intent_data: {
+      application_fee_amount: applicationFee,
+      transfer_data: { destination: listing.stripeAccountId },
+    },
     success_url: `${SITE}/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${SITE}/dl/${listing.id}`,
     metadata: { file_id: listing.id },
