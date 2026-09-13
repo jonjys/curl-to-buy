@@ -44,10 +44,12 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     if (!listing?.id) return
     let alive = true
     setPayout({ checking: true, ready: false, busy: false, error: null })
-    fetch(`/api/connect/${listing.id}`)
+    fetch('/api/connect/status')
       .then(readJson)
       .then((j) => {
-        if (alive) setPayout({ checking: false, ready: Boolean(j.chargesEnabled), busy: false, error: null })
+        if (alive) {
+          setPayout({ checking: false, ready: Boolean(j.chargesEnabled && j.payoutsEnabled), busy: false, error: null })
+        }
       })
       .catch(() => {
         if (alive) setPayout({ checking: false, ready: false, busy: false, error: null })
@@ -61,7 +63,11 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     if (!listing?.id) return
     setPayout((p) => ({ ...p, busy: true, error: null }))
     try {
-      const res = await fetch(`/api/connect/${listing.id}`, { method: 'POST' })
+      const res = await fetch('/api/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: listing.id }),
+      })
       const json = await readJson(res)
       if (!res.ok || !json.url) throw new Error(json.error || 'Could not start payout setup.')
       window.location.href = json.url
