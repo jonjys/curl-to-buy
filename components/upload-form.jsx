@@ -284,6 +284,19 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             </>
           )}
         </label>
+        <details className="nl-chip rounded-md px-3.5 py-2.5 text-sm [&_summary]:cursor-pointer [&_summary]:list-none [&_summary::-webkit-details-marker]:hidden">
+          <summary className="flex items-center justify-between gap-2 font-medium text-ink">
+            {t.sellListTitle}
+            <span aria-hidden="true" className="text-muted">＋</span>
+          </summary>
+          <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-ink-soft">
+            {t.sellList.map((item) => (
+              <li key={item}>· {item}</li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted">{t.sellListFoot}</p>
+          <p className="mt-2 text-xs text-warn">{t.sellListCodeNote}</p>
+        </details>
       </div>
 
       <div className="space-y-2">

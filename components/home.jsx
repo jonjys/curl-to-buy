@@ -64,6 +64,7 @@ function HomeInner({ stripeReady, blobReady, maxMB }) {
             <div className="nl-card rounded-2xl p-5 sm:p-7">
               <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.live}</p>
               <h2 className="mt-2 font-display text-2xl font-bold">{t.uploadTitle}</h2>
+              <p className="mt-1 text-sm font-semibold text-cyan">{t.uploadSubtitle}</p>
               <p className="mt-2 text-sm leading-relaxed text-ink-soft">{t.uploadLede}</p>
               <div className="mt-6">
                 <UploadForm stripeReady={stripeReady} blobReady={blobReady} maxMB={maxMB} />
