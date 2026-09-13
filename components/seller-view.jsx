@@ -5,10 +5,14 @@ import Link from 'next/link'
 import { useLocale } from './locale'
 import { formatUsd } from '../lib/copy'
 
-export default function SellerView({ hasSeller, status, listings }) {
+export default function SellerView({ hasSeller, status, listings, recoveryEmail }) {
   const { t } = useLocale()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [email, setEmail] = useState('')
+  const [emailBusy, setEmailBusy] = useState(false)
+  const [emailError, setEmailError] = useState(null)
+  const [savedEmail, setSavedEmail] = useState(recoveryEmail || null)
 
   async function resume() {
     setBusy(true)
@@ -24,15 +28,40 @@ export default function SellerView({ hasSeller, status, listings }) {
     }
   }
 
+  async function saveEmail(e) {
+    e.preventDefault()
+    setEmailBusy(true)
+    setEmailError(null)
+    try {
+      const res = await fetch('/api/connect/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(json.error || 'Could not save that email.')
+      setSavedEmail(json.email)
+    } catch (err) {
+      setEmailError(err.message)
+    } finally {
+      setEmailBusy(false)
+    }
+  }
+
   if (!hasSeller) {
     return (
       <div className="nl-card rounded-2xl p-6 sm:p-8">
         <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.sellerKicker}</p>
         <h1 className="mt-2 font-display text-2xl font-bold">{t.sellerNoneTitle}</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-soft">{t.sellerNoneBody}</p>
-        <Link href="/" className="mt-6 inline-flex min-h-11 items-center rounded-sm bg-pine px-4 text-sm font-medium text-pine-fg no-underline">
-          {t.cta}
-        </Link>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link href="/" className="inline-flex min-h-11 items-center rounded-sm bg-pine px-4 text-sm font-medium text-pine-fg no-underline">
+            {t.cta}
+          </Link>
+          <Link href="/seller/recover" className="inline-flex min-h-11 items-center rounded-sm border border-white/15 px-4 text-sm font-medium text-ink no-underline">
+            {t.sellerLostAccess}
+          </Link>
+        </div>
       </div>
     )
   }
@@ -65,6 +94,37 @@ export default function SellerView({ hasSeller, status, listings }) {
         )}
       </div>
 
+      <div className="nl-card rounded-2xl p-6 sm:p-8">
+        <h2 className="font-display text-lg font-bold">{t.recoveryEmailTitle}</h2>
+        {savedEmail ? (
+          <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+            {t.recoveryEmailSaved} <span className="font-medium text-ink">{maskEmail(savedEmail)}</span>
+          </p>
+        ) : (
+          <>
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">{t.recoveryEmailLede}</p>
+            <form onSubmit={saveEmail} className="mt-3 flex flex-wrap gap-2">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="h-11 min-w-0 flex-1 rounded-sm border border-line bg-paper-tint px-3 text-sm text-ink outline-none placeholder:text-muted"
+              />
+              <button
+                type="submit"
+                disabled={emailBusy}
+                className="inline-flex h-11 items-center rounded-sm bg-pine px-4 text-sm font-medium text-pine-fg disabled:opacity-50"
+              >
+                {emailBusy ? t.payoutChecking : t.recoveryEmailCta}
+              </button>
+            </form>
+            {emailError ? <p className="mt-2 text-sm text-warn">{emailError}</p> : null}
+          </>
+        )}
+      </div>
+
       {listings.length > 0 ? (
         <div className="nl-card rounded-2xl p-6 sm:p-8">
           <h2 className="font-display text-lg font-bold">{t.sellerListings}</h2>
@@ -83,4 +143,11 @@ export default function SellerView({ hasSeller, status, listings }) {
       {incomplete ? null : <p className="text-xs text-muted">{t.sellerAutoNote}</p>}
     </div>
   )
+}
+
+function maskEmail(email) {
+  const [name, domain] = String(email).split('@')
+  if (!domain) return email
+  const visible = name.slice(0, 2)
+  return `${visible}${'*'.repeat(Math.max(1, name.length - visible.length))}@${domain}`
 }
