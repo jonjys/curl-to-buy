@@ -25,7 +25,7 @@ export async function POST(req) {
   const price = parsePrice({ priceUsd: form.get('priceUsd'), priceSek: form.get('priceSek') })
   if (!file || typeof file === 'string') return Response.json({ error: 'Choose a file first.' }, { status: 400 })
   if (file.size > MAX_MB * 1024 * 1024) return Response.json({ error: `File is too large (max ${MAX_MB} MB).` }, { status: 400 })
-  if (!price) return Response.json({ error: 'Price must be at least $1.' }, { status: 400 })
+  if (!price) return Response.json({ error: 'Price must be at least $5.' }, { status: 400 })
   if (!process.env.BLOB_READ_WRITE_TOKEN) return Response.json({ error: 'Storage is not configured.' }, { status: 500 })
 
   const id = newId()

@@ -3,7 +3,7 @@ import { getListing, getSalesCount, getSeller, listingFiles } from '../../../../
 import { displayPrice } from '../../../../lib/price'
 import { SITE } from '../../../../lib/site'
 import { applicationFeeCents } from '../../../../lib/fees'
-import { merchantStatus, retrieveConnectedMerchant } from '../../../../lib/stripe-connect'
+import { recipientStatus, retrieveConnectedRecipient } from '../../../../lib/stripe-connect'
 
 export const runtime = 'nodejs'
 
@@ -20,8 +20,8 @@ export async function POST(_req, { params }) {
   }
 
   try {
-    const status = merchantStatus(await retrieveConnectedMerchant(seller.stripeAccountId))
-    if (!status.cardPayments || !status.payouts) {
+    const status = recipientStatus(await retrieveConnectedRecipient(seller.stripeAccountId))
+    if (!status.transfers) {
       return Response.json({ error: 'The seller is still completing Stripe setup.' }, { status: 409 })
     }
   } catch {
@@ -36,9 +36,9 @@ export async function POST(_req, { params }) {
   }
 
   const price = displayPrice(listing)
-  const min = price.currency === 'usd' ? 100 : 300
+  const min = price.currency === 'usd' ? 500 : 5000
   if (!price.amount || price.amount < min) {
-    return Response.json({ error: 'Price must be at least $1.' }, { status: 400 })
+    return Response.json({ error: 'Price must be at least $5.' }, { status: 400 })
   }
 
   const fileCount = listingFiles(listing).length
@@ -58,11 +58,12 @@ export async function POST(_req, { params }) {
     }],
     payment_intent_data: {
       application_fee_amount: applicationFeeCents(price.amount, seller.feeBps || 500),
+      transfer_data: { destination: seller.stripeAccountId },
     },
     success_url: `${SITE}/success?listing_id=${listing.id}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${SITE}/dl/${listing.id}`,
     metadata: { file_id: listing.id },
-  }, { stripeAccount: seller.stripeAccountId })
+  })
 
   return Response.json({ url: session.url })
 }

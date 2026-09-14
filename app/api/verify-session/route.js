@@ -1,5 +1,5 @@
 import { stripe } from '../../../lib/stripe'
-import { getListing, getSeller, listingFiles, recordPurchase } from '../../../lib/store'
+import { getListing, listingFiles, recordPurchase } from '../../../lib/store'
 
 export const runtime = 'nodejs'
 
@@ -13,9 +13,8 @@ export async function GET(req) {
 
   try {
     const listing = await getListing(listingId)
-    const seller = listing?.sellerId ? await getSeller(listing.sellerId) : null
-    if (!listing || !seller?.stripeAccountId) return Response.json({ error: 'The files are no longer available.' }, { status: 404 })
-    const session = await client.checkout.sessions.retrieve(sessionId, {}, { stripeAccount: seller.stripeAccountId })
+    if (!listing) return Response.json({ error: 'The files are no longer available.' }, { status: 404 })
+    const session = await client.checkout.sessions.retrieve(sessionId)
     if (session.payment_status !== 'paid' || session.metadata?.file_id !== listingId) {
       return Response.json({ status: session.payment_status, file_id: listingId })
     }

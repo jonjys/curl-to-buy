@@ -1,6 +1,6 @@
 import { get } from '@vercel/blob'
 import { stripe } from '../../../../lib/stripe'
-import { consumeDownload, getListing, getSeller, listingFiles, recordPurchase } from '../../../../lib/store'
+import { consumeDownload, getListing, listingFiles, recordPurchase } from '../../../../lib/store'
 
 export const runtime = 'nodejs'
 
@@ -16,10 +16,7 @@ export async function GET(req, { params }) {
 
   let session
   try {
-    const listingForAccount = await getListing(id)
-    const seller = listingForAccount?.sellerId ? await getSeller(listingForAccount.sellerId) : null
-    if (!seller?.stripeAccountId) throw new Error('Missing seller account')
-    session = await client.checkout.sessions.retrieve(sessionId, {}, { stripeAccount: seller.stripeAccountId })
+    session = await client.checkout.sessions.retrieve(sessionId)
   } catch {
     return Response.json({ error: 'Could not verify the payment.' }, { status: 400 })
   }

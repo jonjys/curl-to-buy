@@ -47,7 +47,7 @@ export async function POST(req) {
   }
 
   const price = parsePrice(body)
-  if (!price) return Response.json({ error: 'Price must be at least $1.' }, { status: 400 })
+  if (!price) return Response.json({ error: 'Price must be at least $5.' }, { status: 400 })
 
   const id = newId()
   const listing = {

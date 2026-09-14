@@ -1,5 +1,5 @@
 import { getSeller, saveSeller } from '../../../lib/store'
-import { createConnectedMerchant, createOnboardingLink } from '../../../lib/stripe-connect'
+import { createConnectedRecipient, createOnboardingLink } from '../../../lib/stripe-connect'
 import { feeBpsForEmail, newSellerId, sellerCookie, sellerIdFromRequest, validSellerEmail } from '../../../lib/seller'
 import { SITE } from '../../../lib/site'
 
@@ -17,7 +17,7 @@ export async function POST(req) {
       if (!email) return Response.json({ error: 'Enter a valid email address.' }, { status: 400 })
 
       const id = newSellerId()
-      const account = await createConnectedMerchant({ email, sellerId: id })
+      const account = await createConnectedRecipient({ email, sellerId: id })
       seller = {
         id,
         email,
