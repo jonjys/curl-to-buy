@@ -12,7 +12,7 @@ export async function GET(req) {
   try {
     const account = await retrieveConnectedRecipient(seller.stripeAccountId)
     const status = recipientStatus(account)
-    const ready = status.transfers
+    const ready = status.cardPayments && status.transfers
     await updateSeller(seller.id, { ...status, ready })
     return Response.json({ hasSeller: true, ready, feeBps: seller.feeBps || 500, ...status })
   } catch {

@@ -21,7 +21,7 @@ export async function POST(req, { params }) {
 
   try {
     const status = recipientStatus(await retrieveConnectedRecipient(seller.stripeAccountId))
-    if (!status.transfers) {
+    if (!status.cardPayments || !status.transfers) {
       return Response.json({ error: 'The seller is still completing Stripe setup.' }, { status: 409 })
     }
   } catch {
