@@ -1,19 +1,36 @@
 import { saveListing } from '../../../lib/store'
 import { newId } from '../../../lib/id'
 import { parsePrice } from '../../../lib/price'
-import { MAX_FILES, MAX_MB } from '../../../lib/site'
+import { MAX_DESCRIPTION_LENGTH, MAX_FILES, MAX_MB, MAX_SALES_LIMIT, TIME_LIMIT_MINUTES } from '../../../lib/site'
 import { storageErrorMessage } from '../../../lib/blob-error'
 import { loadReadySeller } from '../../../lib/stripe-connect'
 
 export const runtime = 'nodejs'
 
-const LIMITS = new Set([1, 5, 25, 100])
 const DOWNLOAD_LIMITS = new Set([1, 3, 5, 10])
+const TIME_LIMITS = new Set(TIME_LIMIT_MINUTES)
 
 function numberOrNull(value, allowed) {
   if (value === null || value === 'unlimited') return null
   const number = Number(value)
   return allowed.has(number) ? number : null
+}
+
+function salesLimitOrNull(value) {
+  if (value === null || value === undefined || value === 'unlimited' || value === '') return null
+  const number = Math.floor(Number(value))
+  return Number.isInteger(number) && number >= 1 && number <= MAX_SALES_LIMIT ? number : null
+}
+
+function expiresAtOrNull(timeLimitMinutes) {
+  if (timeLimitMinutes === null || timeLimitMinutes === undefined || timeLimitMinutes === 'none') return null
+  const number = Number(timeLimitMinutes)
+  return TIME_LIMITS.has(number) ? Date.now() + number * 60 * 1000 : null
+}
+
+function descriptionOrNull(value) {
+  const text = String(value || '').trim().slice(0, MAX_DESCRIPTION_LENGTH)
+  return text || null
 }
 
 export async function POST(req) {
@@ -58,8 +75,10 @@ export async function POST(req) {
     priceUsd: price.priceUsd,
     priceSek: price.priceSek,
     priceCents: price.priceCents,
-    salesLimit: numberOrNull(body.salesLimit, LIMITS),
+    salesLimit: salesLimitOrNull(body.salesLimit),
     downloadsPerFile: numberOrNull(body.downloadsPerFile, DOWNLOAD_LIMITS),
+    description: descriptionOrNull(body.description),
+    expiresAt: expiresAtOrNull(body.timeLimitMinutes),
     sellerId: seller.id,
     createdAt: Date.now(),
   }
@@ -79,5 +98,6 @@ export async function POST(req) {
     currency: listing.currency,
     salesLimit: listing.salesLimit,
     downloadsPerFile: listing.downloadsPerFile,
+    expiresAt: listing.expiresAt,
   })
 }

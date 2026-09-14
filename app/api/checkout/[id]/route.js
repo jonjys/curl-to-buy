@@ -22,6 +22,10 @@ export async function POST(req, { params }) {
     }
   }
 
+  if (Number.isInteger(listing.expiresAt) && Date.now() > listing.expiresAt) {
+    return Response.json({ error: 'This offer has expired.' }, { status: 410 })
+  }
+
   const price = displayPrice(listing)
   if (!price.amount || price.amount < 100) {
     return Response.json({ error: 'This link does not have a valid price.' }, { status: 400 })

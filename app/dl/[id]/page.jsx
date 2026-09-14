@@ -13,6 +13,17 @@ export default async function DlPage({ params }) {
   if (!listing) notFound()
   const sold = Number.isInteger(listing.salesLimit) ? await getSalesCount(id) : 0
   const soldOut = Number.isInteger(listing.salesLimit) && sold >= listing.salesLimit
-  const safeListing = { id: listing.id, name: listing.name, fileCount: listingFiles(listing).length, salesLimit: listing.salesLimit, sold, soldOut }
+  const expired = Number.isInteger(listing.expiresAt) && Date.now() > listing.expiresAt
+  const safeListing = {
+    id: listing.id,
+    name: listing.name,
+    description: listing.description || null,
+    fileCount: listingFiles(listing).length,
+    salesLimit: listing.salesLimit,
+    sold,
+    soldOut,
+    expiresAt: listing.expiresAt || null,
+    expired,
+  }
   return <LocaleProvider><Frame><main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-12 sm:px-6"><BuyBox listing={safeListing} price={displayPrice(listing)} /></main></Frame></LocaleProvider>
 }

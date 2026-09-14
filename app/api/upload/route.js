@@ -2,7 +2,7 @@ import { put } from '@vercel/blob'
 import { saveListing } from '../../../lib/store'
 import { newId } from '../../../lib/id'
 import { parsePrice } from '../../../lib/price'
-import { MAX_MB } from '../../../lib/site'
+import { MAX_DESCRIPTION_LENGTH, MAX_MB, MAX_SALES_LIMIT, TIME_LIMIT_MINUTES } from '../../../lib/site'
 import { storageErrorMessage } from '../../../lib/blob-error'
 import { loadReadySeller } from '../../../lib/stripe-connect'
 
@@ -12,6 +12,23 @@ function limit(value, allowed) {
   if (value === 'unlimited') return null
   const parsed = Number(value)
   return allowed.includes(parsed) ? parsed : null
+}
+
+function salesLimitOrNull(value) {
+  if (value === null || value === undefined || value === 'unlimited' || value === '') return null
+  const number = Math.floor(Number(value))
+  return Number.isInteger(number) && number >= 1 && number <= MAX_SALES_LIMIT ? number : null
+}
+
+function expiresAtOrNull(timeLimitMinutes) {
+  if (timeLimitMinutes === null || timeLimitMinutes === undefined || timeLimitMinutes === 'none') return null
+  const number = Number(timeLimitMinutes)
+  return TIME_LIMIT_MINUTES.includes(number) ? Date.now() + number * 60 * 1000 : null
+}
+
+function descriptionOrNull(value) {
+  const text = String(value || '').trim().slice(0, MAX_DESCRIPTION_LENGTH)
+  return text || null
 }
 
 export async function POST(req) {
@@ -39,8 +56,10 @@ export async function POST(req) {
       priceUsd: price.priceUsd,
       priceSek: price.priceSek,
       priceCents: price.priceCents,
-      salesLimit: limit(form.get('salesLimit'), [1, 5, 25, 100]),
+      salesLimit: salesLimitOrNull(form.get('salesLimit')),
       downloadsPerFile: limit(form.get('downloadsPerFile'), [1, 3, 5, 10]),
+      description: descriptionOrNull(form.get('description')),
+      expiresAt: expiresAtOrNull(form.get('timeLimitMinutes')),
       sellerId: seller.id,
       createdAt: Date.now(),
     }
@@ -54,6 +73,7 @@ export async function POST(req) {
       currency: listing.currency,
       salesLimit: listing.salesLimit,
       downloadsPerFile: listing.downloadsPerFile,
+      expiresAt: listing.expiresAt,
     })
   } catch (err) {
     return Response.json({ error: storageErrorMessage(err) }, { status: 500 })

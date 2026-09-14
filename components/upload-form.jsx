@@ -2,11 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { upload } from '@vercel/blob/client'
-import { DEFAULT_USD, MAX_FILES, MAX_MB, MIN_USD, PRESETS } from '../lib/site'
+import { DEFAULT_USD, MAX_FILES, MAX_MB, MAX_SALES_LIMIT, MIN_USD, PRESETS } from '../lib/site'
 import { formatUsd } from '../lib/copy'
 import { useLocale } from './locale'
 
 const DRAFT_KEY = 'curl-to-buy:pending-listing'
+const QUANTITY_SLIDER_MAX = 1000
+
+function sliderToQuantity(pos) {
+  const ratio = pos / QUANTITY_SLIDER_MAX
+  return Math.max(1, Math.min(MAX_SALES_LIMIT, Math.round(10 ** (ratio * Math.log10(MAX_SALES_LIMIT)))))
+}
+
+function quantityToSlider(value) {
+  const v = Math.max(1, Math.min(MAX_SALES_LIMIT, value))
+  return Math.round((Math.log10(v) / Math.log10(MAX_SALES_LIMIT)) * QUANTITY_SLIDER_MAX)
+}
 
 function readDraft() {
   try {
@@ -37,6 +48,8 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   const [price, setPrice] = useState(String(DEFAULT_USD))
   const [salesLimit, setSalesLimit] = useState('unlimited')
   const [downloadsPerFile, setDownloadsPerFile] = useState('3')
+  const [description, setDescription] = useState('')
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState('none')
   const [accepted, setAccepted] = useState(false)
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -72,6 +85,8 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           priceUsd: draft.priceUsd,
           salesLimit: draft.salesLimit,
           downloadsPerFile: draft.downloadsPerFile,
+          description: draft.description,
+          timeLimitMinutes: draft.timeLimitMinutes,
         }),
       })
       const json = await readJson(res)
@@ -176,7 +191,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           })
           uploaded.push({ blobPathname: blob.pathname, name: file.name, size: file.size, type: file.type })
         }
-        writeDraft({ uploaded, title, priceUsd: String(usd), salesLimit, downloadsPerFile })
+        writeDraft({ uploaded, title, priceUsd: String(usd), salesLimit, downloadsPerFile, description, timeLimitMinutes })
         setShowConnect(true)
       } catch (err) {
         setError(err.message || 'Upload failed.')
@@ -205,7 +220,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ files: uploaded, title, priceUsd: String(usd), salesLimit, downloadsPerFile }),
+          body: JSON.stringify({ files: uploaded, title, priceUsd: String(usd), salesLimit, downloadsPerFile, description, timeLimitMinutes }),
         })
         const json = await readJson(res)
         if (!res.ok) throw new Error(json.error || 'Could not create the link.')
@@ -217,6 +232,8 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         body.append('priceUsd', String(usd))
         body.append('salesLimit', salesLimit)
         body.append('downloadsPerFile', downloadsPerFile)
+        body.append('description', description)
+        body.append('timeLimitMinutes', timeLimitMinutes)
         setProgress(45)
         const res = await fetch('/api/upload', { method: 'POST', body })
         const json = await readJson(res)
@@ -389,17 +406,54 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         <p className="text-sm text-muted">{validUsd ? `${t.youKeep} ${formatUsd(keep)} · ${feePercent}% ${t.feeNoteDynamic}` : t.minHint}</p>
       </div>
 
+      <div className="space-y-2">
+        <label htmlFor="description" className="text-sm font-medium">{t.descriptionLabel}</label>
+        <textarea
+          id="description"
+          value={description}
+          maxLength={300}
+          rows={3}
+          onChange={(event) => setDescription(event.target.value)}
+          placeholder={t.descriptionHint}
+          className="w-full resize-none rounded-sm border border-line bg-paper-tint px-3 py-2.5 text-base text-ink outline-none placeholder:text-muted"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium">{t.quantityLabel}</label>
+          <label className="flex items-center gap-2 text-xs text-muted">
+            <input
+              type="checkbox"
+              checked={salesLimit === 'unlimited'}
+              onChange={(event) => setSalesLimit(event.target.checked ? 'unlimited' : '50')}
+            />
+            {t.quantityUnlimited}
+          </label>
+        </div>
+        {salesLimit !== 'unlimited' ? (
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={0}
+              max={QUANTITY_SLIDER_MAX}
+              value={quantityToSlider(Number(salesLimit) || 1)}
+              onChange={(event) => setSalesLimit(String(sliderToQuantity(Number(event.target.value))))}
+              className="h-2 flex-1 accent-pine"
+            />
+            <input
+              type="number"
+              min={1}
+              max={MAX_SALES_LIMIT}
+              value={salesLimit}
+              onChange={(event) => setSalesLimit(event.target.value.replace(/[^\d]/g, ''))}
+              className="h-11 w-24 rounded-sm border border-line bg-paper-tint px-2 text-center text-base text-ink outline-none"
+            />
+          </div>
+        ) : null}
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2 text-sm font-medium">
-          {t.buyerLimit}
-          <select value={salesLimit} onChange={(event) => setSalesLimit(event.target.value)} className="h-12 w-full rounded-sm border border-line bg-paper-tint px-3 text-base font-normal text-ink outline-none">
-            <option value="unlimited">{t.unlimited}</option>
-            <option value="1">1</option>
-            <option value="5">5</option>
-            <option value="25">25</option>
-            <option value="100">100</option>
-          </select>
-        </label>
         <label className="space-y-2 text-sm font-medium">
           {t.downloadLimit}
           <select value={downloadsPerFile} onChange={(event) => setDownloadsPerFile(event.target.value)} className="h-12 w-full rounded-sm border border-line bg-paper-tint px-3 text-base font-normal text-ink outline-none">
@@ -408,6 +462,17 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             <option value="5">5</option>
             <option value="10">10</option>
             <option value="unlimited">{t.unlimited}</option>
+          </select>
+        </label>
+        <label className="space-y-2 text-sm font-medium">
+          {t.timeLimitLabel}
+          <select value={timeLimitMinutes} onChange={(event) => setTimeLimitMinutes(event.target.value)} className="h-12 w-full rounded-sm border border-line bg-paper-tint px-3 text-base font-normal text-ink outline-none">
+            <option value="none">{t.timeNoLimit}</option>
+            <option value="15">{t.time15m}</option>
+            <option value="60">{t.time1h}</option>
+            <option value="360">{t.time6h}</option>
+            <option value="1440">{t.time24h}</option>
+            <option value="4320">{t.time3d}</option>
           </select>
         </label>
       </div>
