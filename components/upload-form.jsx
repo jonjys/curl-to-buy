@@ -1,10 +1,9 @@
 'use client'
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { upload } from '@vercel/blob/client'
-import { DEFAULT_USD, FEE, MAX_FILES, MAX_MB, MIN_USD, PRESETS } from '../lib/site'
+import { DEFAULT_USD, MAX_FILES, MAX_MB, MIN_USD, PRESETS } from '../lib/site'
 import { formatUsd } from '../lib/copy'
-import { keepOf } from '../lib/price'
 import { useLocale } from './locale'
 
 export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
@@ -22,6 +21,34 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   const [listing, setListing] = useState(null)
   const [copied, setCopied] = useState(false)
   const [drag, setDrag] = useState(false)
+  const [connect, setConnect] = useState({ loading: true, hasSeller: false, ready: false, feeBps: 500 })
+  const [email, setEmail] = useState('')
+  const [connecting, setConnecting] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/connect/status', { cache: 'no-store' })
+      .then((response) => response.json())
+      .then((json) => setConnect({ loading: false, hasSeller: Boolean(json.hasSeller), ready: Boolean(json.ready), feeBps: json.feeBps || 500 }))
+      .catch(() => setConnect((current) => ({ ...current, loading: false })))
+  }, [])
+
+  async function startConnect() {
+    setError(null)
+    setConnecting(true)
+    try {
+      const response = await fetch('/api/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const json = await readJson(response)
+      if (!response.ok || !json.url) throw new Error(json.error || t.connectError)
+      window.location.href = json.url
+    } catch (err) {
+      setError(err.message || t.connectError)
+      setConnecting(false)
+    }
+  }
 
   async function readJson(res) {
     const text = await res.text()
@@ -31,7 +58,9 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
 
   const usd = Number.parseFloat(price)
   const validUsd = Number.isFinite(usd) && usd >= MIN_USD
-  const keep = validUsd ? keepOf(usd) : 0
+  const feeBps = connect.feeBps || 500
+  const feePercent = feeBps / 100
+  const keep = validUsd ? Math.round(usd * (1 - feeBps / 10000) * 100) / 100 : 0
   const maxBytes = maxMB * 1024 * 1024
   const totalBytes = files.reduce((sum, file) => sum + file.size, 0)
 
@@ -132,6 +161,28 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     await copyLink()
   }
 
+  if (connect.loading) return <p className="text-sm text-muted">{t.checkingPayouts}</p>
+
+  if (!connect.ready) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.connectKicker}</p>
+          <h3 className="mt-2 font-display text-2xl font-black">{t.connectTitle}</h3>
+          <p className="mt-2 text-sm leading-relaxed text-ink-soft">{t.connectText}</p>
+        </div>
+        {!connect.hasSeller ? (
+          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t.email} className="h-12 w-full rounded-lg border border-line bg-sheet px-3 text-base text-ink outline-none" />
+        ) : null}
+        {error ? <p className="text-sm text-warn">{error}</p> : null}
+        <button type="button" onClick={startConnect} disabled={connecting || (!connect.hasSeller && !email)} className="h-12 w-full rounded-xl bg-pine px-5 text-base font-bold text-pine-fg disabled:opacity-50">
+          {connecting ? t.openingStripe : connect.hasSeller ? t.continueStripe : t.connectButton}
+        </button>
+        <p className="text-xs leading-relaxed text-muted">{t.connectFine}</p>
+      </div>
+    )
+  }
+
   if (listing) {
     const label = listing.priceUsd != null ? formatUsd(listing.priceUsd) : `${listing.priceSek} SEK`
     return (
@@ -177,7 +228,6 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
 
       <div className="space-y-2">
         <label htmlFor="priceUsd" className="text-sm font-semibold">{t.price}</label>
-        <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">$</span><input id="priceUsd" inputMode="decimal" value={price} onChange={(event) => setPrice(event.target.value.replace(/[^\d.]/g, ''))} className="h-12 w-full rounded-lg border border-line bg-sheet pl-7 pr-3 text-base text-ink outline-none" /></div>
         <div className="flex gap-2">{PRESETS.map((n) => <button key={n} type="button" onClick={() => setPrice(String(n))} className={`min-h-11 rounded-lg px-4 text-sm font-semibold ${usd === n ? 'bg-pine text-pine-fg' : 'nl-chip'}`}>{formatUsd(n)}</button>)}</div>
         <p className="text-sm text-muted">{validUsd ? `${t.youKeep} ${formatUsd(keep)}` : t.minHint}</p>
       </div>
@@ -191,7 +241,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       {error ? <p className="text-sm text-warn">{error}</p> : null}
       {busy ? <div className="h-2 overflow-hidden rounded-full bg-line"><div className="h-full bg-pine" style={{ width: `${progress}%` }} /></div> : null}
       <button type="button" onClick={submit} disabled={busy || !stripeReady} className="h-12 w-full rounded-xl bg-pine px-5 text-base font-bold text-pine-fg disabled:opacity-50">{!stripeReady ? t.stripeDown : busy ? `${t.creating} ${progress}%` : t.create}</button>
-      <p className="text-xs text-muted">{t.feeNote}</p>
+      <p className="text-xs text-muted">{feePercent}% {t.feeNoteDynamic}</p>
     </div>
   )
 }

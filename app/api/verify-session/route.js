@@ -1,24 +1,24 @@
 import { stripe } from '../../../lib/stripe'
-import { getListing, listingFiles, recordPurchase } from '../../../lib/store'
+import { getListing, getSeller, listingFiles, recordPurchase } from '../../../lib/store'
 
 export const runtime = 'nodejs'
 
 export async function GET(req) {
   const sessionId = new URL(req.url).searchParams.get('session_id')
-  if (!sessionId) return Response.json({ error: 'No session ID in the URL.' }, { status: 400 })
+  const listingId = new URL(req.url).searchParams.get('listing_id')
+  if (!sessionId || !listingId) return Response.json({ error: 'Payment reference is incomplete.' }, { status: 400 })
 
   const client = stripe()
   if (!client) return Response.json({ error: 'Stripe is not configured.' }, { status: 500 })
 
   try {
-    const session = await client.checkout.sessions.retrieve(sessionId)
-    const listingId = session.metadata?.file_id || null
-    if (session.payment_status !== 'paid' || !listingId) {
+    const listing = await getListing(listingId)
+    const seller = listing?.sellerId ? await getSeller(listing.sellerId) : null
+    if (!listing || !seller?.stripeAccountId) return Response.json({ error: 'The files are no longer available.' }, { status: 404 })
+    const session = await client.checkout.sessions.retrieve(sessionId, {}, { stripeAccount: seller.stripeAccountId })
+    if (session.payment_status !== 'paid' || session.metadata?.file_id !== listingId) {
       return Response.json({ status: session.payment_status, file_id: listingId })
     }
-
-    const listing = await getListing(listingId)
-    if (!listing) return Response.json({ error: 'The files are no longer available.' }, { status: 404 })
     await recordPurchase(listingId, sessionId)
 
     return Response.json({

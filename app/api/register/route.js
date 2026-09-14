@@ -1,8 +1,9 @@
-import { saveListing } from '../../../lib/store'
+import { getSeller, saveListing } from '../../../lib/store'
 import { newId } from '../../../lib/id'
 import { parsePrice } from '../../../lib/price'
 import { MAX_FILES, MAX_MB } from '../../../lib/site'
 import { storageErrorMessage } from '../../../lib/blob-error'
+import { sellerIdFromRequest } from '../../../lib/seller'
 
 export const runtime = 'nodejs'
 
@@ -16,6 +17,11 @@ function numberOrNull(value, allowed) {
 }
 
 export async function POST(req) {
+  const sellerId = sellerIdFromRequest(req)
+  const seller = sellerId ? await getSeller(sellerId) : null
+  if (!seller?.stripeAccountId || !seller.ready) {
+    return Response.json({ error: 'Connect Stripe before creating a selling link.' }, { status: 403 })
+  }
   const body = await req.json().catch(() => null)
   const incoming = Array.isArray(body?.files)
     ? body.files
@@ -55,6 +61,7 @@ export async function POST(req) {
     priceCents: price.priceCents,
     salesLimit: numberOrNull(body.salesLimit, LIMITS),
     downloadsPerFile: numberOrNull(body.downloadsPerFile, DOWNLOAD_LIMITS),
+    sellerId: seller.id,
     createdAt: Date.now(),
   }
 

@@ -1,7 +1,9 @@
 import { stripe } from '../../../../lib/stripe'
-import { getListing, getSalesCount, listingFiles } from '../../../../lib/store'
+import { getListing, getSalesCount, getSeller, listingFiles } from '../../../../lib/store'
 import { displayPrice } from '../../../../lib/price'
 import { SITE } from '../../../../lib/site'
+import { applicationFeeCents } from '../../../../lib/fees'
+import { merchantStatus, retrieveConnectedMerchant } from '../../../../lib/stripe-connect'
 
 export const runtime = 'nodejs'
 
@@ -12,6 +14,19 @@ export async function POST(_req, { params }) {
 
   const listing = await getListing(id)
   if (!listing) return Response.json({ error: 'This link is not for sale.' }, { status: 404 })
+  const seller = listing.sellerId ? await getSeller(listing.sellerId) : null
+  if (!seller?.stripeAccountId) {
+    return Response.json({ error: 'The seller has not connected payouts yet.' }, { status: 409 })
+  }
+
+  try {
+    const status = merchantStatus(await retrieveConnectedMerchant(seller.stripeAccountId))
+    if (!status.cardPayments || !status.payouts) {
+      return Response.json({ error: 'The seller is still completing Stripe setup.' }, { status: 409 })
+    }
+  } catch {
+    return Response.json({ error: 'Could not verify the seller payout account.' }, { status: 502 })
+  }
 
   if (Number.isInteger(listing.salesLimit)) {
     const sold = await getSalesCount(id)
@@ -29,6 +44,7 @@ export async function POST(_req, { params }) {
   const fileCount = listingFiles(listing).length
   const session = await client.checkout.sessions.create({
     mode: 'payment',
+    integration_identifier: 'ctobuyxx',
     line_items: [{
       quantity: 1,
       price_data: {
@@ -40,10 +56,13 @@ export async function POST(_req, { params }) {
         },
       },
     }],
-    success_url: `${SITE}/success?session_id={CHECKOUT_SESSION_ID}`,
+    payment_intent_data: {
+      application_fee_amount: applicationFeeCents(price.amount, seller.feeBps || 500),
+    },
+    success_url: `${SITE}/success?listing_id=${listing.id}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${SITE}/dl/${listing.id}`,
     metadata: { file_id: listing.id },
-  })
+  }, { stripeAccount: seller.stripeAccountId })
 
   return Response.json({ url: session.url })
 }

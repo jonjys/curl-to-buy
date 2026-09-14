@@ -1,9 +1,10 @@
 import { put } from '@vercel/blob'
-import { saveListing } from '../../../lib/store'
+import { getSeller, saveListing } from '../../../lib/store'
 import { newId } from '../../../lib/id'
 import { parsePrice } from '../../../lib/price'
 import { MAX_MB } from '../../../lib/site'
 import { storageErrorMessage } from '../../../lib/blob-error'
+import { sellerIdFromRequest } from '../../../lib/seller'
 
 export const runtime = 'nodejs'
 
@@ -14,6 +15,11 @@ function limit(value, allowed) {
 }
 
 export async function POST(req) {
+  const sellerId = sellerIdFromRequest(req)
+  const seller = sellerId ? await getSeller(sellerId) : null
+  if (!seller?.stripeAccountId || !seller.ready) {
+    return Response.json({ error: 'Connect Stripe before creating a selling link.' }, { status: 403 })
+  }
   const form = await req.formData()
   const file = form.get('file')
   const price = parsePrice({ priceUsd: form.get('priceUsd'), priceSek: form.get('priceSek') })
@@ -36,6 +42,7 @@ export async function POST(req) {
       priceCents: price.priceCents,
       salesLimit: limit(form.get('salesLimit'), [1, 5, 25, 100]),
       downloadsPerFile: limit(form.get('downloadsPerFile'), [1, 3, 5, 10]),
+      sellerId: seller.id,
       createdAt: Date.now(),
     }
     await saveListing(listing)

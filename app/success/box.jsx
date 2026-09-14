@@ -9,14 +9,15 @@ export default function SuccessBox() {
   const { t } = useLocale()
   const params = useSearchParams()
   const sessionId = params.get('session_id')
+  const listingId = params.get('listing_id')
   const [state, setState] = useState({ loading: true, error: null, data: null })
 
   useEffect(() => {
-    if (!sessionId) {
+    if (!sessionId || !listingId) {
       setState({ loading: false, error: t.payFail, data: null })
       return
     }
-    fetch(`/api/verify-session?session_id=${encodeURIComponent(sessionId)}`)
+    fetch(`/api/verify-session?listing_id=${encodeURIComponent(listingId)}&session_id=${encodeURIComponent(sessionId)}`)
       .then((response) => response.json())
       .then((json) => {
         if (json.error) setState({ loading: false, error: json.error, data: null })
@@ -24,7 +25,7 @@ export default function SuccessBox() {
         else setState({ loading: false, error: null, data: json })
       })
       .catch(() => setState({ loading: false, error: t.payFail, data: null }))
-  }, [sessionId, t.payFail])
+  }, [listingId, sessionId, t.payFail])
 
   if (state.loading) return <p className="text-sm text-muted">{t.verifying}</p>
   if (state.error) {
