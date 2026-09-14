@@ -1,6 +1,6 @@
-import { getSeller, saveSeller } from '../../../lib/store'
+import { getSeller, saveSeller, saveSellerEmailIndex } from '../../../lib/store'
 import { createConnectedRecipient, createOnboardingLink } from '../../../lib/stripe-connect'
-import { feeBpsForEmail, newSellerId, sellerCookie, sellerIdFromRequest, validSellerEmail } from '../../../lib/seller'
+import { emailKey, feeBpsForEmail, newSellerId, sellerCookie, sellerIdFromRequest, validSellerEmail } from '../../../lib/seller'
 import { originFrom } from '../../../lib/site'
 
 export const runtime = 'nodejs'
@@ -28,6 +28,7 @@ export async function POST(req) {
         createdAt: Date.now(),
       }
       await saveSeller(seller)
+      await saveSellerEmailIndex(emailKey(email), id)
       setCookie = sellerCookie(id)
     }
 

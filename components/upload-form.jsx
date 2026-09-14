@@ -61,6 +61,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   const [email, setEmail] = useState('')
   const [connecting, setConnecting] = useState(false)
   const [showConnect, setShowConnect] = useState(false)
+  const [recover, setRecover] = useState({ mode: 'idle', email: '', code: '', busy: false, error: null })
   const finalizingRef = useRef(false)
 
   useEffect(() => {
@@ -135,6 +136,38 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     const text = await res.text()
     if (!text) return {}
     try { return JSON.parse(text) } catch { return { error: text.slice(0, 200) } }
+  }
+
+  async function requestRecoveryCode() {
+    setRecover((current) => ({ ...current, busy: true, error: null }))
+    try {
+      const res = await fetch('/api/recover/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: recover.email }),
+      })
+      const json = await readJson(res)
+      if (!res.ok) throw new Error(json.error || t.recoverError)
+      setRecover((current) => ({ ...current, busy: false, mode: 'code' }))
+    } catch (err) {
+      setRecover((current) => ({ ...current, busy: false, error: err.message || t.recoverError }))
+    }
+  }
+
+  async function verifyRecoveryCode() {
+    setRecover((current) => ({ ...current, busy: true, error: null }))
+    try {
+      const res = await fetch('/api/recover/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: recover.email, code: recover.code }),
+      })
+      const json = await readJson(res)
+      if (!res.ok) throw new Error(json.error || t.recoverInvalidCode)
+      window.location.reload()
+    } catch (err) {
+      setRecover((current) => ({ ...current, busy: false, error: err.message || t.recoverInvalidCode }))
+    }
   }
 
   const usd = Number.parseFloat(price)
@@ -328,6 +361,69 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           {connecting ? t.openingStripe : connect.hasSeller ? t.continueStripe : t.connectButton}
         </button>
         <p className="text-xs leading-relaxed text-muted">{t.connectFine}</p>
+
+        {!connect.hasSeller && recover.mode === 'idle' ? (
+          <button
+            type="button"
+            onClick={() => setRecover({ mode: 'email', email: '', code: '', busy: false, error: null })}
+            className="text-xs text-muted underline underline-offset-4"
+          >
+            {t.recoverLink}
+          </button>
+        ) : null}
+
+        {!connect.hasSeller && recover.mode !== 'idle' ? (
+          <div className="space-y-2.5 rounded-sm border border-line bg-paper-tint p-3.5">
+            <p className="text-xs font-medium text-ink">{t.recoverTitle}</p>
+            {recover.mode === 'email' ? (
+              <>
+                <input
+                  type="email"
+                  value={recover.email}
+                  onChange={(event) => setRecover((current) => ({ ...current, email: event.target.value }))}
+                  placeholder={t.email}
+                  className="h-11 w-full rounded-sm border border-line bg-paper px-3 text-sm text-ink outline-none placeholder:text-muted"
+                />
+                <button
+                  type="button"
+                  onClick={requestRecoveryCode}
+                  disabled={recover.busy || !recover.email}
+                  className="inline-flex h-10 w-full items-center justify-center rounded-sm border border-pine/50 text-sm font-medium text-pine disabled:opacity-50"
+                >
+                  {recover.busy ? t.recoverSending : t.recoverSendCode}
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-muted">{t.recoverSent}</p>
+                <input
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={recover.code}
+                  onChange={(event) => setRecover((current) => ({ ...current, code: event.target.value.replace(/\D/g, '') }))}
+                  placeholder="000000"
+                  className="h-11 w-full rounded-sm border border-line bg-paper px-3 text-center text-lg tracking-[0.3em] text-ink outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={verifyRecoveryCode}
+                  disabled={recover.busy || recover.code.length !== 6}
+                  className="inline-flex h-10 w-full items-center justify-center rounded-sm bg-pine text-sm font-medium text-pine-fg disabled:opacity-50"
+                >
+                  {recover.busy ? t.recoverVerifying : t.recoverVerify}
+                </button>
+              </>
+            )}
+            {recover.error ? <p className="text-xs text-warn">{recover.error}</p> : null}
+            <button
+              type="button"
+              onClick={() => setRecover({ mode: 'idle', email: '', code: '', busy: false, error: null })}
+              className="text-xs text-muted underline underline-offset-4"
+            >
+              {t.recoverCancel}
+            </button>
+          </div>
+        ) : null}
       </div>
     )
   }
