@@ -22,6 +22,8 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   const [copied, setCopied] = useState(false)
   const [drag, setDrag] = useState(false)
   const [connect, setConnect] = useState({ loading: true, hasSeller: false, ready: false, feeBps: 500 })
+  const [email, setEmail] = useState('')
+  const [connecting, setConnecting] = useState(false)
 
   useEffect(() => {
     fetch('/api/connect/status', { cache: 'no-store' })
@@ -29,6 +31,24 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       .then((json) => setConnect({ loading: false, hasSeller: Boolean(json.hasSeller), ready: Boolean(json.ready), feeBps: json.feeBps || 500 }))
       .catch(() => setConnect((current) => ({ ...current, loading: false })))
   }, [])
+
+  async function startConnect() {
+    setError(null)
+    setConnecting(true)
+    try {
+      const response = await fetch('/api/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const json = await readJson(response)
+      if (!response.ok || !json.url) throw new Error(json.error || t.connectError)
+      window.location.href = json.url
+    } catch (err) {
+      setError(err.message || t.connectError)
+      setConnecting(false)
+    }
+  }
 
   async function readJson(res) {
     const text = await res.text()
@@ -141,13 +161,27 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     await copyLink()
   }
 
-  const payoutNote = connect.ready
-    ? null
-    : (
-      <p className="rounded-lg border border-line bg-sheet px-3 py-2 text-xs leading-relaxed text-muted">
-        {t.connectSkip}
-      </p>
+  if (connect.loading) return <p className="text-sm text-muted">{t.checkingPayouts}</p>
+
+  if (!connect.ready) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.connectKicker}</p>
+          <h3 className="mt-2 font-display text-2xl font-black">{t.connectTitle}</h3>
+          <p className="mt-2 text-sm leading-relaxed text-ink-soft">{t.connectText}</p>
+        </div>
+        {!connect.hasSeller ? (
+          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t.email} className="h-12 w-full rounded-lg border border-line bg-sheet px-3 text-base text-ink outline-none" />
+        ) : null}
+        {error ? <p className="text-sm text-warn">{error}</p> : null}
+        <button type="button" onClick={startConnect} disabled={connecting || (!connect.hasSeller && !email)} className="h-12 w-full rounded-xl bg-pine px-5 text-base font-bold text-pine-fg disabled:opacity-50">
+          {connecting ? t.openingStripe : connect.hasSeller ? t.continueStripe : t.connectButton}
+        </button>
+        <p className="text-xs leading-relaxed text-muted">{t.connectFine}</p>
+      </div>
     )
+  }
 
   if (listing) {
     const label = listing.priceUsd != null ? formatUsd(listing.priceUsd) : `${listing.priceSek} SEK`
@@ -170,7 +204,6 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
 
   return (
     <div className="space-y-5">
-      {payoutNote}
       <div className="space-y-2">
         <p className="text-sm font-semibold">{t.files}</p>
         <label
