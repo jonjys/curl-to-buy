@@ -1,7 +1,7 @@
 import { getSeller, saveSeller } from '../../../lib/store'
 import { createConnectedRecipient, createOnboardingLink } from '../../../lib/stripe-connect'
 import { feeBpsForEmail, newSellerId, sellerCookie, sellerIdFromRequest, validSellerEmail } from '../../../lib/seller'
-import { SITE } from '../../../lib/site'
+import { originFrom } from '../../../lib/site'
 
 export const runtime = 'nodejs'
 
@@ -22,17 +22,21 @@ export async function POST(req) {
         id,
         email,
         stripeAccountId: account.id,
+        connectVersion: account.connectVersion || 'v2',
         feeBps: feeBpsForEmail(email),
+        ready: false,
         createdAt: Date.now(),
       }
       await saveSeller(seller)
       setCookie = sellerCookie(id)
     }
 
+    const origin = originFrom(req)
     const link = await createOnboardingLink({
       accountId: seller.stripeAccountId,
-      returnUrl: `${SITE}/upload?stripe=return`,
-      refreshUrl: `${SITE}/upload?stripe=refresh`,
+      connectVersion: seller.connectVersion,
+      returnUrl: `${origin}/upload?stripe=return`,
+      refreshUrl: `${origin}/upload?stripe=refresh`,
     })
     const response = Response.json({ url: link.url })
     if (setCookie) response.headers.append('Set-Cookie', setCookie)

@@ -13,11 +13,13 @@ export default function SuccessBox() {
   const [state, setState] = useState({ loading: true, error: null, data: null })
 
   useEffect(() => {
-    if (!sessionId || !listingId) {
+    if (!sessionId) {
       setState({ loading: false, error: t.payFail, data: null })
       return
     }
-    fetch(`/api/verify-session?listing_id=${encodeURIComponent(listingId)}&session_id=${encodeURIComponent(sessionId)}`)
+    const query = new URLSearchParams({ session_id: sessionId })
+    if (listingId) query.set('listing_id', listingId)
+    fetch(`/api/verify-session?${query}`)
       .then((response) => response.json())
       .then((json) => {
         if (json.error) setState({ loading: false, error: json.error, data: null })

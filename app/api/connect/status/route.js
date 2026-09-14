@@ -16,6 +16,6 @@ export async function GET(req) {
     await updateSeller(seller.id, { ...status, ready })
     return Response.json({ hasSeller: true, ready, feeBps: seller.feeBps || 500, ...status })
   } catch {
-    return Response.json({ hasSeller: true, ready: false, feeBps: seller.feeBps || 500 })
+    return Response.json({ hasSeller: true, ready: Boolean(seller.ready), feeBps: seller.feeBps || 500 })
   }
 }
