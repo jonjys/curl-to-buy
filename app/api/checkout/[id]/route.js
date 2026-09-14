@@ -28,13 +28,17 @@ export async function POST(req, { params }) {
   }
 
   const seller = listing.sellerId ? await getSeller(listing.sellerId) : null
+  if (!seller?.stripeAccountId) {
+    return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
+  }
   let destination = null
-  let feeBps = seller?.feeBps || 500
-  if (seller?.stripeAccountId) {
-    try {
-      const status = recipientStatus(await retrieveConnectedRecipient(seller.stripeAccountId))
-      if (status.transfers) destination = seller.stripeAccountId
-    } catch {}
+  const feeBps = seller.feeBps || 500
+  try {
+    const status = recipientStatus(await retrieveConnectedRecipient(seller.stripeAccountId))
+    if (status.transfers) destination = seller.stripeAccountId
+  } catch {}
+  if (!destination) {
+    return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
   }
 
   const origin = originFrom(req)
