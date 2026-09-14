@@ -1,14 +1,14 @@
 import { handleUpload } from '@vercel/blob/client'
 import { MAX_MB } from '../../../lib/site'
-import { loadReadySeller } from '../../../lib/stripe-connect'
 
 export const runtime = 'nodejs'
 
+// Deliberately no seller-readiness check here: a file may be uploaded to
+// Blob storage before the seller has finished Stripe Connect (its bytes
+// are saved as part of the deferred-publish draft — see upload-form.jsx).
+// The actual gate that matters — turning an upload into a public, sellable
+// listing — is enforced separately by /api/register and /api/upload.
 export async function POST(request) {
-  const seller = await loadReadySeller(request)
-  if (!seller?.stripeAccountId) {
-    return Response.json({ error: 'Connect Stripe before uploading.' }, { status: 403 })
-  }
   const body = await request.json()
   try {
     const json = await handleUpload({
