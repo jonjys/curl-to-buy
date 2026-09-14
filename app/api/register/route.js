@@ -18,9 +18,6 @@ function numberOrNull(value, allowed) {
 
 export async function POST(req) {
   const seller = await loadReadySeller(req)
-  if (!seller?.stripeAccountId) {
-    return Response.json({ error: 'Connect Stripe before creating a selling link.' }, { status: 403 })
-  }
   const body = await req.json().catch(() => null)
   const incoming = Array.isArray(body?.files)
     ? body.files
@@ -60,7 +57,7 @@ export async function POST(req) {
     priceCents: price.priceCents,
     salesLimit: numberOrNull(body.salesLimit, LIMITS),
     downloadsPerFile: numberOrNull(body.downloadsPerFile, DOWNLOAD_LIMITS),
-    sellerId: seller.id,
+    sellerId: seller?.id || null,
     createdAt: Date.now(),
   }
 
