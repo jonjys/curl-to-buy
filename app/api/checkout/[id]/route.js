@@ -1,7 +1,7 @@
 import { stripe } from '../../../../lib/stripe'
-import { getListing } from '../../../../lib/store'
+import { getListing, getSeller } from '../../../../lib/store'
 import { displayPrice } from '../../../../lib/price'
-import { SITE } from '../../../../lib/site'
+import { SITE, FEE } from '../../../../lib/site'
 
 export const runtime = 'nodejs'
 
@@ -21,6 +21,34 @@ export async function POST(_req, { params }) {
     return Response.json({ error: 'Price must be at least $1.' }, { status: 400 })
   }
 
+  // Marketplace: money only ever flows to a seller resolved from the
+  // listing's sellerId (set by the seller themselves, from their own cookie
+  // — see /api/connect). A listing with no sellerId (e.g. one created
+  // before payouts were connected) is never routed to any default or
+  // fallback destination; it simply can't be bought yet.
+  if (!listing.sellerId) {
+    return Response.json({ error: 'This file is not ready for sale yet.' }, { status: 409 })
+  }
+  const seller = await getSeller(listing.sellerId)
+  if (!seller?.stripeAccountId) {
+    return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
+  }
+
+  // Check live, not the cached flags — a buyer paying in is where it matters
+  // most that a since-restricted account doesn't still look "ready".
+  // chargesEnabled and payoutsEnabled are deliberately both required:
+  // an account can accept charges before Stripe will actually pay it out.
+  try {
+    const acct = await client.accounts.retrieve(seller.stripeAccountId)
+    if (!acct.charges_enabled || !acct.payouts_enabled) {
+      return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
+    }
+  } catch {
+    return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
+  }
+
+  const applicationFee = Math.round(price.amount * FEE)
+
   const session = await client.checkout.sessions.create({
     mode: 'payment',
     payment_method_types: ['card'],
@@ -37,6 +65,10 @@ export async function POST(_req, { params }) {
         },
       },
     ],
+    payment_intent_data: {
+      application_fee_amount: applicationFee,
+      transfer_data: { destination: seller.stripeAccountId },
+    },
     success_url: `${SITE}/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${SITE}/dl/${listing.id}`,
     metadata: { file_id: listing.id },
