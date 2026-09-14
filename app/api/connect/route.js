@@ -1,12 +1,12 @@
 import { getSeller, saveSeller } from '../../../lib/store'
 import { createConnectedRecipient, createOnboardingLink } from '../../../lib/stripe-connect'
 import { feeBpsForEmail, newSellerId, sellerCookie, sellerIdFromRequest, validSellerEmail } from '../../../lib/seller'
-import { SITE } from '../../../lib/site'
 
 export const runtime = 'nodejs'
 
 export async function POST(req) {
   try {
+    const origin = new URL(req.url).origin
     const existingId = sellerIdFromRequest(req)
     let seller = existingId ? await getSeller(existingId) : null
     let setCookie = null
@@ -31,8 +31,8 @@ export async function POST(req) {
 
     const link = await createOnboardingLink({
       accountId: seller.stripeAccountId,
-      returnUrl: `${SITE}/upload?stripe=return`,
-      refreshUrl: `${SITE}/upload?stripe=refresh`,
+      returnUrl: `${origin}/upload?stripe=return`,
+      refreshUrl: `${origin}/upload?stripe=refresh`,
     })
     const response = Response.json({ url: link.url })
     if (setCookie) response.headers.append('Set-Cookie', setCookie)

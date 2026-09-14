@@ -1,14 +1,14 @@
 import { stripe } from '../../../../lib/stripe'
 import { getListing, getSalesCount, getSeller, listingFiles } from '../../../../lib/store'
 import { displayPrice } from '../../../../lib/price'
-import { SITE } from '../../../../lib/site'
 import { applicationFeeCents } from '../../../../lib/fees'
 import { recipientStatus, retrieveConnectedRecipient } from '../../../../lib/stripe-connect'
 
 export const runtime = 'nodejs'
 
-export async function POST(_req, { params }) {
+export async function POST(req, { params }) {
   const { id } = await params
+  const origin = new URL(req.url).origin
   const client = stripe()
   if (!client) return Response.json({ error: 'Stripe is not configured.' }, { status: 500 })
 
@@ -60,8 +60,8 @@ export async function POST(_req, { params }) {
       application_fee_amount: applicationFeeCents(price.amount, seller.feeBps || 500),
       transfer_data: { destination: seller.stripeAccountId },
     },
-    success_url: `${SITE}/success?listing_id=${listing.id}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${SITE}/dl/${listing.id}`,
+    success_url: `${origin}/success?listing_id=${listing.id}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/dl/${listing.id}`,
     metadata: { file_id: listing.id },
   })
 
