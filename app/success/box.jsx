@@ -17,7 +17,7 @@ export default function SuccessBox() {
       return
     }
     fetch(`/api/verify-session?session_id=${encodeURIComponent(sessionId)}`)
-      .then((r) => r.json())
+      .then((response) => response.json())
       .then((json) => {
         if (json.error) setState({ loading: false, error: json.error, data: null })
         else if (json.status !== 'paid') setState({ loading: false, error: t.payFail, data: null })
@@ -27,35 +27,36 @@ export default function SuccessBox() {
   }, [sessionId, t.payFail])
 
   if (state.loading) return <p className="text-sm text-muted">{t.verifying}</p>
-
   if (state.error) {
     return (
       <div className="nl-card rounded-2xl p-6">
         <h1 className="font-display text-3xl font-black tracking-tight">{t.payFail}</h1>
         <p className="mt-3 text-sm text-ink-soft">{state.error}</p>
-        <Link href="/" className="mt-6 inline-flex min-h-11 items-center rounded-sm bg-pine px-4 text-sm font-medium text-pine-fg no-underline">
-          {t.back}
-        </Link>
+        <Link href="/" className="mt-6 inline-flex min-h-11 items-center rounded-sm bg-pine px-4 text-sm font-medium text-pine-fg no-underline">{t.back}</Link>
       </div>
     )
   }
 
+  const files = state.data.files || [{ index: 0, name: state.data.title || t.download }]
   return (
     <div className="nl-card nl-card-glow rounded-2xl p-6 sm:p-8">
       <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.successKicker}</p>
       <h1 className="mt-2 font-display text-3xl font-black tracking-tight">{t.success}</h1>
-      {state.data.customer_email ? (
-        <p className="mt-3 text-sm text-ink-soft">{state.data.customer_email}</p>
-      ) : null}
-      {state.data.file_id ? (
-        <a
-          href={`/api/download/${state.data.file_id}?session_id=${encodeURIComponent(sessionId)}`}
-          className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-sm bg-pine px-5 text-base font-medium text-pine-fg no-underline"
-        >
-          {t.download}
-        </a>
-      ) : null}
-      <p className="mt-3 text-xs text-muted">{t.once}</p>
+      <p className="mt-3 text-sm text-ink-soft">{state.data.title}</p>
+      <div className="mt-6 grid gap-2">
+        {files.map((file) => (
+          <a
+            key={file.index}
+            href={`/api/download/${state.data.file_id}?session_id=${encodeURIComponent(sessionId)}&file=${file.index}`}
+            className="flex min-h-12 items-center justify-between gap-3 rounded-sm bg-pine px-5 text-sm font-semibold text-pine-fg no-underline"
+          >
+            <span className="min-w-0 truncate">{file.name}</span><span aria-hidden="true">↓</span>
+          </a>
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-muted">
+        {state.data.downloadsPerFile ? `${state.data.downloadsPerFile} ${t.downloadsEach}` : t.unlimitedDownloads}
+      </p>
     </div>
   )
 }
