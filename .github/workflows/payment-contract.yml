@@ -1,0 +1,21 @@
+name: Payment route contract
+on:
+  pull_request:
+    paths:
+      - 'app/api/**'
+      - 'lib/**'
+      - 'tests/**'
+      - '.github/workflows/payment-contract.yml'
+  workflow_dispatch:
+jobs:
+  payment-flow:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run secret-free payment route contract tests
+        run: node --experimental-vm-modules --test tests/payment-flow.test.mjs
