@@ -14,6 +14,10 @@ export async function POST(req, { params }) {
 
   const listing = await getListing(id)
   if (!listing) return Response.json({ error: 'This link is not for sale.' }, { status: 404 })
+  const isPhysical = listing.kind === 'physical'
+  if (isPhysical && (listing.shippingIncluded !== true || !Array.isArray(listing.shippingCountries) || !listing.shippingCountries.length)) {
+    return Response.json({ error: 'Shipping is not configured for this item.' }, { status: 400 })
+  }
 
   if (Number.isInteger(listing.salesLimit)) {
     const sold = await getSalesCount(id)
@@ -57,25 +61,30 @@ export async function POST(req, { params }) {
         unit_amount: price.amount,
         product_data: {
           name: listing.name,
-          description: fileCount > 1 ? `${fileCount} digital files via Curl-to-Buy` : 'Digital file via Curl-to-Buy',
+          description: isPhysical
+            ? 'Physical item · shipping within Sweden included in price'
+            : fileCount > 1 ? `${fileCount} digital files via Curl-to-Buy` : 'Digital file via Curl-to-Buy',
+          ...(isPhysical && listing.photoUrl ? { images: [listing.photoUrl] } : {}),
         },
       },
     }],
-    ...(destination
-      ? {
-          payment_intent_data: {
-            application_fee_amount: applicationFeeCents(price.amount, feeBps),
-            transfer_data: { destination },
-          },
-        }
-      : {}),
+    ...(isPhysical ? {
+      shipping_address_collection: { allowed_countries: listing.shippingCountries },
+      phone_number_collection: { enabled: true },
+      billing_address_collection: 'auto',
+    } : {}),
+    payment_intent_data: {
+      application_fee_amount: applicationFeeCents(price.amount, feeBps),
+      transfer_data: { destination },
+    },
     success_url: `${origin}/success?listing_id=${listing.id}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/dl/${listing.id}`,
     metadata: {
-      file_id: listing.id,
-      seller_id: seller?.id || '',
-      payout: destination ? 'connect' : 'platform',
-      fee_bps: destination ? String(feeBps) : '0',
+      file_id: listing.id, // Retained for the existing signed fulfillment webhook.
+      seller_id: seller.id,
+      kind: isPhysical ? 'physical' : 'digital',
+      payout: 'connect',
+      fee_bps: String(feeBps),
     },
   })
 
