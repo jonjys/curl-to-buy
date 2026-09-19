@@ -41,16 +41,14 @@ test('catalog prefers verified live Price IDs and falls back to the known Start/
     },
   }
   const plans = await billing.getPlans(client)
-  assert.deepEqual(plans.map((plan) => [plan.key, plan.priceId, plan.amount]), [
-    ['start', billing.VERIFIED_PLANS.start.priceId, 500],
-    ['grow', billing.VERIFIED_PLANS.grow.priceId, 1900],
-    ['scale', billing.VERIFIED_PLANS.scale.priceId, 4900],
-  ])
-  assert.deepEqual(billing.displayPlans().map((plan) => [plan.key, plan.amount, plan.monthlyLinks]), [
-    ['start', 500, 10],
-    ['grow', 1900, 50],
-    ['scale', 4900, null],
-  ])
+  assert.equal(JSON.stringify(plans.map((plan) => [plan.key, plan.priceId, plan.amount])),
+    JSON.stringify([
+      ['start', billing.VERIFIED_PLANS.start.priceId, 500],
+      ['grow', billing.VERIFIED_PLANS.grow.priceId, 1900],
+      ['scale', billing.VERIFIED_PLANS.scale.priceId, 4900],
+    ]))
+  assert.equal(JSON.stringify(billing.displayPlans().map((plan) => [plan.key, plan.amount, plan.monthlyLinks])),
+    JSON.stringify([['start', 500, 10], ['grow', 1900, 50], ['scale', 4900, null]]))
 })
 
 test('paid entitlement uses Stripe period and seller identity; overdue subscriptions cannot open a second subscription', async () => {
