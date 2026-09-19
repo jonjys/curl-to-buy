@@ -12,7 +12,7 @@ export default function PlansPage() {
   return (
     <LocaleProvider>
       <Frame>
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
           <SubscriptionPlans />
         </main>
       </Frame>

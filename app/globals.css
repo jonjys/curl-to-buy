@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  --color-paper: #03030c;
-  --color-paper-tint: #0a0b18;
-  --color-sheet: #0c0d1a;
-  --color-ink: #f4f7fb;
-  --color-ink-soft: #b8c0cc;
-  --color-muted: #9aa4b6;
-  --color-line: #283147;
-  --color-pine: #12c984;
+  --color-paper: #0c1018;
+  --color-paper-tint: #141924;
+  --color-sheet: #181e2a;
+  --color-ink: #eef2f6;
+  --color-ink-soft: #b4bcc8;
+  --color-muted: #8b95a5;
+  --color-line: #2a3344;
+  --color-pine: #1aa876;
   --color-pine-fg: #06140f;
-  --color-cyan: #46cfe0;
+  --color-cyan: #7ec9d4;
   --color-warn: #ff8a5b;
   --font-display: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
@@ -93,10 +93,10 @@ button.bg-pine,
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0, 180, 216, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 180, 216, 0.07) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(ellipse 90% 55% at 50% 0%, #000 30%, transparent 100%);
+    linear-gradient(rgba(126, 201, 212, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(126, 201, 212, 0.04) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, #000 20%, transparent 88%);
 }
 
 .nl-grid::after {
@@ -104,16 +104,16 @@ button.bg-pine,
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 70% 42% at 50% -8%, color-mix(in srgb, var(--color-pine) 10%, transparent) 0%, transparent 72%),
-    radial-gradient(ellipse 50% 40% at 88% 12%, #00f5ff10 0%, transparent 70%),
-    radial-gradient(ellipse 60% 50% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.5) 100%);
+    radial-gradient(ellipse 55% 36% at 18% -6%, color-mix(in srgb, var(--color-pine) 12%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 32% at 92% 8%, color-mix(in srgb, var(--color-cyan) 8%, transparent) 0%, transparent 68%),
+    radial-gradient(ellipse 70% 55% at 50% 48%, transparent 46%, rgba(12, 16, 24, 0.55) 100%);
 }
 
 .nl-card {
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 24px color-mix(in srgb, var(--color-pine) 6%, transparent);
-  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--color-sheet) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-line) 80%, transparent);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(12px);
 }
 
 .nl-card-glow {
@@ -179,10 +179,10 @@ button.bg-pine,
   content: "";
   position: absolute;
   border-radius: 999px;
-  width: 4rem;
-  height: 4rem;
-  right: 22%;
-  top: 34%;
-  background: radial-gradient(circle at 40% 40%, #00f5ff2e, transparent 72%);
-  filter: blur(12px);
+  width: 5rem;
+  height: 5rem;
+  right: 18%;
+  top: 36%;
+  background: radial-gradient(circle at 40% 40%, color-mix(in srgb, var(--color-cyan) 22%, transparent), transparent 72%);
+  filter: blur(18px);
 }
