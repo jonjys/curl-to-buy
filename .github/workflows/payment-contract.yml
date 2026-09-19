@@ -17,5 +17,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run secret-free digital and physical payment route contract tests
-        run: node --experimental-vm-modules --test tests/payment-flow.test.mjs tests/physical-flow.test.mjs
+      - name: Run secret-free payment and seller links contract tests
+        run: node --experimental-vm-modules --test tests/payment-flow.test.mjs tests/physical-flow.test.mjs tests/saved-links.test.mjs
