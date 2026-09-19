@@ -99,6 +99,41 @@ test('no subscription charge when Stripe is not configured', async () => {
   assert.equal(response.status, 503)
 })
 
+test('verified live Price IDs unlock checkout even when product metadata is incomplete', async () => {
+  const billing = await runtime().load('lib/billing.js')
+  const client = {
+    prices: {
+      retrieve: async (id) => {
+        const spec = Object.values(billing.VERIFIED_PLANS).find((item) => item.priceId === id)
+        if (!spec) throw Error('missing')
+        return {
+          id: spec.priceId, lookup_key: spec.lookup, currency: 'eur', unit_amount: spec.amount,
+          recurring: { interval: 'month', interval_count: 1 }, product: spec.priceId,
+        }
+      },
+      list: async () => { throw Error('list should not run when retrieve matches verified IDs') },
+    },
+  }
+  const plans = await billing.getPlans(client)
+  assert.equal(JSON.stringify(plans.map((plan) => [plan.key, plan.priceId, plan.amount, plan.monthlyLinks])),
+    JSON.stringify([
+      ['start', billing.VERIFIED_PLANS.start.priceId, 500, 10],
+      ['grow', billing.VERIFIED_PLANS.grow.priceId, 1900, 50],
+      ['scale', billing.VERIFIED_PLANS.scale.priceId, 4900, null],
+    ]))
+})
+
+test('account links request every configuration on the connected account', async () => {
+  const connect = await runtime().load('lib/stripe-connect.js')
+  assert.equal(JSON.stringify(connect.accountLinkConfigurations({
+    configuration: { merchant: {}, customer: {} },
+  })), '["merchant","customer"]')
+  assert.equal(JSON.stringify(connect.accountLinkConfigurations({
+    configuration: { merchant: {}, recipient: {} },
+  })), '["merchant","recipient"]')
+  assert.equal(JSON.stringify(connect.accountLinkConfigurations({})), '["merchant","customer"]')
+})
+
 test('fee payer must be Stripe and cards must be active before selling on subscription', async () => {
   const connect = await runtime().load('lib/stripe-connect.js')
   const account = {

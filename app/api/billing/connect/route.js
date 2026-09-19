@@ -14,11 +14,12 @@ export async function POST(req) {
     return await withBillingLock(seller.id, async () => {
       let current = await getSeller(seller.id)
       if (await readySubscriptionMerchant(current)) return privateJson({ url: `${originFrom(req)}/plans` })
+      let created = null
       if (!current.paymentAccountId) {
-        const account = await createSubscriptionMerchant({ email: current.email, sellerId: current.id })
-        current = await updateSeller(current.id, { paymentAccountId: account.id })
+        created = await createSubscriptionMerchant({ email: current.email, sellerId: current.id })
+        current = await updateSeller(current.id, { paymentAccountId: created.id })
       }
-      const link = await merchantOnboardingLink(current.paymentAccountId, originFrom(req))
+      const link = await merchantOnboardingLink(current.paymentAccountId, originFrom(req), created)
       return privateJson({ url: link.url })
     })
   } catch (error) {

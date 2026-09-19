@@ -12,6 +12,7 @@ export async function POST(req) {
     const existingId = sellerIdFromRequest(req)
     let seller = existingId ? await getSeller(existingId) : null
     let setCookie = null
+    let account = null
 
     if (!seller) {
       const body = await req.json().catch(() => ({}))
@@ -20,7 +21,7 @@ export async function POST(req) {
 
       if (await getSellerIdByEmail(emailKey(email))) return Response.json({ error: 'An existing seller uses this email. Recover your seller access by email.', needsRecovery: true }, { status: 409 })
       const id = newSellerId()
-      const account = await createSubscriptionMerchant({ email, sellerId: id })
+      account = await createSubscriptionMerchant({ email, sellerId: id })
       seller = {
         id,
         email,
@@ -38,7 +39,7 @@ export async function POST(req) {
 
     const origin = originFrom(req)
     if (!seller.paymentAccountId) return Response.json({ url: `${origin}/plans` })
-    const link = await merchantOnboardingLink(seller.paymentAccountId, origin)
+    const link = await merchantOnboardingLink(seller.paymentAccountId, origin, account)
     const response = Response.json({ url: link.url })
     if (setCookie) response.headers.append('Set-Cookie', setCookie)
     return response
