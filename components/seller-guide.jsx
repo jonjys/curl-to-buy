@@ -7,7 +7,7 @@ export default function SellerGuide() {
   const { locale } = useLocale()
   const sv = locale === 'sv'
   const [connected, setConnected] = useState(null)
-  const [open, setOpen] = useState(true)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -16,40 +16,51 @@ export default function SellerGuide() {
         const response = await fetch('/api/connect/status', { cache: 'no-store' })
         if (!response.ok) return
         const data = await response.json()
-        if (mounted) {
-          setConnected(Boolean(data.ready))
-          if (data.ready) setOpen(false)
-        }
-      } catch { /* Onboarding help should never block selling. */ }
+        if (mounted) setConnected(Boolean(data.ready))
+      } catch { /* A help panel must never block the selling flow. */ }
     }
     check()
     window.addEventListener('focus', check)
     return () => { mounted = false; window.removeEventListener('focus', check) }
   }, [])
 
+  // Existing sellers already have a ready Stripe account; do not repeat onboarding
+  // above every item form. The actual Stripe status and setup stay in the forms.
+  if (connected !== false) return null
+
   const steps = sv ? [
-    ['Välj vad du vill sälja', 'En fysisk vara eller en digital fil. Du behöver ingen webbutik.'],
-    ['Anslut e-post och Stripe', 'Ange din e-postadress och slutför uppgifterna hos Stripe. Det gör du bara en gång.'],
-    ['Beskriv och prissätt', 'Lägg till namn, eventuell bild och pris. Frakt ingår i priset för fysiska varor.'],
-    ['Skapa och dela länken', 'Varan får automatiskt en unik köplänk. Dela den i en chatt eller på sociala medier.'],
+    ['Anslut Stripe', 'Ange din e-post i rutan nedanför och fyll i de uppgifter Stripe behöver. Det görs en gång.'],
+    ['Lägg upp det du säljer', 'Välj fysisk vara eller digital fil, beskriv den och sätt priset.'],
+    ['Dela köplänken', 'Skapa en unik länk och skicka den till köparen. Köparen behöver inget konto.'],
   ] : [
-    ['Choose what to sell', 'A physical item or digital file. No online store required.'],
-    ['Connect email and Stripe', 'Enter your email and complete your payout details with Stripe once.'],
-    ['Describe and price', 'Add a name, optional photo and price. Shipping is included for physical items.'],
-    ['Create and share your link', 'Your item gets its own unique payment link. Share it in a chat or on social media.'],
+    ['Connect Stripe', 'Enter your email in the form below and complete the details Stripe requests. You only do this once.'],
+    ['List what you sell', 'Choose a physical item or digital file, describe it and set your price.'],
+    ['Share your payment link', 'Create a unique link and send it to your buyer. Buyers need no account.'],
   ]
 
   return (
-    <section aria-label={sv ? 'Kom igång-guide' : 'Getting started guide'} className="mb-6 rounded-xl border border-pine/35 bg-paper-tint p-4 sm:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-kicker text-pine">{sv ? 'Kom igång' : 'Getting started'}</p>
-          <h3 className="mt-1 text-base font-semibold">{connected ? (sv ? 'Redo för nästa köplänk' : 'Ready for your next link') : (sv ? 'Från vara till köplänk' : 'From item to payment link')}</h3>
+    <section aria-label={sv ? 'Kom igång-guide' : 'Getting started guide'} className="mb-5 rounded-xl border border-pine/35 bg-paper-tint p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-mono text-[10px] uppercase tracking-kicker text-pine">{sv ? 'Första gången?' : 'First time here?'}</p>
+          <h3 className="mt-1 text-base font-semibold">{sv ? 'Kom igång i tre steg' : 'Start selling in three steps'}</h3>
         </div>
-        <button type="button" className="min-h-11 rounded-lg border border-line px-3 text-xs font-semibold" aria-expanded={open} aria-controls="ctb-guide-steps" onClick={() => setOpen((value) => !value)}>{open ? (sv ? 'Dölj guide' : 'Hide guide') : (sv ? 'Visa guide' : 'Show guide')}</button>
+        <button type="button" className="min-h-11 shrink-0 rounded-lg border border-line px-3 text-xs font-semibold" aria-expanded={expanded} aria-controls="ctb-guide-steps" onClick={() => setExpanded((value) => !value)}>
+          {expanded ? (sv ? 'Dölj' : 'Hide') : (sv ? 'Visa steg' : 'Show steps')}
+        </button>
       </div>
-      {open ? <ol id="ctb-guide-steps" className="mt-4 grid gap-3 sm:grid-cols-2">{steps.map(([title, description], i) => <li key={title} className="rounded-lg border border-line p-3"><span className="font-mono text-xs font-bold text-pine">{String(i + 1).padStart(2, '0')}</span><p className="mt-1 text-sm font-semibold">{title}</p><p className="mt-1 text-xs leading-relaxed text-ink-soft">{description}</p></li>)}</ol> : null}
-      <p className="mt-3 text-xs text-muted">{sv ? 'Köparen behöver inget konto. Butiksimport och abonnemang är ännu inte aktiverade.' : 'Buyers need no account. Store import and subscriptions are not enabled yet.'}</p>
+      <p className="mt-2 text-sm leading-relaxed text-ink-soft">{sv ? 'E-post och Stripe → Vara och pris → Dela länken.' : 'Email and Stripe → Item and price → Share the link.'}</p>
+      {expanded ? (
+        <ol id="ctb-guide-steps" className="mt-4 grid gap-2 sm:grid-cols-3">
+          {steps.map(([title, description], i) => (
+            <li key={title} className="rounded-lg border border-line p-3">
+              <span className="font-mono text-xs font-bold text-pine">{String(i + 1).padStart(2, '0')}</span>
+              <p className="mt-1 text-sm font-semibold">{title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-soft">{description}</p>
+            </li>
+          ))}
+        </ol>
+      ) : null}
     </section>
   )
 }
