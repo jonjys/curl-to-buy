@@ -8,8 +8,8 @@
   --color-ink-soft: #b8c0cc;
   --color-muted: #9aa4b6;
   --color-line: #283147;
-  --color-pine: #17e39a;
-  --color-pine-fg: #03030c;
+  --color-pine: #12c984;
+  --color-pine-fg: #06140f;
   --color-cyan: #46cfe0;
   --color-warn: #ff8a5b;
   --font-display: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
@@ -62,7 +62,19 @@ h1, h2, h3 {
   font-weight: 800;
 }
 
-a { color: inherit; }
+/* Keep link reset in a layer so Tailwind color utilities (text-pine-fg)
+   can override it. An unlayered `a { color: inherit }` was winning over
+   `.text-pine-fg` and leaving white ink on pine CTAs. */
+@layer base {
+  a { color: inherit; }
+}
+
+/* Unlayered safeguard: any pine fill on a control uses ink, not inherited white. */
+a.bg-pine,
+button.bg-pine,
+[role="button"].bg-pine {
+  color: var(--color-pine-fg);
+}
 
 ::selection {
   background: color-mix(in srgb, var(--color-pine) 35%, transparent);
@@ -92,21 +104,21 @@ a { color: inherit; }
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 70% 42% at 50% -8%, #00ff9d24 0%, transparent 72%),
-    radial-gradient(ellipse 50% 40% at 88% 12%, #00f5ff14 0%, transparent 70%),
+    radial-gradient(ellipse 70% 42% at 50% -8%, color-mix(in srgb, var(--color-pine) 10%, transparent) 0%, transparent 72%),
+    radial-gradient(ellipse 50% 40% at 88% 12%, #00f5ff10 0%, transparent 70%),
     radial-gradient(ellipse 60% 50% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.5) 100%);
 }
 
 .nl-card {
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 40px rgba(0, 255, 157, 0.05);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--color-pine) 6%, transparent);
   backdrop-filter: blur(10px);
 }
 
 .nl-card-glow {
   border-color: color-mix(in srgb, var(--color-pine) 16%, transparent);
-  box-shadow: 0 0 32px rgba(0, 255, 157, 0.05);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--color-pine) 6%, transparent);
 }
 
 .nl-chip {
@@ -129,7 +141,7 @@ a { color: inherit; }
   justify-content: center;
   border-radius: 0.35rem;
   background: var(--color-pine);
-  box-shadow: 0 0 14px #00ff9d99;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-pine) 28%, transparent);
 }
 
 .nl-mark > span {
@@ -145,7 +157,7 @@ a { color: inherit; }
   inset: 0;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 80% 70% at 50% 120%, #00ff9d12, transparent 70%),
+    radial-gradient(ellipse 80% 70% at 50% 120%, color-mix(in srgb, var(--color-pine) 7%, transparent), transparent 70%),
     linear-gradient(180deg, transparent, rgba(3, 3, 12, 0.45));
 }
 
@@ -159,8 +171,8 @@ a { color: inherit; }
   height: 8rem;
   top: 24%;
   left: 22%;
-  background: radial-gradient(circle at 40% 40%, #00ff9d3a, #00c8781a 55%, transparent 72%);
-  filter: blur(14px);
+  background: radial-gradient(circle at 40% 40%, color-mix(in srgb, var(--color-pine) 22%, transparent), color-mix(in srgb, var(--color-pine) 8%, transparent) 55%, transparent 72%);
+  filter: blur(16px);
 }
 
 .nl-hero-orb::after {
