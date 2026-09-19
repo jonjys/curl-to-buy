@@ -15,20 +15,20 @@ function HomeInner({ stripeReady, blobReady, maxMB }) {
   return (
     <Frame>
       <main>
-        <section className="mx-auto grid max-w-5xl items-center gap-8 px-4 pb-6 pt-8 sm:px-6 sm:pt-14 lg:grid-cols-2">
+        <section className="mx-auto grid max-w-5xl items-center gap-6 px-4 pb-5 pt-6 sm:px-6 sm:pt-10 lg:grid-cols-2">
           <div>
             <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{sv ? 'Filer och prylar. En köplänk.' : 'Files and items. One payment link.'}</p>
-            <h1 className="mt-3 font-display text-display font-black tracking-tight">{sv ? 'Lägg upp en vara.' : 'Post an item.'}<br />{t.hero2}</h1>
-            <p className="mt-4 font-display text-lg font-semibold text-cyan sm:text-xl">{sv ? 'Sälj direkt där samtalet redan finns.' : 'Sell right where the conversation happens.'}</p>
-            <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">{sv ? 'En hoodie, barnvagn, guide eller ett helt filpaket. Skapa en egen länk, dela den i en chatt och låt köparen betala tryggt med kort via Stripe.' : 'A hoodie, stroller, guide or file bundle. Make a link, share it in a chat and let buyers pay by card through Stripe.'}</p>
-            <ul className="mt-5 flex flex-wrap gap-2">
+            <h1 className="mt-2 font-display text-display font-black tracking-tight">{sv ? 'Lägg upp en vara.' : 'Post an item.'}<br />{t.hero2}</h1>
+            <p className="mt-3 font-display text-lg font-semibold text-cyan sm:text-xl">{sv ? 'Sälj direkt där samtalet redan finns.' : 'Sell right where the conversation happens.'}</p>
+            <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">{sv ? 'En hoodie, barnvagn, guide eller ett helt filpaket. Skapa en egen länk, dela den i en chatt och låt köparen betala tryggt med kort via Stripe.' : 'A hoodie, stroller, guide or file bundle. Make a link, share it in a chat and let buyers pay by card through Stripe.'}</p>
+            <ul className="mt-4 flex flex-wrap gap-2">
               {(sv ? ['Fysiska varor', 'Digitala filer', 'Kort via Stripe', 'Inget köparkonto'] : ['Physical items', 'Digital files', 'Cards via Stripe', 'No buyer account']).map((chip) => <li key={chip} className="nl-chip rounded-md px-3 py-1.5 text-[11px]">{chip}</li>)}
             </ul>
-            <p className="mt-4 text-sm text-muted">{sv ? 'Utan abonnemang: minst $10 och 5% till Curl-to-Buy. Med Start/Grow/Scale: minst $5 och ingen plattformsprocent. Köpare behöver inget konto.' : 'Without a subscription: $10 minimum and 5% to Curl-to-Buy. With Start/Grow/Scale: $5 minimum and no platform percentage. Buyers need no account.'}</p>
-            <a href="#post" className="mt-6 inline-flex min-h-12 items-center rounded-sm bg-pine px-5 text-base font-medium text-pine-fg no-underline">{sv ? 'Skapa en köplänk' : 'Create a payment link'}</a>
+            <p className="mt-3 text-sm text-muted">{sv ? 'Utan abonnemang: minst $10 och 5% till Curl-to-Buy. Med Start/Grow/Scale: minst $5 och ingen plattformsprocent. Köpare behöver inget konto.' : 'Without a subscription: $10 minimum and 5% to Curl-to-Buy. With Start/Grow/Scale: $5 minimum and no platform percentage. Buyers need no account.'}</p>
+            <a href="#post" className="mt-5 inline-flex min-h-12 items-center rounded-sm bg-pine px-5 text-base font-medium text-pine-fg no-underline">{sv ? 'Skapa en köplänk' : 'Create a payment link'}</a>
           </div>
           <figure className="nl-card nl-card-glow relative overflow-hidden rounded-2xl">
-            <div className="relative h-40 sm:h-48"><div className="nl-hero-orb" aria-hidden="true" /></div>
+            <div className="relative h-32 sm:h-40"><div className="nl-hero-orb" aria-hidden="true" /></div>
             <figcaption className="relative border-t border-white/5 bg-paper/40 p-5 sm:p-7">
               <div className="flex items-start justify-between gap-3"><p className="font-mono text-[10px] uppercase tracking-kicker text-muted">{sv ? 'Exempel: digital fil' : 'Example: digital file'}</p><p className="nl-badge rounded-full px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em]">{t.live}</p></div>
               <p className="mt-4 font-display text-6xl font-black tabular-nums tracking-tight">{sv ? 'Ditt pris' : 'Your price'}</p>
@@ -37,7 +37,7 @@ function HomeInner({ stripeReady, blobReady, maxMB }) {
             </figcaption>
           </figure>
         </section>
-        <section id="post" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-8 sm:px-6">
+        <section id="post" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-6 sm:px-6">
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="nl-card rounded-2xl p-5 sm:p-7">
               <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.live}</p>
