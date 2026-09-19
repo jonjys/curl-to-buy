@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import UploadForm from './upload-form'
 import ItemForm from './item-form'
+import SellerGuide from './seller-guide'
 import { useLocale } from './locale'
 
 const MODE_KEY = 'curl-to-buy:sell-mode'
@@ -24,6 +25,7 @@ export default function SellMode(props) {
         <button type="button" role="tab" aria-selected={mode === 'digital'} onClick={() => choose('digital')} className={`min-h-12 rounded-lg px-2 text-sm font-semibold ${mode === 'digital' ? 'bg-pine text-pine-fg' : 'text-ink'}`}>{sv ? 'Digital fil' : 'Digital file'}</button>
         <button type="button" role="tab" aria-selected={mode === 'physical'} onClick={() => choose('physical')} className={`min-h-12 rounded-lg px-2 text-sm font-semibold ${mode === 'physical' ? 'bg-pine text-pine-fg' : 'text-ink'}`}>{sv ? 'Fysisk vara' : 'Physical item'}</button>
       </div>
+      <SellerGuide />
       {mode === 'physical' ? <ItemForm {...props} /> : <UploadForm {...props} />}
     </div>
   )
