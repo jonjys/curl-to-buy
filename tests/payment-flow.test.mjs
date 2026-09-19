@@ -43,7 +43,7 @@ async function setup() {
           id: 'cs_test_contract_1', mode: 'payment', payment_status: 'unpaid',
           metadata: { ...args.metadata }, customer_details: { email: 'buyer@example.test' },
         }
-        return { url: 'https://checkout.stripe.com/test-contract' }
+        return { ...state.session, url: 'https://checkout.stripe.com/test-contract' }
       },
       retrieve: async (id) => {
         if (id !== state.session?.id) throw Error('Unknown test session')
@@ -73,11 +73,15 @@ async function setup() {
   }
   const dependencies = {
     'lib/stripe': { stripe: () => client },
+    'lib/billing': { billingState: async () => ({ active: false }) },
+    'lib/payment-context': { saveCheckoutContext: async () => {}, checkoutContext: async () => null, retrieveCheckout: async (_, id) => client.checkout.sessions.retrieve(id), paymentCanFulfill: (s) => s.mode === 'payment' && s.payment_status === 'paid' },
+    'lib/checkout-reservations': { createReservedCheckout: async () => { throw Error('Unexpected direct charge') } },
     'lib/store': store,
     'lib/price': { displayPrice: () => ({ currency: 'sek', amount: 5000 }) },
     'lib/site': { originFrom: () => 'https://example.test' },
     'lib/fees': { applicationFeeCents: (amount, bps) => Math.round(amount * bps / 10000) },
     'lib/stripe-connect': {
+      readySubscriptionMerchant: async () => null,
       recipientStatus: () => ({ transfers: state.transfersEnabled }),
       retrieveConnectedRecipient: async () => ({ id: seller.stripeAccountId }),
     },
@@ -162,3 +166,4 @@ test('Checkout refuses missing recipient and sold-out listing; paid session cann
   assert.equal((await download.GET(new Request('https://example.test/api/download/other-listing?session_id=cs_test_contract_1'),
     { params: Promise.resolve({ id: 'other-listing' }) })).status, 403)
 })
+

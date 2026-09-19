@@ -38,7 +38,10 @@ export default function BuyBox({ listing, price }) {
   async function pay() {
     setError(null); setBusy(true)
     try {
-      const res = await fetch(`/api/checkout/${listing.id}`, { method: 'POST' })
+      const storageKey = `ctb-checkout:${listing.id}`
+      let attemptId = window.sessionStorage.getItem(storageKey)
+      if (!attemptId) { attemptId = crypto.randomUUID(); window.sessionStorage.setItem(storageKey, attemptId) }
+      const res = await fetch(`/api/checkout/${listing.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ attemptId }) })
       const json = await res.json()
       if (!res.ok || !json.url) throw new Error(json.error || 'Could not start checkout.')
       window.location.href = json.url
@@ -57,8 +60,9 @@ export default function BuyBox({ listing, price }) {
       <h1 className="mt-2 font-display text-3xl font-black tracking-tight">{isPhysical ? (sv ? 'Köp varan' : 'Buy this item') : t.buyTitle}</h1>
       {isPhysical && listing.photoUrl ? <img src={listing.photoUrl} alt={listing.name} className="mt-5 max-h-80 w-full rounded-xl object-contain" /> : null}
       <p className="mt-5 break-words text-xl font-bold text-ink">{listing.name}</p>
-      {isPhysical ? <p className="mt-1 text-sm text-muted">{condition || (sv ? 'Skick ej angivet' : 'Condition unspecified')} · {sv ? 'Frakt inom Sverige ingår' : 'Shipping within Sweden included'}</p> : <p className="mt-1 text-sm text-muted">{listing.fileCount} {listing.fileCount === 1 ? t.oneFile : t.manyFiles}</p>}
+      {isPhysical ? <p className="mt-1 text-sm text-muted">{condition || (sv ? 'Skick ej angivet' : 'Condition unspecified')} · {sv ? 'Frakt ingår' : 'Shipping included'}</p> : <p className="mt-1 text-sm text-muted">{listing.fileCount} {listing.fileCount === 1 ? t.oneFile : t.manyFiles}</p>}
       {listing.description ? <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-soft">{listing.description}</p> : null}
+      {isPhysical ? <div className="mt-4 space-y-2 text-sm text-ink-soft">{listing.brand ? <p>{listing.brand}</p> : null}<p>{sv ? 'Leverans till' : 'Ships to'}: {(listing.shippingCountries || ['SE']).join(', ')}</p>{listing.deliveryEstimate ? <p>{listing.deliveryEstimate}</p> : null}{listing.returnPolicy ? <details><summary>{sv ? 'Returinformation' : 'Return information'}</summary><p className="mt-2 whitespace-pre-wrap">{listing.returnPolicy}</p></details> : null}{listing.sellerContact ? <a href={`mailto:${listing.sellerContact}`} className="text-pine">{sv ? 'Kontakta säljaren' : 'Contact seller'}</a> : null}</div> : null}
       <p className="mt-6 font-display text-5xl font-black tabular-nums tracking-tight">{price.label}</p>
       <p className="mt-2 text-sm text-muted">{isPhysical ? (sv ? 'Betala med kort via Stripe. Ange namn, e-post och leveransadress i kassan.' : 'Pay by card via Stripe. Enter your name, email and delivery address at checkout.') : t.payCard}</p>
       {isPhysical ? <p className="mt-2 text-xs leading-relaxed text-muted">{sv ? 'Säljaren ansvarar för att skicka varan. Curl-to-Buy erbjuder inte köparskydd eller egen frakt.' : 'The seller is responsible for shipping. Curl-to-Buy does not provide buyer protection or shipping.'}</p> : null}
@@ -69,3 +73,4 @@ export default function BuyBox({ listing, price }) {
     </div>
   )
 }
+

@@ -1,8 +1,8 @@
 # Curl-to-Buy
 
-https://pay.nyttolabs.com — Post a file. Get paid.
+https://pay.nyttolabs.com — Post an item. Get paid.
 
-Upload a file, set a dollar price, share the link. Buyers pay by **card** through Stripe. 5% platform fee. No Klarna. No account on either side.
+Create a payment link for a physical product or digital file. Buyers pay by **card** through Stripe. Sellers pay a monthly subscription (Start €5 / Grow €19 / Scale €49). Stripe deducts its processing fee from each sale. No Curl-to-Buy percentage on subscription links.
 
 Env (already on the Vercel project):
 

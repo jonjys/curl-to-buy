@@ -3,11 +3,16 @@ import { getListing, getSalesCount, getSeller, listingFiles } from '../../../../
 import { displayPrice } from '../../../../lib/price'
 import { originFrom } from '../../../../lib/site'
 import { applicationFeeCents } from '../../../../lib/fees'
-import { recipientStatus, retrieveConnectedRecipient } from '../../../../lib/stripe-connect'
+import { billingState } from '../../../../lib/billing'
+import { saveCheckoutContext } from '../../../../lib/payment-context'
+import { createReservedCheckout } from '../../../../lib/checkout-reservations'
+import { recipientStatus, retrieveConnectedRecipient, readySubscriptionMerchant } from '../../../../lib/stripe-connect'
 
 export const runtime = 'nodejs'
 
+export const maxDuration = 60
 export async function POST(req, { params }) {
+  try {
   const { id } = await params
   const client = stripe()
   if (!client) return Response.json({ error: 'Stripe is not configured.' }, { status: 500 })
@@ -36,22 +41,27 @@ export async function POST(req, { params }) {
   }
 
   const seller = listing.sellerId ? await getSeller(listing.sellerId) : null
-  if (!seller?.stripeAccountId) {
+  if (!seller?.paymentAccountId && !seller?.stripeAccountId) {
     return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
+  }
+  const direct = listing.billingMode === 'subscription'
+  const accountId = direct ? listing.paymentAccountId : null
+  if (direct && (accountId !== seller.paymentAccountId || !(await readySubscriptionMerchant(seller)) || !(await billingState(seller)).active)) {
+    return Response.json({ error: 'This seller is not accepting payments right now.' }, { status: 409 })
   }
   let destination = null
   const feeBps = seller.feeBps || 500
-  try {
+  if (!direct) try {
     const status = recipientStatus(await retrieveConnectedRecipient(seller.stripeAccountId))
     if (status.transfers) destination = seller.stripeAccountId
   } catch {}
-  if (!destination) {
+  if (!direct && !destination) {
     return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
   }
 
   const origin = originFrom(req)
   const fileCount = listingFiles(listing).length
-  const session = await client.checkout.sessions.create({
+  const checkoutParams = {
     mode: 'payment',
     payment_method_types: ['card'],
     line_items: [{
@@ -62,7 +72,7 @@ export async function POST(req, { params }) {
         product_data: {
           name: listing.name,
           description: isPhysical
-            ? 'Physical item · shipping within Sweden included in price'
+            ? 'Physical item · shipping included in price'
             : fileCount > 1 ? `${fileCount} digital files via Curl-to-Buy` : 'Digital file via Curl-to-Buy',
           ...(isPhysical && listing.photoUrl ? { images: [listing.photoUrl] } : {}),
         },
@@ -74,8 +84,11 @@ export async function POST(req, { params }) {
       billing_address_collection: 'auto',
     } : {}),
     payment_intent_data: {
-      application_fee_amount: applicationFeeCents(price.amount, feeBps),
-      transfer_data: { destination },
+      ...(direct ? { application_fee_amount: 0 } : {
+        application_fee_amount: applicationFeeCents(price.amount, feeBps),
+        transfer_data: { destination },
+      }),
+      metadata: { file_id: listing.id, seller_id: seller.id, billing_mode: direct ? 'subscription' : 'legacy' },
     },
     success_url: `${origin}/success?listing_id=${listing.id}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/dl/${listing.id}`,
@@ -84,9 +97,25 @@ export async function POST(req, { params }) {
       seller_id: seller.id,
       kind: isPhysical ? 'physical' : 'digital',
       payout: 'connect',
-      fee_bps: String(feeBps),
+      fee_bps: direct ? '0' : String(feeBps),
+      billing_mode: direct ? 'subscription' : 'legacy',
     },
-  })
-
+  }
+  const body = await req.json().catch(() => ({}))
+  const attemptId = body.attemptId
+  const context = { accountId, listingId: listing.id, sellerId: seller.id, amount: price.amount, currency: price.currency }
+  let session
+  if (direct && Number.isInteger(listing.salesLimit)) {
+    if (!/^[a-zA-Z0-9_-]{16,80}$/.test(attemptId || '')) return Response.json({ error: 'Refresh the item page and try again.' }, { status: 400 })
+    session = await createReservedCheckout(client, listing, attemptId, checkoutParams, context)
+  } else {
+    session = await client.checkout.sessions.create(checkoutParams, direct ? { stripeAccount: accountId } : {})
+    await saveCheckoutContext(session.id, context)
+  }
   return Response.json({ url: session.url })
+  } catch (error) {
+    console.error('Buyer checkout failed', { type: error.type || error.name })
+    return Response.json({ error: error.status ? error.message : 'Could not open checkout. Please try again.' }, { status: error.status || 503 })
+  }
 }
+

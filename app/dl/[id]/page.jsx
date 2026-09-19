@@ -22,6 +22,11 @@ export default async function DlPage({ params }) {
     photoUrl: listing.kind === 'physical' ? listing.photoUrl || null : null,
     condition: listing.kind === 'physical' ? listing.condition || null : null,
     shippingIncluded: listing.kind === 'physical' && listing.shippingIncluded === true,
+    brand: listing.brand || null,
+    deliveryEstimate: listing.deliveryEstimate || null,
+    returnPolicy: listing.returnPolicy || null,
+    sellerContact: listing.sellerContact || null,
+    shippingCountries: listing.shippingCountries || ['SE'],
     fileCount: listing.kind === 'physical' ? 0 : listingFiles(listing).length,
     salesLimit: listing.salesLimit,
     sold,
@@ -31,3 +36,4 @@ export default async function DlPage({ params }) {
   }
   return <LocaleProvider><Frame><main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-12 sm:px-6"><BuyBox listing={safeListing} price={displayPrice(listing)} /></main></Frame></LocaleProvider>
 }
+

@@ -41,7 +41,8 @@ function clearDraft() {
 }
 
 export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
+  const sv = locale === 'sv'
   const inputRef = useRef(null)
   const [files, setFiles] = useState([])
   const [title, setTitle] = useState('')
@@ -81,6 +82,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          requestId: draft.requestId, accepted: draft.accepted, locale,
           files: draft.uploaded,
           title: draft.title,
           priceUsd: draft.priceUsd,
@@ -91,6 +93,8 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         }),
       })
       const json = await readJson(res)
+      if (res.status === 402 && json.quotaExceeded) throw new Error(json.error || (sv ? 'Du har använt alla nya länkar för den här månaden.' : 'You have used all new links for this billing month.'))
+      if (res.status === 402) { window.location.assign('/plans'); return }
       if (!res.ok) throw new Error(json.error || 'Could not create the link.')
       clearDraft()
       setShowConnect(false)
@@ -101,12 +105,13 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       setBusy(false)
       finalizingRef.current = false
     }
-  }, [])
+  }, [locale, sv])
 
   useEffect(() => {
     if (connect.loading) return
     const draft = readDraft()
     if (!draft) return
+    if (!draft.requestId || !draft.accepted) { clearDraft(); setError(t.confirmErr); return }
     if (connect.ready) {
       finalizeDraft(draft)
     } else {
@@ -118,7 +123,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     setError(null)
     setConnecting(true)
     try {
-      const response = await fetch('/api/connect', {
+      const response = await fetch(connect.hasSeller ? '/api/billing/connect' : '/api/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -172,9 +177,6 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
 
   const usd = Number.parseFloat(price)
   const validUsd = Number.isFinite(usd) && usd >= MIN_USD
-  const feeBps = connect.feeBps || 500
-  const feePercent = feeBps / 100
-  const keep = validUsd ? Math.round(usd * (1 - feeBps / 10000) * 100) / 100 : 0
   const maxBytes = maxMB * 1024 * 1024
   const totalBytes = files.reduce((sum, file) => sum + file.size, 0)
 
@@ -208,78 +210,26 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     if (!stripeReady) return setError(t.stripeDown)
     if (files.length > 1 && !blobReady) return setError(t.packageUnavailable)
 
-    if (!connect.ready) {
-      if (!blobReady) return setError(t.packageUnavailable)
-      setBusy(true)
-      setProgress(2)
-      try {
-        const batch = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
-        const uploaded = []
-        for (let index = 0; index < files.length; index += 1) {
-          const file = files[index]
-          const blob = await upload(`uploads/${batch}/${file.name}`, file, {
-            access: 'public',
-            handleUploadUrl: '/api/upload-url',
-            onUploadProgress: ({ percentage }) => setProgress(Math.round(((index + percentage / 100) / files.length) * 100)),
-          })
-          uploaded.push({ blobPathname: blob.pathname, name: file.name, size: file.size, type: file.type })
-        }
-        writeDraft({ uploaded, title, priceUsd: String(usd), salesLimit, downloadsPerFile, description, timeLimitMinutes })
-        setShowConnect(true)
-      } catch (err) {
-        setError(err.message || 'Upload failed.')
-      } finally {
-        setBusy(false)
-      }
-      return
-    }
-
+    if (!blobReady) return setError(t.packageUnavailable)
     setBusy(true)
     setProgress(2)
     try {
-      let created
-      if (blobReady) {
-        const batch = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
-        const uploaded = []
-        for (let index = 0; index < files.length; index += 1) {
-          const file = files[index]
-          const blob = await upload(`uploads/${batch}/${file.name}`, file, {
-            access: 'public',
-            handleUploadUrl: '/api/upload-url',
-            onUploadProgress: ({ percentage }) => setProgress(Math.round(((index + percentage / 100) / files.length) * 90)),
-          })
-          uploaded.push({ blobPathname: blob.pathname, name: file.name, size: file.size, type: file.type })
-        }
-        const res = await fetch('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ files: uploaded, title, priceUsd: String(usd), salesLimit, downloadsPerFile, description, timeLimitMinutes }),
+      const batch = crypto.randomUUID()
+      const uploaded = []
+      for (let index = 0; index < files.length; index++) {
+        const file = files[index]
+        const blob = await upload(`uploads/${batch}/${file.name}`, file, {
+          access: 'public', handleUploadUrl: '/api/upload-url',
+          onUploadProgress: ({ percentage }) => setProgress(Math.round(((index + percentage / 100) / files.length) * 90)),
         })
-        const json = await readJson(res)
-        if (!res.ok) throw new Error(json.error || 'Could not create the link.')
-        created = json
-      } else {
-        const body = new FormData()
-        body.append('file', files[0])
-        body.append('title', title)
-        body.append('priceUsd', String(usd))
-        body.append('salesLimit', salesLimit)
-        body.append('downloadsPerFile', downloadsPerFile)
-        body.append('description', description)
-        body.append('timeLimitMinutes', timeLimitMinutes)
-        setProgress(45)
-        const res = await fetch('/api/upload', { method: 'POST', body })
-        const json = await readJson(res)
-        if (!res.ok) throw new Error(json.error || 'Upload failed.')
-        created = json
+        uploaded.push({ blobPathname: blob.pathname, name: file.name, size: file.size, type: file.type })
       }
-      setProgress(100)
-      setListing(created)
-    } catch (err) {
-      setError(err.message || 'Upload failed.')
-    } finally {
-      setBusy(false)
-    }
+      const draft = { requestId: batch, accepted, uploaded, title, priceUsd: String(usd), salesLimit, downloadsPerFile, description, timeLimitMinutes }
+      writeDraft(draft)
+      if (connect.ready) await finalizeDraft(draft)
+      else setShowConnect(true)
+    } catch (err) { setError(err.message || 'Upload failed.') }
+    finally { setBusy(false) }
   }
 
   async function copyLink() {
@@ -430,6 +380,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
 
   return (
     <div className="space-y-5">
+      <p className="text-sm leading-relaxed text-ink-soft">{sv ? 'Köparen får filerna direkt efter betalning. För kläder, ditt eget varumärke eller andra produkter som ska skickas, välj Fysisk vara.' : 'Buyers get the files after payment. For clothing, your own brand or products you ship, choose Physical item.'}</p>
       <div className="space-y-2">
         <p className="text-sm font-medium">{t.files}</p>
         <label
@@ -486,6 +437,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             placeholder={String(DEFAULT_USD)}
           />
         </div>
+        <input type="range" aria-label={sv ? 'Justera pris' : 'Adjust price'} min={MIN_USD} max={500} step={1} value={Math.min(500, validUsd ? usd : MIN_USD)} onChange={(e) => setPrice(e.target.value)} className="w-full accent-pine" />
         <div className="flex flex-wrap gap-2">
           {PRESETS.map((n) => (
             <button
@@ -499,7 +451,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             </button>
           ))}
         </div>
-        <p className="text-sm text-muted">{validUsd ? `${t.youKeep} ${formatUsd(keep)} · ${feePercent}% ${t.feeNoteDynamic}` : t.minHint}</p>
+        <p className="text-sm text-muted">{sv ? 'Curl-to-Buy tar ingen procent på försäljningen. Stripe drar sin kortavgift från beloppet.' : 'Curl-to-Buy takes no percentage of the sale. Stripe deducts its card fee from the amount.'}</p>
       </div>
 
       <div className="space-y-2">
@@ -601,3 +553,4 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     </div>
   )
 }
+

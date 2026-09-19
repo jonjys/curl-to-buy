@@ -1,11 +1,13 @@
-import { getSeller, saveSeller, saveSellerEmailIndex } from '../../../lib/store'
-import { createConnectedRecipient, createOnboardingLink } from '../../../lib/stripe-connect'
+import { getSeller, saveSeller, saveSellerEmailIndex, getSellerIdByEmail } from '../../../lib/store'
+import { createSubscriptionMerchant, merchantOnboardingLink } from '../../../lib/stripe-connect'
 import { emailKey, feeBpsForEmail, newSellerId, sellerCookie, sellerIdFromRequest, validSellerEmail } from '../../../lib/seller'
+import { sameOrigin } from '../../../lib/http'
 import { originFrom } from '../../../lib/site'
 
 export const runtime = 'nodejs'
 
 export async function POST(req) {
+  if (!sameOrigin(req)) return Response.json({ error: 'Invalid origin.' }, { status: 403 })
   try {
     const existingId = sellerIdFromRequest(req)
     let seller = existingId ? await getSeller(existingId) : null
@@ -16,12 +18,14 @@ export async function POST(req) {
       const email = validSellerEmail(body.email)
       if (!email) return Response.json({ error: 'Enter a valid email address.' }, { status: 400 })
 
+      if (await getSellerIdByEmail(emailKey(email))) return Response.json({ error: 'An existing seller uses this email. Recover your seller access by email.', needsRecovery: true }, { status: 409 })
       const id = newSellerId()
-      const account = await createConnectedRecipient({ email, sellerId: id })
+      const account = await createSubscriptionMerchant({ email, sellerId: id })
       seller = {
         id,
         email,
         stripeAccountId: account.id,
+        paymentAccountId: account.id,
         connectVersion: account.connectVersion || 'v2',
         feeBps: feeBpsForEmail(email),
         ready: false,
@@ -33,12 +37,8 @@ export async function POST(req) {
     }
 
     const origin = originFrom(req)
-    const link = await createOnboardingLink({
-      accountId: seller.stripeAccountId,
-      connectVersion: seller.connectVersion,
-      returnUrl: `${origin}/upload?stripe=return`,
-      refreshUrl: `${origin}/upload?stripe=refresh`,
-    })
+    if (!seller.paymentAccountId) return Response.json({ url: `${origin}/plans` })
+    const link = await merchantOnboardingLink(seller.paymentAccountId, origin)
     const response = Response.json({ url: link.url })
     if (setCookie) response.headers.append('Set-Cookie', setCookie)
     return response
@@ -46,3 +46,4 @@ export async function POST(req) {
     return Response.json({ error: error?.message || 'Could not start Stripe setup.' }, { status: 500 })
   }
 }
+
