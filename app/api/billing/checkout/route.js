@@ -1,59 +1,60 @@
-import { stripe } from '../../../../lib/stripe'
-import { billingSandboxEnabled, getPlans, getCurrentSubscription } from '../../../../lib/billing'
+import { randomUUID } from 'node:crypto'
 import { getSeller, updateSeller } from '../../../../lib/store'
-import { sellerIdFromRequest } from '../../../../lib/seller'
+import { withBillingLock } from '../../../../lib/commerce-store'
+import { stripe } from '../../../../lib/stripe'
+import { authenticatedSeller, billingState, ensureBillingIdentity, getPlans, portalConfiguration, billingEnabled } from '../../../../lib/billing'
+import { readySubscriptionMerchant } from '../../../../lib/stripe-connect'
 import { originFrom } from '../../../../lib/site'
+import { privateJson, sameOrigin } from '../../../../lib/http'
 
 export const runtime = 'nodejs'
-
+export const maxDuration = 60
 export async function POST(req) {
-  // Prevent charging a seller while the production checkout still uses destination
-  // charges and charges Stripe processing fees to the Nytto Labs platform.
-  if (!billingSandboxEnabled()) {
-    return Response.json({ error: 'Subscriptions are not available yet. No payment has been taken.' }, { status: 503 })
-  }
-  const sellerId = sellerIdFromRequest(req)
-  const seller = sellerId ? await getSeller(sellerId) : null
-  if (!seller?.stripeAccountId || !seller.email) {
-    return Response.json({ error: 'Set up your seller account first.' }, { status: 401 })
-  }
-  const body = await req.json().catch(() => null)
-  const key = typeof body?.plan === 'string' ? body.plan : ''
+  if (!sameOrigin(req)) return privateJson({ error: 'Invalid origin.' }, 403)
+  if (!billingEnabled()) return privateJson({ error: 'Subscription checkout is temporarily unavailable.' }, 503)
   try {
+    const seller = await authenticatedSeller(req)
+    if (!seller || !(await readySubscriptionMerchant(seller))) return privateJson({ error: 'Add your payout details first.', needsConnect: true }, 403)
+    const body = await req.json().catch(() => ({}))
+    const plan = (await getPlans(stripe())).find((p) => p.key === body.plan)
+    if (!plan) return privateJson({ error: 'Choose a subscription plan.' }, 400)
+    return await withBillingLock(seller.id, async () => {
     const client = stripe()
-    if (!client) throw Error('Stripe is not configured.')
-    const plans = await getPlans(client)
-    const plan = plans.find((item) => item.key === key)
-    if (!plan) return Response.json({ error: 'Unknown subscription plan.' }, { status: 400 })
-
-    if (await getCurrentSubscription(client, seller, plans)) {
-      return Response.json({ error: 'You already have a subscription. Manage it from your account.' }, { status: 409 })
-    }
-
-    let customerId = seller.stripeCustomerId
-    if (!customerId) {
-      const customer = await client.customers.create({
-        email: seller.email,
-        metadata: { ctb_seller_id: seller.id, ctb_service: 'curl_to_buy' },
-      }, { idempotencyKey: `ctb-billing-customer-${seller.id}` })
-      customerId = customer.id
-      await updateSeller(seller.id, { stripeCustomerId: customerId })
-    }
-
+    const freshSeller = await getSeller(seller.id)
+    const identity = await ensureBillingIdentity(freshSeller)
+    const current = await billingState({ ...freshSeller, billingIdentity: identity })
     const origin = originFrom(req)
+    if (current.subscriptionId) {
+      const portal = await client.billingPortal.sessions.create({ ...identity, configuration: await portalConfiguration(), return_url: `${origin}/plans` })
+      return privateJson({ url: portal.url })
+    }
+    // One open session per seller and plan. Stripe expires abandoned sessions;
+    // repeated clicks do not start a second subscription.
+    const open = await client.checkout.sessions.list({ ...identity, status: 'open', limit: 100 })
+    const reusable = open.data.find((s) => s.mode === 'subscription' && s.metadata?.app === 'curl_to_buy' && s.metadata?.plan === plan.key && s.metadata?.seller_id === seller.id)
+    if (reusable) return privateJson({ url: reusable.url })
+    for (const session of open.data.filter((s) => s.mode === 'subscription' && s.metadata?.app === 'curl_to_buy' && s.metadata?.seller_id === seller.id)) await client.checkout.sessions.expire(session.id)
+    let attempt = freshSeller.billingCheckout
+    if (!attempt || attempt.plan !== plan.key || attempt.expiresAt <= Math.floor(Date.now() / 1000) || (attempt.sessionId && (await client.checkout.sessions.retrieve(attempt.sessionId)).status !== 'open')) {
+      attempt = { plan: plan.key, nonce: randomUUID(), expiresAt: Math.floor(Date.now() / 1000) + 3600, origin }
+      await updateSeller(seller.id, { billingCheckout: attempt })
+    }
+    const metadata = { app: 'curl_to_buy', seller_id: seller.id, plan: plan.key }
     const session = await client.checkout.sessions.create({
-      customer: customerId,
-      client_reference_id: seller.id,
-      mode: 'subscription',
+      mode: 'subscription', ...identity,
       line_items: [{ price: plan.priceId, quantity: 1 }],
-      subscription_data: { metadata: { ctb_seller_id: seller.id, ctb_plan: plan.key } },
-      success_url: `${origin}/plans?checkout=success`,
-      cancel_url: `${origin}/plans?checkout=cancel`,
-    }, { idempotencyKey: `ctb-sub-session-${seller.id}-${plan.key}-${Math.floor(Date.now() / 60000)}` })
-
-    return Response.json({ url: session.url }, { headers: { 'Cache-Control': 'private, no-store' } })
+      billing_address_collection: 'required', tax_id_collection: { enabled: true },
+      automatic_tax: { enabled: true },
+      customer_update: { address: 'auto', name: 'auto' },
+      metadata, subscription_data: { metadata },
+      success_url: `${attempt.origin}/upload?billing=success`, cancel_url: `${attempt.origin}/plans?billing=canceled`,
+      expires_at: attempt.expiresAt,
+    }, { idempotencyKey: `ctb-subscription-${seller.id}-${attempt.nonce}` })
+    await updateSeller(seller.id, { billingCheckout: { ...attempt, sessionId: session.id } })
+    return privateJson({ url: session.url })
+    })
   } catch (error) {
-    console.error('Sandbox subscription checkout could not start.', { message: error?.message || 'Unknown error' })
-    return Response.json({ error: 'Could not start subscription checkout. No payment has been taken here.' }, { status: 503 })
+    console.error('Subscription checkout failed', { type: error.type || error.name })
+    return privateJson({ error: 'Could not open subscription checkout. Please try again.' }, 503)
   }
 }

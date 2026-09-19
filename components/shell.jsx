@@ -36,20 +36,21 @@ export function SiteHeader() {
           <Link href="/upload" className="inline-flex min-h-11 items-center rounded-sm border border-white/15 px-3.5 text-sm font-medium text-ink no-underline transition-colors hover:border-pine/50">{locale === 'sv' ? 'Skapa köplänk' : 'Create link'}</Link>
         </div>
       </div>
+      <nav className="mx-auto flex max-w-5xl gap-5 px-4 pb-2 text-xs sm:px-6" aria-label={locale === 'sv' ? 'Säljverktyg' : 'Seller tools'}><Link href="/plans" className="text-pine no-underline">{locale === 'sv' ? 'Abonnemang' : 'Subscriptions'}</Link><Link href="/links" className="text-ink-soft no-underline">{locale === 'sv' ? 'Mina länkar' : 'My links'}</Link></nav>
     </header>
   )
 }
 
 export function SiteFooter() {
-  const { t } = useLocale()
-  const bits = [t.footerPay, t.footerFee, t.footerPayout]
+  const { t, locale } = useLocale()
+  const bits = [t.footerPay, locale === 'sv' ? 'Platform fee via abonnemang' : 'Platform fee through subscriptions', t.footerPayout]
   return (
     <footer className="relative z-10 mt-16 border-t border-white/10 bg-black/35 px-4 py-8 sm:px-6" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
       <div className="mx-auto max-w-5xl">
         <div className="flex items-center gap-2.5"><Mark /><span className="font-mono text-xs tracking-[0.3em] text-white">{t.brand.toUpperCase()}</span></div>
         <ul className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">{bits.map((bit, i) => <li key={bit} className="flex items-center gap-2">{i > 0 ? <span aria-hidden="true">·</span> : null}<span>{bit}</span></li>)}</ul>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-soft">{t.legal}{' '}<a className="text-ink underline underline-offset-4" href={`mailto:${SUPPORT}`}>{t.mail}</a></p>
-        <nav className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <nav className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm"><Link href="/plans" className="text-pine no-underline">{locale === 'sv' ? 'Abonnemang' : 'Subscriptions'}</Link><Link href="/links" className="text-muted no-underline">{locale === 'sv' ? 'Mina länkar' : 'My links'}</Link>
           <Link href="/terms" className="text-muted no-underline transition-colors hover:text-ink">{t.legalTerms}</Link>
           <Link href="/refunds" className="text-muted no-underline transition-colors hover:text-ink">{t.legalRefunds}</Link>
           <Link href="/privacy" className="text-muted no-underline transition-colors hover:text-ink">{t.legalPrivacy}</Link>
@@ -63,3 +64,4 @@ export function SiteFooter() {
 export function Frame({ children }) {
   return <div className="relative min-h-dvh bg-paper text-ink"><div className="nl-grid" aria-hidden="true" /><div className="relative z-10 flex min-h-dvh flex-col"><SiteHeader />{children}<SiteFooter /></div></div>
 }
+

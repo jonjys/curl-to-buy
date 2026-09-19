@@ -1,6 +1,7 @@
 import { put } from '@vercel/blob'
 import { saveListing } from '../../../lib/store'
-import { newId } from '../../../lib/id'
+import { listingIdFor } from '../../../lib/commerce-store'
+import { publishListing } from '../../../lib/publish-listing'
 import { parsePrice } from '../../../lib/price'
 import { MAX_DESCRIPTION_LENGTH, MAX_MB, MAX_SALES_LIMIT, TIME_LIMIT_MINUTES } from '../../../lib/site'
 import { storageErrorMessage } from '../../../lib/blob-error'
@@ -44,10 +45,12 @@ export async function POST(req) {
   if (!price) return Response.json({ error: 'Price must be at least $5.' }, { status: 400 })
   if (!process.env.BLOB_READ_WRITE_TOKEN) return Response.json({ error: 'Storage is not configured.' }, { status: 500 })
 
-  const id = newId()
+  const body = { requestId: form.get('requestId'), accepted: form.get('accepted') === 'true' }
+  if (!/^[a-zA-Z0-9_-]{16,80}$/.test(body.requestId || '')) return Response.json({ error: 'Refresh the form and retry.' }, { status: 400 })
+  const id = listingIdFor(seller.id, body.requestId)
   try {
     const blob = await put(`files/${id}/${file.name}`, file, { access: 'public', addRandomSuffix: false })
-    const listing = {
+    let listing = {
       id,
       name: String(form.get('title') || file.name).slice(0, 100),
       files: [{ name: file.name, blobPathname: blob.pathname, size: file.size, type: file.type || 'application/octet-stream' }],
@@ -63,7 +66,7 @@ export async function POST(req) {
       sellerId: seller.id,
       createdAt: Date.now(),
     }
-    await saveListing(listing)
+    listing = await publishListing(seller, body, listing)
     return Response.json({
       id,
       name: listing.name,
@@ -76,6 +79,7 @@ export async function POST(req) {
       expiresAt: listing.expiresAt,
     })
   } catch (err) {
-    return Response.json({ error: storageErrorMessage(err) }, { status: 500 })
+    return Response.json({ error: err.status ? err.message : storageErrorMessage(err), needsPlan: Boolean(err.needsPlan) }, { status: err.status || 500 })
   }
 }
+

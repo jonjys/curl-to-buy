@@ -40,7 +40,7 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
             name: 'Buyer Example', address: { line1: 'Sample Street 1', postal_code: '11122', city: 'Stockholm', country: 'SE' },
           } },
         }
-        return { url: 'https://checkout.stripe.com/mock-physical' }
+        return { ...state.session, url: 'https://checkout.stripe.com/mock-physical' }
       },
       retrieve: async (id) => {
         if (id !== state.session?.id) throw Error('Unknown mock session')
@@ -62,6 +62,10 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
   }
   const dependencies = {
     'lib/store': store,
+    'lib/publish-listing': { publishListing: async (_, body, listing) => { state.listing = { ...listing, id: 'physical1' }; return state.listing } },
+    'lib/billing': { billingState: async () => ({ active: false }) },
+    'lib/payment-context': { saveCheckoutContext: async () => {}, checkoutContext: async () => null, retrieveCheckout: async (_, id) => client.checkout.sessions.retrieve(id), paymentCanFulfill: (s) => s.mode === 'payment' && s.payment_status === 'paid' },
+    'lib/checkout-reservations': { createReservedCheckout: async () => { throw Error('Unexpected direct charge') } },
     'lib/id': { newId: () => 'physical1' },
     'lib/price': {
       parsePrice: (input) => Number(input.priceSek) >= 50 ? {
@@ -72,6 +76,7 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
     'lib/stripe': { stripe: () => client },
     'lib/stripe-connect': {
       loadReadySeller: async () => state.sellerReady ? seller : null,
+      readySubscriptionMerchant: async () => null,
       recipientStatus: () => ({ transfers: true }),
       retrieveConnectedRecipient: async () => ({ id: seller.stripeAccountId }),
     },
@@ -141,3 +146,4 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
   assert.equal(paidOrders[0].buyerEmail, 'buyer@example.test')
   assert.equal((await checkout.POST(checkoutRequest, { params: Promise.resolve({ id: 'physical1' }) })).status, 410)
 })
+

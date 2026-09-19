@@ -1,24 +1,17 @@
-import { stripe } from '../../../../lib/stripe'
-import { getPlans, getCurrentSubscription, billingSandboxEnabled } from '../../../../lib/billing'
-import { getSeller } from '../../../../lib/store'
-import { sellerIdFromRequest } from '../../../../lib/seller'
-
+import { authenticatedSeller, billingState, billingEnabled } from '../../../../lib/billing'
+import { readySubscriptionMerchant } from '../../../../lib/stripe-connect'
+import { linkUsage } from '../../../../lib/commerce-store'
+import { privateJson } from '../../../../lib/http'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
 export async function GET(req) {
-  const id = sellerIdFromRequest(req)
-  const seller = id ? await getSeller(id) : null
-  if (!seller) return Response.json({ error: 'Seller sign-in required.' }, { status: 401 })
   try {
-    const client = stripe()
-    if (!client) throw Error('Stripe unavailable')
-    const plans = await getPlans(client)
-    const subscription = await getCurrentSubscription(client, seller, plans)
-    return Response.json({ subscription, acceptingSubscriptions: billingSandboxEnabled() }, {
-      headers: { 'Cache-Control': 'private, no-store' },
-    })
-  } catch {
-    return Response.json({ error: 'Could not verify subscription status.' }, { status: 503 })
-  }
+    const seller = await authenticatedSeller(req)
+    if (!seller) return privateJson({ authenticated: false, subscription: null, merchantReady: false })
+    const [billing, merchant] = await Promise.all([billingState(seller), readySubscriptionMerchant(seller)])
+    return privateJson({ authenticated: true, merchantReady: Boolean(merchant), acceptingSubscriptions: billingEnabled(),
+      subscription: billing.active ? { plan: billing.plan.key, name: billing.plan.name, status: billing.status,
+        monthlyLinks: billing.plan.links, used: await linkUsage(seller.id, billing), periodEnd: billing.periodEnd,
+        cancelAtPeriodEnd: billing.cancelAtPeriodEnd } : null })
+  } catch { return privateJson({ error: 'Could not load your subscription.' }, 503) }
 }

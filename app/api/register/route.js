@@ -1,5 +1,5 @@
 import { saveListing } from '../../../lib/store'
-import { newId } from '../../../lib/id'
+import { publishListing } from '../../../lib/publish-listing'
 import { parsePrice } from '../../../lib/price'
 import { MAX_DESCRIPTION_LENGTH, MAX_FILES, MAX_MB, MAX_SALES_LIMIT, TIME_LIMIT_MINUTES } from '../../../lib/site'
 import { storageErrorMessage } from '../../../lib/blob-error'
@@ -65,9 +65,7 @@ export async function POST(req) {
   const price = parsePrice(body)
   if (!price) return Response.json({ error: 'Price must be at least $5.' }, { status: 400 })
 
-  const id = newId()
-  const listing = {
-    id,
+  let listing = {
     name: String(body.title || (files.length === 1 ? files[0].name : `${files.length}-file package`)).slice(0, 100),
     files,
     size: files.reduce((sum, file) => sum + file.size, 0),
@@ -84,13 +82,13 @@ export async function POST(req) {
   }
 
   try {
-    await saveListing(listing)
+    listing = await publishListing(seller, body, listing)
   } catch (err) {
-    return Response.json({ error: storageErrorMessage(err) }, { status: 500 })
+    return Response.json({ error: err.status ? err.message : storageErrorMessage(err), needsPlan: Boolean(err.needsPlan) }, { status: err.status || 500 })
   }
 
   return Response.json({
-    id,
+    id: listing.id,
     name: listing.name,
     fileCount: files.length,
     priceUsd: listing.priceUsd,
@@ -101,3 +99,4 @@ export async function POST(req) {
     expiresAt: listing.expiresAt,
   })
 }
+
