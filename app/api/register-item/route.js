@@ -1,6 +1,8 @@
 import { saveListing } from '../../../lib/store'
 import { publishListing } from '../../../lib/publish-listing'
 import { parsePrice } from '../../../lib/price'
+import { billingState } from '../../../lib/billing'
+import { isSubscribed, priceError, saleTerms } from '../../../lib/entitlement'
 import { loadReadySeller } from '../../../lib/stripe-connect'
 import { storageErrorMessage } from '../../../lib/blob-error'
 
@@ -29,13 +31,15 @@ export async function POST(req) {
   const title = String(body.title || '').trim()
   const description = String(body.description || '').trim()
   const condition = String(body.condition || '')
-  const price = parsePrice({ priceSek: body.priceSek })
+  const locale = body.locale === 'sv' ? 'sv' : 'en'
+  const terms = saleTerms(isSubscribed(await billingState(seller).catch(() => ({ active: false }))))
+  const price = parsePrice({ priceSek: body.priceSek }, { minSek: terms.minSek })
   const photoUrl = allowedPhoto(body.photoUrl)
   if (title.length < 3 || title.length > 100 || description.length > 300 || !CONDITIONS.has(condition)) {
     return Response.json({ error: 'Enter a title, condition and description of at most 300 characters.' }, { status: 400 })
   }
   if (!price || price.currency !== 'sek') {
-    return Response.json({ error: 'Item price must be at least 50 SEK.' }, { status: 400 })
+    return Response.json({ error: priceError(terms, locale, 'sek') }, { status: 400 })
   }
   if (body.photoUrl && !photoUrl) return Response.json({ error: 'Invalid item photo.' }, { status: 400 })
   if (body.shippingIncluded !== true) {

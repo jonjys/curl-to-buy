@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { upload } from '@vercel/blob/client'
 import { useLocale } from './locale'
+import { FREE_MIN_SEK, SUB_MIN_SEK } from '../lib/entitlement'
 
 const ITEM_DRAFT = 'curl-to-buy:pending-item'
 const PHOTO_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
@@ -10,7 +11,7 @@ const PHOTO_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'we
 export default function ItemForm({ stripeReady, blobReady }) {
   const { locale } = useLocale()
   const sv = locale === 'sv'
-  const [connect, setConnect] = useState({ loading: true, ready: false, hasSeller: false, feeBps: 500 })
+  const [connect, setConnect] = useState({ loading: true, ready: false, hasSeller: false, subscribed: false, minSek: FREE_MIN_SEK, feeBps: 500 })
   const [email, setEmail] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -34,7 +35,11 @@ export default function ItemForm({ stripeReady, blobReady }) {
   useEffect(() => {
     fetch('/api/connect/status', { cache: 'no-store' })
       .then((response) => response.json())
-      .then((json) => setConnect({ loading: false, ready: Boolean(json.ready), hasSeller: Boolean(json.hasSeller), feeBps: json.feeBps || 500 }))
+      .then((json) => setConnect({
+        loading: false, ready: Boolean(json.ready), hasSeller: Boolean(json.hasSeller),
+        subscribed: Boolean(json.subscribed), minSek: json.subscribed ? SUB_MIN_SEK : FREE_MIN_SEK,
+        feeBps: json.subscribed ? 0 : (json.feeBps || 500),
+      }))
       .catch(() => setConnect((current) => ({ ...current, loading: false })))
   }, [])
 
@@ -64,7 +69,7 @@ export default function ItemForm({ stripeReady, blobReady }) {
       })
       const json = await readJson(response)
       if (response.status === 402 && json.quotaExceeded) throw Error(json.error || (sv ? 'Du har använt alla nya länkar för den här månaden.' : 'You have used all new links for this billing month.'))
-      if (response.status === 402) { window.location.assign('/plans'); return }
+      if (response.status === 402 && json.needsPlan) { window.location.assign('/plans'); return }
       if (!response.ok || !json.id) throw Error(json.error || 'Could not publish item.')
       window.localStorage.removeItem(ITEM_DRAFT)
       setListing(json)
@@ -85,7 +90,8 @@ export default function ItemForm({ stripeReady, blobReady }) {
     if (!stripeReady) return setError(sv ? 'Stripe är inte tillgängligt.' : 'Stripe is unavailable.')
     if (title.trim().length < 3) return setError(sv ? 'Ange varans namn.' : 'Enter an item title.')
     const amount = Number(price.replace(',', '.'))
-    if (!Number.isFinite(amount) || amount < 50) return setError(sv ? 'Minst 50 kr.' : 'Minimum 50 SEK.')
+    const minSek = connect.subscribed ? SUB_MIN_SEK : FREE_MIN_SEK
+    if (!Number.isFinite(amount) || amount < minSek) return setError(sv ? `Minst ${minSek} kr.` : `Minimum ${minSek} SEK.`)
     if (!shippingIncluded || !adult) return setError(sv ? 'Bekräfta frakt och ålder.' : 'Confirm shipping and age.')
     if (!shippingCountries.length) return setError(sv ? 'Välj leveransländer.' : 'Choose delivery countries.')
     if (photo && (!PHOTO_TYPES[photo.type] || photo.size > 8 * 1024 * 1024)) return setError(sv ? 'Välj JPG, PNG eller WebP (max 8 MB).' : 'Use JPG, PNG or WebP (max 8 MB).')
@@ -104,7 +110,6 @@ export default function ItemForm({ stripeReady, blobReady }) {
         salesLimit: stock === 'unlimited' ? null : Number(stock) }
       window.localStorage.setItem(ITEM_DRAFT, JSON.stringify(draft))
       if (connect.ready) await finish(draft)
-      else window.location.assign('/plans')
     } catch (err) { setError(err.message || 'Could not publish item.') }
     finally { setBusy(false) }
   }
@@ -144,7 +149,9 @@ export default function ItemForm({ stripeReady, blobReady }) {
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Skick' : 'Condition'}<select className={field} value={condition} onChange={(e) => setCondition(e.target.value)}><option value="new">{sv ? 'Ny' : 'New'}</option><option value="used_good">{sv ? 'Begagnad – bra skick' : 'Used – good condition'}</option><option value="used_fair">{sv ? 'Begagnad – bruksskick' : 'Used – fair condition'}</option></select></label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Beskrivning (valfri)' : 'Description (optional)'}<textarea className={`${field} min-h-24 py-3`} maxLength={300} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={sv ? 'Storlek, mått, eventuella skador…' : 'Size, dimensions, any flaws…'} /></label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Pris inklusive frakt, kr' : 'Price including shipping, SEK'}<input className={field} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.,]/g, ''))} /></label>
-      <p className="text-xs leading-relaxed text-muted">{sv ? 'Curl-to-Buy tar ingen procent på försäljningen. Stripe drar sin kortavgift från beloppet. Köparen anger leveransadressen i Stripe Checkout.' : 'Curl-to-Buy takes no percentage of the sale. Stripe deducts its card fee from the amount. The buyer enters the shipping address in Stripe Checkout.'}</p>
+      <p className="text-xs leading-relaxed text-muted">{connect.subscribed
+        ? (sv ? 'Med abonnemang: minst 50 kr. Curl-to-Buy tar ingen procent på försäljningen. Stripe drar sin kortavgift från beloppet. Köparen anger leveransadressen i Stripe Checkout.' : 'With a subscription: 50 SEK minimum. Curl-to-Buy takes no percentage of the sale. Stripe deducts its card fee from the amount. The buyer enters the shipping address in Stripe Checkout.')
+        : (sv ? 'Utan abonnemang: minst 100 kr. Curl-to-Buy tar 5%. Stripe drar också sin kortavgift. Köparen anger leveransadressen i Stripe Checkout.' : 'Without a subscription: 100 SEK minimum. Curl-to-Buy takes 5%. Stripe also deducts its card fee. The buyer enters the shipping address in Stripe Checkout.')}</p>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Varumärke (valfritt)' : 'Brand (optional)'}<input className={field} maxLength={80} value={brand} onChange={(e) => setBrand(e.target.value)} /></label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Antal att sälja' : 'Quantity available'}<select className={field} value={stock === 'unlimited' ? 'unlimited' : 'limited'} onChange={(e) => setStock(e.target.value === 'unlimited' ? 'unlimited' : '1')}><option value="limited">{sv ? 'Begränsat lager' : 'Limited stock'}</option><option value="unlimited">{sv ? 'Ingen köpgräns' : 'No purchase limit'}</option></select>{stock !== 'unlimited' ? <input className={field} type="number" min={1} max={100000} value={stock} onChange={(e) => setStock(e.target.value)} /> : null}</label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Leveransländer' : 'Delivery countries'}<select className={`${field} h-32`} multiple value={shippingCountries} onChange={(e) => setShippingCountries(Array.from(e.target.selectedOptions, (o) => o.value))}>{[['SE','Sverige'],['DK','Danmark'],['FI','Finland'],['NO','Norge'],['DE','Deutschland'],['FR','France'],['NL','Nederland'],['BE','België'],['AT','Österreich'],['IE','Ireland'],['IT','Italia'],['ES','España'],['PT','Portugal'],['PL','Polska']].map(([code,name]) => <option key={code} value={code}>{name}</option>)}</select></label>

@@ -1,6 +1,8 @@
 import { saveListing } from '../../../lib/store'
 import { publishListing } from '../../../lib/publish-listing'
 import { parsePrice } from '../../../lib/price'
+import { billingState } from '../../../lib/billing'
+import { isSubscribed, priceError, saleTerms } from '../../../lib/entitlement'
 import { MAX_DESCRIPTION_LENGTH, MAX_FILES, MAX_MB, MAX_SALES_LIMIT, TIME_LIMIT_MINUTES } from '../../../lib/site'
 import { storageErrorMessage } from '../../../lib/blob-error'
 import { loadReadySeller } from '../../../lib/stripe-connect'
@@ -62,8 +64,10 @@ export async function POST(req) {
     return Response.json({ error: `Package is too large (max ${MAX_MB} MB).` }, { status: 400 })
   }
 
-  const price = parsePrice(body)
-  if (!price) return Response.json({ error: 'Price must be at least $5.' }, { status: 400 })
+  const locale = body.locale === 'sv' ? 'sv' : 'en'
+  const terms = saleTerms(isSubscribed(await billingState(seller).catch(() => ({ active: false }))))
+  const price = parsePrice(body, { minUsd: terms.minUsd, minSek: terms.minSek })
+  if (!price) return Response.json({ error: priceError(terms, locale, body.priceSek != null && body.priceUsd == null ? 'sek' : 'usd') }, { status: 400 })
 
   let listing = {
     name: String(body.title || (files.length === 1 ? files[0].name : `${files.length}-file package`)).slice(0, 100),

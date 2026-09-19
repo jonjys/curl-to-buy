@@ -124,7 +124,10 @@ test('publish idempotency, no subscription bypass and historical platform paymen
   const retry=await pub.publishListing(seller,body,{name:'Must not overwrite'})
   assert.equal(first.id,retry.id);assert.equal(retry.name,'First')
   state.sub.status='past_due'
-  await assert.rejects(()=>pub.publishListing(seller,{...body,requestId:randomUUID()},{name:'Other'}),/Choose a subscription/)
+  const free=await pub.publishListing(seller,{...body,requestId:randomUUID()},{name:'Free tier',priceUsd:10,priceCents:1000})
+  assert.equal(free.billingMode,'freemium')
+  assert.equal(free.feeBps,500)
+  await assert.rejects(()=>pub.publishListing(seller,{...body,requestId:randomUUID()},{name:'Too cheap',priceUsd:1,priceCents:100}),/at least \$10/)
   await assert.rejects(()=>pub.publishListing(seller,{...body,accepted:false},{name:'Other'}),/Confirm your age/)
   state.sessions.set('cs_test_legacy',{id:'cs_test_legacy',mode:'payment',payment_status:'paid',metadata:{file_id:'legacy'},account:null})
   const payments=await app.load('lib/payment-context.js')

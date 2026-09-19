@@ -64,6 +64,14 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
     'lib/store': store,
     'lib/publish-listing': { publishListing: async (_, body, listing) => { state.listing = { ...listing, id: 'physical1' }; return state.listing } },
     'lib/billing': { billingState: async () => ({ active: false }) },
+    'lib/entitlement': {
+      isSubscribed: (billing) => Boolean(billing?.active),
+      saleTerms: (subscribed) => subscribed
+        ? { minUsd: 5, minSek: 50, feeBps: 0, billingMode: 'subscription' }
+        : { minUsd: 10, minSek: 100, feeBps: 500, billingMode: 'freemium' },
+      priceError: (terms, locale, currency) => currency === 'sek' ? `Price must be at least ${terms.minSek} SEK.` : `Price must be at least $${terms.minUsd}.`,
+      checkoutFeeBps: (subscribed, seller) => subscribed ? 0 : (seller?.feeBps || 500),
+    },
     'lib/payment-context': { saveCheckoutContext: async () => {}, checkoutContext: async () => null, retrieveCheckout: async (_, id) => client.checkout.sessions.retrieve(id), paymentCanFulfill: (s) => s.mode === 'payment' && s.payment_status === 'paid' },
     'lib/checkout-reservations': { createReservedCheckout: async () => { throw Error('Unexpected direct charge') } },
     'lib/id': { newId: () => 'physical1' },

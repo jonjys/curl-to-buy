@@ -74,10 +74,17 @@ async function setup() {
   const dependencies = {
     'lib/stripe': { stripe: () => client },
     'lib/billing': { billingState: async () => ({ active: false }) },
+    'lib/entitlement': {
+      isSubscribed: (billing) => Boolean(billing?.active),
+      saleTerms: (subscribed) => subscribed
+        ? { minUsd: 5, minSek: 50, feeBps: 0 }
+        : { minUsd: 10, minSek: 100, feeBps: 500 },
+      checkoutFeeBps: (subscribed, seller) => subscribed ? 0 : (seller?.feeBps || 500),
+    },
     'lib/payment-context': { saveCheckoutContext: async () => {}, checkoutContext: async () => null, retrieveCheckout: async (_, id) => client.checkout.sessions.retrieve(id), paymentCanFulfill: (s) => s.mode === 'payment' && s.payment_status === 'paid' },
     'lib/checkout-reservations': { createReservedCheckout: async () => { throw Error('Unexpected direct charge') } },
     'lib/store': store,
-    'lib/price': { displayPrice: () => ({ currency: 'sek', amount: 5000 }) },
+    'lib/price': { displayPrice: () => ({ currency: 'sek', amount: 10000 }) },
     'lib/site': { originFrom: () => 'https://example.test' },
     'lib/fees': { applicationFeeCents: (amount, bps) => Math.round(amount * bps / 10000) },
     'lib/stripe-connect': {
@@ -113,7 +120,7 @@ test('Checkout -> paid webhook -> idempotent order -> gated file -> download cap
   assert.equal(created.status, 200)
   assert.equal((await created.json()).url, 'https://checkout.stripe.com/test-contract')
   assert.equal(state.checkoutArgs.mode, 'payment')
-  assert.equal(state.checkoutArgs.payment_intent_data.application_fee_amount, 250)
+  assert.equal(state.checkoutArgs.payment_intent_data.application_fee_amount, 500)
   assert.equal(state.checkoutArgs.payment_intent_data.transfer_data.destination, 'acct_test_seller')
   assert.equal(state.checkoutArgs.metadata.file_id, 'listing1')
 

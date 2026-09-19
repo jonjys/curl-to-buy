@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { upload } from '@vercel/blob/client'
-import { DEFAULT_USD, MAX_FILES, MAX_MB, MAX_SALES_LIMIT, MIN_USD, PRESETS } from '../lib/site'
+import { MAX_FILES, MAX_MB, MAX_SALES_LIMIT } from '../lib/site'
+import { FREE_MIN_USD, FREE_PRESETS, SUB_MIN_USD, SUB_PRESETS } from '../lib/entitlement'
 import { formatUsd } from '../lib/copy'
 import { useLocale } from './locale'
 
@@ -46,7 +47,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   const inputRef = useRef(null)
   const [files, setFiles] = useState([])
   const [title, setTitle] = useState('')
-  const [price, setPrice] = useState(String(DEFAULT_USD))
+  const [price, setPrice] = useState(String(FREE_MIN_USD))
   const [salesLimit, setSalesLimit] = useState('unlimited')
   const [downloadsPerFile, setDownloadsPerFile] = useState('3')
   const [description, setDescription] = useState('')
@@ -58,7 +59,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   const [listing, setListing] = useState(null)
   const [copied, setCopied] = useState(false)
   const [drag, setDrag] = useState(false)
-  const [connect, setConnect] = useState({ loading: true, hasSeller: false, ready: false, feeBps: 500 })
+  const [connect, setConnect] = useState({ loading: true, hasSeller: false, ready: false, subscribed: false, minUsd: FREE_MIN_USD, presets: FREE_PRESETS, feeBps: 500 })
   const [email, setEmail] = useState('')
   const [connecting, setConnecting] = useState(false)
   const [showConnect, setShowConnect] = useState(false)
@@ -68,7 +69,15 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   useEffect(() => {
     fetch('/api/connect/status', { cache: 'no-store' })
       .then((response) => response.json())
-      .then((json) => setConnect({ loading: false, hasSeller: Boolean(json.hasSeller), ready: Boolean(json.ready), feeBps: json.feeBps || 500 }))
+      .then((json) => setConnect({
+        loading: false,
+        hasSeller: Boolean(json.hasSeller),
+        ready: Boolean(json.ready),
+        subscribed: Boolean(json.subscribed),
+        minUsd: json.subscribed ? SUB_MIN_USD : FREE_MIN_USD,
+        presets: json.subscribed ? SUB_PRESETS : FREE_PRESETS,
+        feeBps: json.subscribed ? 0 : (json.feeBps || 500),
+      }))
       .catch(() => setConnect((current) => ({ ...current, loading: false })))
   }, [])
 
@@ -94,7 +103,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       })
       const json = await readJson(res)
       if (res.status === 402 && json.quotaExceeded) throw new Error(json.error || (sv ? 'Du har använt alla nya länkar för den här månaden.' : 'You have used all new links for this billing month.'))
-      if (res.status === 402) { window.location.assign('/plans'); return }
+      if (res.status === 402 && json.needsPlan) { window.location.assign('/plans'); return }
       if (!res.ok) throw new Error(json.error || 'Could not create the link.')
       clearDraft()
       setShowConnect(false)
@@ -118,6 +127,10 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       setShowConnect(true)
     }
   }, [connect.loading, connect.ready, finalizeDraft])
+
+  useEffect(() => {
+    if (connect.subscribed && price === String(FREE_MIN_USD)) setPrice(String(SUB_MIN_USD))
+  }, [connect.subscribed, price])
 
   async function startConnect() {
     setError(null)
@@ -175,8 +188,10 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     }
   }
 
+  const minUsd = connect.subscribed ? SUB_MIN_USD : FREE_MIN_USD
+  const presets = connect.subscribed ? SUB_PRESETS : FREE_PRESETS
   const usd = Number.parseFloat(price)
-  const validUsd = Number.isFinite(usd) && usd >= MIN_USD
+  const validUsd = Number.isFinite(usd) && usd >= minUsd
   const maxBytes = maxMB * 1024 * 1024
   const totalBytes = files.reduce((sum, file) => sum + file.size, 0)
 
@@ -205,7 +220,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   async function submit() {
     setError(null)
     if (!files.length) return setError(t.fileErr)
-    if (!validUsd) return setError(t.minErr)
+    if (!validUsd) return setError(connect.subscribed ? t.minErrSub : t.minErr)
     if (!accepted) return setError(t.confirmErr)
     if (!stripeReady) return setError(t.stripeDown)
     if (files.length > 1 && !blobReady) return setError(t.packageUnavailable)
@@ -431,15 +446,17 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           <input
             id="priceUsd"
             inputMode="decimal"
+            min={minUsd}
+            step="1"
             value={price}
             onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, ''))}
             className="h-12 w-full rounded-sm border border-line bg-paper-tint pl-7 pr-3 text-base text-ink outline-none placeholder:text-muted"
-            placeholder={String(DEFAULT_USD)}
+            placeholder={String(minUsd)}
           />
         </div>
-        <input type="range" aria-label={sv ? 'Justera pris' : 'Adjust price'} min={MIN_USD} max={500} step={1} value={Math.min(500, validUsd ? usd : MIN_USD)} onChange={(e) => setPrice(e.target.value)} className="w-full accent-pine" />
+        <input type="range" aria-label={sv ? 'Justera pris' : 'Adjust price'} min={minUsd} max={500} step={1} value={Math.min(500, validUsd ? usd : minUsd)} onChange={(e) => setPrice(e.target.value)} className="w-full accent-pine" />
         <div className="flex flex-wrap gap-2">
-          {PRESETS.map((n) => (
+          {presets.map((n) => (
             <button
               key={n}
               type="button"
@@ -451,7 +468,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             </button>
           ))}
         </div>
-        <p className="text-sm text-muted">{sv ? 'Curl-to-Buy tar ingen procent på försäljningen. Stripe drar sin kortavgift från beloppet.' : 'Curl-to-Buy takes no percentage of the sale. Stripe deducts its card fee from the amount.'}</p>
+        <p className="text-sm text-muted">{connect.subscribed ? t.feeNoteSub : t.feeNote}</p>
       </div>
 
       <div className="space-y-2">
@@ -549,7 +566,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       >
         {!stripeReady ? t.stripeDown : busy ? `${t.creating} ${progress}%` : t.create}
       </button>
-      <p className="text-xs text-muted">{t.feeNote}</p>
+      <p className="text-xs text-muted">{connect.subscribed ? t.feeNoteSub : t.feeNote}</p>
     </div>
   )
 }

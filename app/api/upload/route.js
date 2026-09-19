@@ -3,6 +3,8 @@ import { saveListing } from '../../../lib/store'
 import { listingIdFor } from '../../../lib/commerce-store'
 import { publishListing } from '../../../lib/publish-listing'
 import { parsePrice } from '../../../lib/price'
+import { billingState } from '../../../lib/billing'
+import { isSubscribed, priceError, saleTerms } from '../../../lib/entitlement'
 import { MAX_DESCRIPTION_LENGTH, MAX_MB, MAX_SALES_LIMIT, TIME_LIMIT_MINUTES } from '../../../lib/site'
 import { storageErrorMessage } from '../../../lib/blob-error'
 import { loadReadySeller } from '../../../lib/stripe-connect'
@@ -39,10 +41,12 @@ export async function POST(req) {
   }
   const form = await req.formData()
   const file = form.get('file')
-  const price = parsePrice({ priceUsd: form.get('priceUsd'), priceSek: form.get('priceSek') })
+  const locale = form.get('locale') === 'sv' ? 'sv' : 'en'
+  const terms = saleTerms(isSubscribed(await billingState(seller).catch(() => ({ active: false }))))
+  const price = parsePrice({ priceUsd: form.get('priceUsd'), priceSek: form.get('priceSek') }, { minUsd: terms.minUsd, minSek: terms.minSek })
   if (!file || typeof file === 'string') return Response.json({ error: 'Choose a file first.' }, { status: 400 })
   if (file.size > MAX_MB * 1024 * 1024) return Response.json({ error: `File is too large (max ${MAX_MB} MB).` }, { status: 400 })
-  if (!price) return Response.json({ error: 'Price must be at least $5.' }, { status: 400 })
+  if (!price) return Response.json({ error: priceError(terms, locale, form.get('priceSek') && !form.get('priceUsd') ? 'sek' : 'usd') }, { status: 400 })
   if (!process.env.BLOB_READ_WRITE_TOKEN) return Response.json({ error: 'Storage is not configured.' }, { status: 500 })
 
   const body = { requestId: form.get('requestId'), accepted: form.get('accepted') === 'true' }

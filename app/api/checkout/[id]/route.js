@@ -4,6 +4,7 @@ import { displayPrice } from '../../../../lib/price'
 import { originFrom } from '../../../../lib/site'
 import { applicationFeeCents } from '../../../../lib/fees'
 import { billingState } from '../../../../lib/billing'
+import { checkoutFeeBps, isSubscribed, saleTerms } from '../../../../lib/entitlement'
 import { saveCheckoutContext } from '../../../../lib/payment-context'
 import { createReservedCheckout } from '../../../../lib/checkout-reservations'
 import { recipientStatus, retrieveConnectedRecipient, readySubscriptionMerchant } from '../../../../lib/stripe-connect'
@@ -44,13 +45,20 @@ export async function POST(req, { params }) {
   if (!seller?.paymentAccountId && !seller?.stripeAccountId) {
     return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
   }
-  const direct = listing.billingMode === 'subscription'
-  const accountId = direct ? listing.paymentAccountId : null
-  if (direct && (accountId !== seller.paymentAccountId || !(await readySubscriptionMerchant(seller)) || !(await billingState(seller)).active)) {
+  const billing = await billingState(seller)
+  const subscribed = isSubscribed(billing)
+  const terms = saleTerms(subscribed)
+  const feeBps = checkoutFeeBps(subscribed, seller)
+  const minCents = price.currency === 'sek' ? terms.minSek * 100 : terms.minUsd * 100
+  if (price.amount < minCents) {
+    return Response.json({ error: 'This link is below the current minimum price.' }, { status: 400 })
+  }
+  const accountId = listing.paymentAccountId || null
+  const direct = Boolean(accountId)
+  if (direct && (accountId !== seller.paymentAccountId || !(await readySubscriptionMerchant(seller)))) {
     return Response.json({ error: 'This seller is not accepting payments right now.' }, { status: 409 })
   }
   let destination = null
-  const feeBps = seller.feeBps || 500
   if (!direct) try {
     const status = recipientStatus(await retrieveConnectedRecipient(seller.stripeAccountId))
     if (status.transfers) destination = seller.stripeAccountId
@@ -84,11 +92,9 @@ export async function POST(req, { params }) {
       billing_address_collection: 'auto',
     } : {}),
     payment_intent_data: {
-      ...(direct ? { application_fee_amount: 0 } : {
-        application_fee_amount: applicationFeeCents(price.amount, feeBps),
-        transfer_data: { destination },
-      }),
-      metadata: { file_id: listing.id, seller_id: seller.id, billing_mode: direct ? 'subscription' : 'legacy' },
+      application_fee_amount: applicationFeeCents(price.amount, feeBps),
+      ...(!direct ? { transfer_data: { destination } } : {}),
+      metadata: { file_id: listing.id, seller_id: seller.id, billing_mode: listing.billingMode || (direct ? 'subscription' : 'legacy') },
     },
     success_url: `${origin}/success?listing_id=${listing.id}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/dl/${listing.id}`,
@@ -97,8 +103,8 @@ export async function POST(req, { params }) {
       seller_id: seller.id,
       kind: isPhysical ? 'physical' : 'digital',
       payout: 'connect',
-      fee_bps: direct ? '0' : String(feeBps),
-      billing_mode: direct ? 'subscription' : 'legacy',
+      fee_bps: String(feeBps),
+      billing_mode: listing.billingMode || (direct ? 'subscription' : 'legacy'),
     },
   }
   const body = await req.json().catch(() => ({}))

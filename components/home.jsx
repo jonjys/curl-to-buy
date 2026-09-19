@@ -24,7 +24,7 @@ function HomeInner({ stripeReady, blobReady, maxMB }) {
             <ul className="mt-5 flex flex-wrap gap-2">
               {(sv ? ['Fysiska varor', 'Digitala filer', 'Kort via Stripe', 'Inget köparkonto'] : ['Physical items', 'Digital files', 'Cards via Stripe', 'No buyer account']).map((chip) => <li key={chip} className="nl-chip rounded-md px-3 py-1.5 text-[11px]">{chip}</li>)}
             </ul>
-            <p className="mt-4 text-sm text-muted">{sv ? 'Abonnemang från €5/månad. Köpare behöver inget konto.' : 'Subscriptions from €5/month. Buyers need no account.'}</p>
+            <p className="mt-4 text-sm text-muted">{sv ? 'Utan abonnemang: minst $10 och 5% till Curl-to-Buy. Med Start/Grow/Scale: minst $5 och ingen plattformsprocent. Köpare behöver inget konto.' : 'Without a subscription: $10 minimum and 5% to Curl-to-Buy. With Start/Grow/Scale: $5 minimum and no platform percentage. Buyers need no account.'}</p>
             <a href="#post" className="mt-6 inline-flex min-h-12 items-center rounded-sm bg-pine px-5 text-base font-medium text-pine-fg no-underline">{sv ? 'Skapa en köplänk' : 'Create a payment link'}</a>
           </div>
           <figure className="nl-card nl-card-glow relative overflow-hidden rounded-2xl">
