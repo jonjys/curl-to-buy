@@ -69,6 +69,8 @@ test('free sellers: $1 and $4.99 rejected, $10 published with 5% checkout fee', 
   const pay = await checkout.POST(new Request(`https://app.test/api/checkout/${id}`, { method: 'POST', body: '{}' }), { params: { id } })
   assert.equal(pay.status, 200)
   assert.equal(state.creates[0].args.payment_intent_data.application_fee_amount, 50)
+  assert.equal(state.creates[0].args.payment_intent_data.transfer_data, undefined)
+  assert.equal(state.creates[0].opts.stripeAccount, 'acct_merchant')
 })
 
 test('subscribed sellers: $1 and $4.99 rejected, $5 published with 0% checkout fee', async () => {
@@ -85,6 +87,7 @@ test('subscribed sellers: $1 and $4.99 rejected, $5 published with 0% checkout f
   const pay = await checkout.POST(new Request(`https://app.test/api/checkout/${id}`, { method: 'POST', body: '{}' }), { params: { id } })
   assert.equal(pay.status, 200)
   assert.equal(state.creates[0].args.payment_intent_data.application_fee_amount, 0)
+  assert.equal(state.creates[0].args.payment_intent_data.transfer_data, undefined)
   assert.equal(state.creates[0].opts.stripeAccount, 'acct_merchant')
 })
 
@@ -103,4 +106,33 @@ test('entitlement tokens: free $10/5%, subscribed $5/0%, zero bps takes no cent'
   assert.equal(price.parsePrice({ priceUsd: 5 }, { minUsd: 5 }).priceCents, 500)
   assert.equal(fees.applicationFeeCents(1000, 500), 50)
   assert.equal(fees.applicationFeeCents(500, 0), 0)
+  assert.equal(price.parsePrice({ priceUsd: 5 }), null)
+  assert.equal(entitlement.usesDirectCharge({ billingMode: 'freemium' }), true)
+  assert.equal(entitlement.usesDirectCharge({ billingMode: 'subscription' }), true)
+  assert.equal(entitlement.usesDirectCharge({ paymentAccountId: 'acct_x' }), true)
+  assert.equal(entitlement.usesDirectCharge({}), false)
+})
+
+test('new listings never destination-charge; $1 checkout is rejected for both entitlements', async () => {
+  const { app, seller, state } = sellerFixture({ subscribed: true })
+  const store = await app.load('lib/store.js')
+  await store.saveSeller(seller)
+  const checkout = await app.load('app/api/checkout/[id]/route.js')
+
+  await store.saveListing({
+    id: 'cheap_sub', name: 'Cheap', sellerId: seller.id, billingMode: 'subscription',
+    paymentAccountId: seller.paymentAccountId, currency: 'usd', priceUsd: 1, priceCents: 100,
+    files: [{ name: 'a.txt', blobPathname: 'uploads/a.txt' }],
+  })
+  assert.equal((await checkout.POST(new Request('https://app.test/api/checkout/cheap_sub', { method: 'POST', body: '{}' }), { params: { id: 'cheap_sub' } })).status, 400)
+
+  await store.saveListing({
+    id: 'new_no_merchant', name: 'New', sellerId: seller.id, billingMode: 'freemium',
+    currency: 'usd', priceUsd: 10, priceCents: 1000,
+    files: [{ name: 'a.txt', blobPathname: 'uploads/a.txt' }],
+  })
+  state.merchant = false
+  const refused = await checkout.POST(new Request('https://app.test/api/checkout/new_no_merchant', { method: 'POST', body: '{}' }), { params: { id: 'new_no_merchant' } })
+  assert.equal(refused.status, 409)
+  assert.equal(state.creates.length, 0)
 })

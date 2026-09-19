@@ -26,7 +26,7 @@ async function loadRoute(path, dependencies) {
 }
 
 test('Physical item -> Connect Checkout with shipping -> paid seller order -> sold out; no file download', async () => {
-  const seller = { id: 'seller1', stripeAccountId: 'acct_test_mock_seller', feeBps: 500 }
+  const seller = { id: 'seller1', stripeAccountId: 'acct_test_mock_seller', paymentAccountId: 'acct_test_mock_seller', feeBps: 500 }
   const state = { listing: null, session: null, checkoutArgs: null, sales: new Set(), sellerReady: true, sellerCookie: true }
   const client = {
     checkout: { sessions: {
@@ -71,6 +71,7 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
         : { minUsd: 10, minSek: 100, feeBps: 500, billingMode: 'freemium' },
       priceError: (terms, locale, currency) => currency === 'sek' ? `Price must be at least ${terms.minSek} SEK.` : `Price must be at least $${terms.minUsd}.`,
       checkoutFeeBps: (subscribed, seller) => subscribed ? 0 : (seller?.feeBps || 500),
+      usesDirectCharge: (listing) => listing?.billingMode === 'freemium' || listing?.billingMode === 'subscription' || Boolean(listing?.paymentAccountId),
     },
     'lib/payment-context': { saveCheckoutContext: async () => {}, checkoutContext: async () => null, retrieveCheckout: async (_, id) => client.checkout.sessions.retrieve(id), paymentCanFulfill: (s) => s.mode === 'payment' && s.payment_status === 'paid' },
     'lib/checkout-reservations': { createReservedCheckout: async () => { throw Error('Unexpected direct charge') } },

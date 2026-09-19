@@ -80,6 +80,7 @@ async function setup() {
         ? { minUsd: 5, minSek: 50, feeBps: 0 }
         : { minUsd: 10, minSek: 100, feeBps: 500 },
       checkoutFeeBps: (subscribed, seller) => subscribed ? 0 : (seller?.feeBps || 500),
+      usesDirectCharge: (listing) => listing?.billingMode === 'freemium' || listing?.billingMode === 'subscription' || Boolean(listing?.paymentAccountId),
     },
     'lib/payment-context': { saveCheckoutContext: async () => {}, checkoutContext: async () => null, retrieveCheckout: async (_, id) => client.checkout.sessions.retrieve(id), paymentCanFulfill: (s) => s.mode === 'payment' && s.payment_status === 'paid' },
     'lib/checkout-reservations': { createReservedCheckout: async () => { throw Error('Unexpected direct charge') } },

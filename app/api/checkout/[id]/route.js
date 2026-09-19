@@ -4,7 +4,7 @@ import { displayPrice } from '../../../../lib/price'
 import { originFrom } from '../../../../lib/site'
 import { applicationFeeCents } from '../../../../lib/fees'
 import { billingState } from '../../../../lib/billing'
-import { checkoutFeeBps, isSubscribed, saleTerms } from '../../../../lib/entitlement'
+import { checkoutFeeBps, isSubscribed, saleTerms, usesDirectCharge } from '../../../../lib/entitlement'
 import { saveCheckoutContext } from '../../../../lib/payment-context'
 import { createReservedCheckout } from '../../../../lib/checkout-reservations'
 import { recipientStatus, retrieveConnectedRecipient, readySubscriptionMerchant } from '../../../../lib/stripe-connect'
@@ -53,10 +53,12 @@ export async function POST(req, { params }) {
   if (price.amount < minCents) {
     return Response.json({ error: 'This link is below the current minimum price.' }, { status: 400 })
   }
-  const accountId = listing.paymentAccountId || null
-  const direct = Boolean(accountId)
-  if (direct && (accountId !== seller.paymentAccountId || !(await readySubscriptionMerchant(seller)))) {
-    return Response.json({ error: 'This seller is not accepting payments right now.' }, { status: 409 })
+  const direct = usesDirectCharge(listing)
+  const accountId = listing.paymentAccountId || (direct ? seller.paymentAccountId : null) || null
+  if (direct) {
+    if (!accountId || accountId !== seller.paymentAccountId || !(await readySubscriptionMerchant(seller))) {
+      return Response.json({ error: 'This seller is not accepting payments right now.' }, { status: 409 })
+    }
   }
   let destination = null
   if (!direct) try {

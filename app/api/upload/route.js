@@ -36,7 +36,7 @@ function descriptionOrNull(value) {
 
 export async function POST(req) {
   const seller = await loadReadySeller(req)
-  if (!seller?.stripeAccountId) {
+  if (!seller?.paymentAccountId) {
     return Response.json({ error: 'Connect Stripe before creating a selling link.' }, { status: 403 })
   }
   const form = await req.formData()
