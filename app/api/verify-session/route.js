@@ -1,3 +1,4 @@
+import { retrieveCheckout, paymentCanFulfill } from '../../../lib/payment-context'
 import { stripe } from '../../../lib/stripe'
 import { getListing, listingFiles, recordPurchase } from '../../../lib/store'
 
@@ -13,14 +14,14 @@ export async function GET(req) {
   if (!client) return Response.json({ error: 'Stripe is not configured.' }, { status: 500 })
 
   try {
-    const session = await client.checkout.sessions.retrieve(sessionId)
+    const session = await retrieveCheckout(client, sessionId, listingId)
     listingId = listingId || session.metadata?.file_id || ''
     if (!listingId) return Response.json({ error: 'Payment reference is incomplete.' }, { status: 400 })
 
     const listing = await getListing(listingId)
     if (!listing) return Response.json({ error: 'The listing is no longer available.' }, { status: 404 })
-    if (session.payment_status !== 'paid' || session.metadata?.file_id !== listingId) {
-      return Response.json({ status: session.payment_status, file_id: listingId })
+    if (!paymentCanFulfill(session) || session.metadata?.file_id !== listingId) {
+      return Response.json({ status: session.payment_status === 'paid' ? 'unavailable' : session.payment_status, file_id: listingId }, { headers: { 'Cache-Control': 'private, no-store' } })
     }
     await recordPurchase(listingId, sessionId)
 
@@ -49,3 +50,4 @@ export async function GET(req) {
     return Response.json({ error: 'Could not verify the payment.' }, { status: 400 })
   }
 }
+

@@ -1,4 +1,5 @@
 import { get } from '@vercel/blob'
+import { retrieveCheckout, paymentCanFulfill } from '../../../../lib/payment-context'
 import { stripe } from '../../../../lib/stripe'
 import { consumeDownload, getListing, listingFiles, recordPurchase } from '../../../../lib/store'
 
@@ -16,11 +17,11 @@ export async function GET(req, { params }) {
 
   let session
   try {
-    session = await client.checkout.sessions.retrieve(sessionId)
+    session = await retrieveCheckout(client, sessionId)
   } catch {
     return Response.json({ error: 'Could not verify the payment.' }, { status: 400 })
   }
-  if (session.payment_status !== 'paid') {
+  if (!paymentCanFulfill(session)) {
     return Response.json({ error: 'Payment has not been completed.' }, { status: 402 })
   }
   if (session.metadata?.file_id !== id) {
@@ -55,3 +56,4 @@ export async function GET(req, { params }) {
     },
   })
 }
+

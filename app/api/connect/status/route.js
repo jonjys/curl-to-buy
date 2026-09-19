@@ -1,24 +1,13 @@
-import { getSeller, saveSellerEmailIndex, updateSeller } from '../../../../lib/store'
-import { recipientStatus, retrieveConnectedRecipient } from '../../../../lib/stripe-connect'
-import { emailKey, sellerIdFromRequest } from '../../../../lib/seller'
-
+import { getSeller } from '../../../../lib/store'
+import { readySubscriptionMerchant } from '../../../../lib/stripe-connect'
+import { sellerIdFromRequest } from '../../../../lib/seller'
+import { privateJson } from '../../../../lib/http'
 export const runtime = 'nodejs'
-
+export const dynamic = 'force-dynamic'
 export async function GET(req) {
   const id = sellerIdFromRequest(req)
   const seller = id ? await getSeller(id) : null
-  if (!seller?.stripeAccountId) return Response.json({ hasSeller: false, ready: false, feeBps: 500 })
-
-  try {
-    const account = await retrieveConnectedRecipient(seller.stripeAccountId)
-    const status = recipientStatus(account)
-    const ready = status.transfers
-    await updateSeller(seller.id, { ...status, ready })
-    // Backfill the email→seller index for accounts created before recovery
-    // existed, so a later cross-device recovery request finds them too.
-    if (seller.email) await saveSellerEmailIndex(emailKey(seller.email), seller.id)
-    return Response.json({ hasSeller: true, ready, feeBps: seller.feeBps || 500, ...status })
-  } catch {
-    return Response.json({ hasSeller: true, ready: Boolean(seller.ready), feeBps: seller.feeBps || 500 })
-  }
+  if (!seller) return privateJson({ hasSeller: false, ready: false })
+  try { return privateJson({ hasSeller: true, ready: Boolean(await readySubscriptionMerchant(seller)) }) }
+  catch { return privateJson({ hasSeller: true, ready: false, error: 'Could not refresh Stripe status.' }, 503) }
 }
