@@ -1,52 +1,61 @@
 # Subscription commerce release
 
-Implementation continues PR #18 on top of main 2e0b34c. Production still runs main until this release is verified and merged. The user has requested subscription monetization, actual Stripe fee deduction, removal of the 5% promotion, and physical product links.
+Finishes PR #18 on `cursor/finish-seller-subscriptions-0135`. Production still runs main until this is merged. Live catalog was rechecked on 19 September 2026 against Stripe account `acct_1U1ToQBEo0Yzuylw`.
 
 ## Commercial model
 
-The existing live catalog was rechecked on 19 September 2026:
+| Plan | Monthly EUR, tax inclusive | New links per billing period | Lookup key | Live Price ID |
+| --- | ---: | ---: | --- | --- |
+| Start | 5 | 10 | `ctb_start_monthly_v1` | `price_1UH94rBEo0YzuylwfRdX935C` |
+| Grow | 19 | 50 | `ctb_grow_monthly_v1` | `price_1UH95ABEo0Yzuylw3qTlybUT` |
+| Scale | 49 | unlimited | `ctb_scale_monthly_v1` | `price_1UH95BBEo0Yzuylw7V505tem` |
 
-| Plan | Monthly EUR, tax inclusive | New links per billing period | Lookup key |
-| --- | ---: | ---: | --- |
-| Start | 5 | 10 | ctb_start_monthly_v1 |
-| Grow | 19 | 50 | ctb_grow_monthly_v1 |
-| Scale | 49 | unlimited | ctb_scale_monthly_v1 |
+A subscription is paid to Nytto Labs. New product sales are **direct charges** on a new merchant/customer connected account. The server verifies Stripe fee collection and loss responsibility (`stripe`), active card payments, seller ownership and a paid, unexpired subscription. `application_fee_amount: 0` overrides default application pricing. Stripe processing fees are charged to the merchant. Billing/Tax costs on the subscription itself remain Nytto Labs costs.
 
-A subscription is paid to Nytto Labs. New product sales are **direct charges** on the connected merchant. The server verifies Stripe fee collection and loss responsibility (`stripe`), active card payments, seller ownership and a paid, unexpired subscription. `application_fee_amount: 0` explicitly overrides any default application pricing. Stripe processing fees are charged by Stripe to the merchant; they are not an invented fixed platform percentage. Billing and Tax costs on the subscription itself remain costs of Nytto Labs.
+There is no Curl-to-Buy percentage on subscription links. Do not describe Stripe's card fee as a "5% platform fee".
 
 ## Existing merchants and purchases
 
-The currently connected recipient accounts have platform fee responsibility. Stripe allows selecting the fee payer only at account creation. They are not silently reconfigured, deleted or replaced. Subscription setup creates a merchant/customer account with Stripe-owned fee collection; Stripe may require seller onboarding again. `paymentAccountId` is separate from the historical `stripeAccountId`.
+Current recipient accounts have platform fee responsibility. Stripe sets the fee payer only at account creation. They are not deleted or silently reconfigured. Subscription setup creates a separate `paymentAccountId` with Stripe-owned fee collection. Historical destination-charge links keep their original agreement and stay purchasable, verifiable and downloadable. Historical purchases never require an active subscription.
 
-New subscription listings store their merchant and billing model. Historical destination-charge links retain their old agreement and can still be purchased, verified and downloaded. Sellers can replace them with new subscription links. Historical purchases never require the seller to maintain an active subscription.
+## Catalog / preview
 
-Every new Checkout session has a persisted context: listing, seller, account, amount, currency. Verification, download, order retrieval and connected events use that server-owned context. Never use an account ID supplied by a browser. Old sessions without context are retrieved on the platform, as before. Fully refunded/disputed charges are not downloadable.
+`/api/billing/plans` first retrieves the three live Price IDs above. If that environment cannot read them (test-mode key, missing key), it still returns the verified Start / Grow / Scale amounts so the page does not 503. Checkout stays closed until Stripe can read the catalog.
 
-## Enforced by the server
+## Fredrik — Stripe Dashboard checklist
 
-All three creation routes share subscription, age-consent, stable request ID and quota checks. Conditional ETag writes (supported by the installed @vercel/blob SDK) reserve quota slots atomically, including concurrent requests. Retrying one draft returns the same listing. Upgrades retain period usage; renewal starts a new ledger. Unlimited usage is tracked so downgrades cannot reset the count.
+These writes are blocked from this agent (portal configuration permission denied; webhook secrets live in Vercel).
 
-Limited subscription stock reserves a slot before returning Stripe Checkout. Only one open Checkout can hold the last slot. Stripe's status decides whether an expired slot can be reused. Completed payments remain sold even when the customer never returns to the app. Existing one-off legacy listings retain their previous stock behavior; new stock reservations are not retroactively applied to already open legacy Checkout sessions.
+1. **Customer portal**  
+   Dashboard → Settings → Billing → Customer portal. Create a configuration named “Curl-to-Buy seller subscriptions”. Enable payment-method update, invoice history, period-end cancel, and switching among the three prices above. Immediate upgrades should invoice prorations; downgrades should schedule at period end. Copy the configuration ID (`bpc_…`) into Vercel as `STRIPE_CTB_PORTAL_CONFIGURATION` for Production and Preview.
 
-Addresses and phone numbers stay in Stripe and are retrieved only by the listing's authenticated seller. Public stock/usage/context records do not contain buyer PII. Existing seller/file storage design is unchanged except conditional updates and uncached reads.
+2. **Platform webhook (already live)**  
+   Keep `https://pay.nyttolabs.com/api/stripe/webhook` and `STRIPE_CTB_WEBHOOK_SECRET`. Add events if missing: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.updated`, `customer.subscription.deleted`. Entitlements are also read live from Stripe on each publish.
 
-## Remaining external release setup
+3. **Connected-account webhook (for new direct charges)**  
+   Create a **connected account** endpoint: `https://pay.nyttolabs.com/api/stripe/connect-webhook` for `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Save its signing secret as `STRIPE_CTB_CONNECT_WEBHOOK_SECRET`. Buyer success-page verification still records the sale if this is late.
 
-1. Set a valid Stripe key for the intended mode in the deployment. Catalog lookup keys and products must exist on that SAME account/mode. The catalog route logs a sanitized diagnostic instead of hiding the reason behind an opaque 503. Do not replace a production key with a test key.
-2. Create a **connected-account** webhook endpoint for `https://pay.nyttolabs.com/api/stripe/connect-webhook`, events `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Save its signing secret as `STRIPE_CTB_CONNECT_WEBHOOK_SECRET` in the matching Vercel environment. Keep the existing platform webhook and `STRIPE_CTB_WEBHOOK_SECRET` intact.
-3. Create a Curl-to-Buy-only customer portal configuration. Allow payment method updates, invoice history, period-end cancellation and switching between the three verified prices. Immediate upgrades should invoice proration; downgrades should schedule at period end. Set `STRIPE_CTB_PORTAL_CONFIGURATION` to its ID. The connected Stripe tool currently denies portal configuration creation; no portal was created or bypass attempted.
-4. Deploy a preview and verify catalog, merchant onboarding, subscription Checkout, portal, shipping, webhook delivery, inventory concurrency and legacy downloads against the intended Stripe environment. Do not treat mocked contracts as proof of a real bank payout.
-5. Merge/deploy only when configured and verified. Until webhook and portal settings are present, new subscription payments remain unavailable; the public production site is not silently changed to a nonfunctional flow.
+4. **Do not** replace the live Start / Grow / Scale prices, add a fourth tier, or change existing destination-charge links.
+
+5. Preview `STRIPE_SECRET_KEY` must be the **same live account** as production if you want Checkout to open on preview. A test-mode key can display the fallback catalog but cannot charge the live prices.
+
+6. After merge: open `/plans`, start Start Checkout, return via Customer Portal, create one digital and one physical link, confirm shipping address on `/orders/[id]`, and confirm an old destination-charge link still downloads.
+
+## Server enforcement
+
+All create-link routes share subscription, age-consent, stable request ID and quota checks. Conditional ETag writes reserve quota slots atomically. Retrying one draft returns the same listing. Swedish/English quota copy is returned when the monthly allowance is used.
+
+Limited subscription stock reserves a slot before Stripe Checkout. Legacy listings keep previous stock behavior.
+
+Addresses stay in Stripe and are retrieved only by the listing's authenticated seller.
 
 ## Checks
 
-`node --experimental-vm-modules --test tests/*.test.mjs`
+`node --experimental-vm-modules --test tests/*.test.mjs`  
 `npm run build`
 
-Automated contracts cover legacy destination payments/downloads, seller-only saved links, catalog validation, billing lifecycle, fee payer, direct account scope, shipping details, webhook account mismatches/retries, refunds, concurrent quotas and stock reservations. Tests use no keys or real charges.
+No keys or real charges in contract tests.
 
 ## Scope
 
-Product links can be embedded in another store. This release does not authorize Shopify API access, import products, sync supplier fulfillment or inventory, or charge buyers a recurring product subscription. Prices for physical products include shipping to the seller-selected countries. Sellers remain responsible for the product, delivery, returns, taxes and required customer information.
-
-References: https://docs.stripe.com/connect/saas/tasks/accept-payment ; https://docs.stripe.com/connect/direct-charges-fee-payer-behavior ; https://docs.stripe.com/accounts-v2/use-accounts-as-customers
+This is a standalone payment-link flow. It does not import Shopify products or sync supplier inventory.

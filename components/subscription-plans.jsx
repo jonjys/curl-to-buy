@@ -62,7 +62,7 @@ export default function SubscriptionPlans() {
         <p className="font-mono text-[10px] uppercase tracking-kicker text-pine">{sv ? 'Abonnemang' : 'Subscriptions'}</p>
         <h1 className="mt-2 font-display text-3xl font-black">{sv ? 'Dina produkter. Dina länkar.' : 'Your products. Your links.'}</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">{sv ? 'Sälj fysiska produkter, ditt eget varumärke och digitala filer. Välj hur många nya köplänkar du behöver varje månad.' : 'Sell physical products, your own brand and digital files. Choose how many new payment links you need each month.'}</p>
-        <p className="mt-3 text-sm text-muted">{sv ? 'Platform fee betalas via abonnemanget. Ingen extra provision till Curl-to-Buy på abonnemangslänkar. Stripe drar sina betalningsavgifter från din försäljning.' : 'Your subscription covers the platform fee. No additional Curl-to-Buy commission on subscription links. Stripe deducts its payment processing fees from your sales.'}</p>
+        <p className="mt-3 text-sm text-muted">{sv ? 'Du betalar abonnemanget till Nytto Labs. Curl-to-Buy tar ingen procent på varje försäljning. Stripe drar sin kortavgift från beloppet som landar hos dig.' : 'You pay the subscription to Nytto Labs. Curl-to-Buy takes no percentage of each sale. Stripe deducts its card fee from the amount that reaches you.'}</p>
       </div>
       {current ? <div className="nl-card rounded-xl p-5 text-sm">
         <p className="font-semibold">{current.name || current.plan}</p>
@@ -83,7 +83,7 @@ export default function SubscriptionPlans() {
           <button type="button" disabled={busy || !enabled || Boolean(current)} onClick={() => choose(plan.key)} className="mt-5 min-h-12 w-full rounded-lg bg-pine px-4 text-sm font-semibold text-pine-fg disabled:opacity-50">{current?.plan === plan.key ? (sv ? 'Ditt abonnemang' : 'Your plan') : (sv ? `Välj ${plan.name}` : `Choose ${plan.name}`)}</button>
         </article>)}
       </div>
-      {!loading && plans.length > 0 && !enabled ? <p role="status" className="text-sm text-muted">{sv ? 'Det går tillfälligt inte att starta ett nytt abonnemang. Ingen betalning tas innan du bekräftar i Stripe.' : 'New subscriptions are temporarily unavailable. No payment is taken until you confirm in Stripe.'}</p> : null}
+      {!loading && plans.length > 0 && !enabled ? <p role="status" className="text-sm text-muted">{sv ? 'Priserna visas, men ny prenumeration väntar på att den här miljön kan läsa Stripe-katalogen. Ingen betalning tas innan du bekräftar i Stripe.' : 'Prices are shown, but new checkout waits until this environment can read the Stripe catalog. No payment is taken until you confirm in Stripe.'}</p> : null}
       {chosen && !current && enabled ? <div className="nl-card space-y-3 rounded-xl p-5">
         <h2 className="font-semibold">{status?.merchantReady ? (sv ? 'Fortsätt med ditt abonnemang' : 'Continue with your subscription') : (sv ? 'Anslut betalningar hos Stripe' : 'Connect payments with Stripe')}</h2>
         {!status?.merchantReady ? <p className="text-sm leading-relaxed text-ink-soft">{sv ? 'Stripe verifierar säljaren och bankkontot. Har du en äldre anslutning kan Stripe behöva uppdatera din setup för abonnemang. Dina tidigare länkar och köp finns kvar.' : 'Stripe verifies the seller and bank account. An older connection may need an updated setup for subscriptions. Your existing links and purchases remain available.'}</p> : null}

@@ -93,7 +93,8 @@ test('atomic link quotas: parallel last-slot requests, retries, unlimited upgrad
   billing.plan.links=null;await quota.reserveLink('s',billing,'extra')
   assert.equal(await quota.linkUsage('s',billing),2)
   billing.plan.links=1
-  await assert.rejects(()=>quota.reserveLink('s',billing,'another'),/used all/)
+  await assert.rejects(()=>quota.reserveLink('s',{...billing,locale:'en'},'another'),/used all/)
+  await assert.rejects(()=>quota.reserveLink('s',{...billing,locale:'sv'},'another'),/använt alla/)
   billing.periodStart=2;await quota.reserveLink('s',billing,'another')
   assert.equal(await quota.linkUsage('s',billing),1)
 })

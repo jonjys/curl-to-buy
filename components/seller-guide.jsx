@@ -29,11 +29,13 @@ export default function SellerGuide() {
   if (connected !== false) return null
 
   const steps = sv ? [
-    ['Anslut Stripe', 'Ange din e-post i rutan nedanför och fyll i de uppgifter Stripe behöver. Det görs en gång.'],
+    ['Anslut Stripe', 'Ange din e-post och fyll i de uppgifter Stripe behöver. Det görs en gång.'],
+    ['Välj abonnemang', 'Start €5 (10 nya länkar), Grow €19 (50) eller Scale €49 (obegränsat). Stripe drar sin kortavgift från varje försäljning — inte Curl-to-Buy.'],
     ['Lägg upp det du säljer', 'Välj fysisk vara eller digital fil, beskriv den och sätt priset.'],
     ['Dela köplänken', 'Skapa en unik länk och skicka den till köparen. Köparen behöver inget konto.'],
   ] : [
-    ['Connect Stripe', 'Enter your email in the form below and complete the details Stripe requests. You only do this once.'],
+    ['Connect Stripe', 'Enter your email and complete the details Stripe requests. You only do this once.'],
+    ['Choose a subscription', 'Start €5 (10 new links), Grow €19 (50) or Scale €49 (unlimited). Stripe deducts its card fee from each sale — not Curl-to-Buy.'],
     ['List what you sell', 'Choose a physical item or digital file, describe it and set your price.'],
     ['Share your payment link', 'Create a unique link and send it to your buyer. Buyers need no account.'],
   ]
@@ -49,9 +51,9 @@ export default function SellerGuide() {
           {expanded ? (sv ? 'Dölj' : 'Hide') : (sv ? 'Visa steg' : 'Show steps')}
         </button>
       </div>
-      <p className="mt-2 text-sm leading-relaxed text-ink-soft">{sv ? 'E-post och Stripe → Vara och pris → Dela länken.' : 'Email and Stripe → Item and price → Share the link.'}</p>
+      <p className="mt-2 text-sm leading-relaxed text-ink-soft">{sv ? 'E-post och Stripe → Abonnemang → Vara och pris → Dela länken.' : 'Email and Stripe → Subscription → Item and price → Share the link.'}</p>
       {expanded ? (
-        <ol id="ctb-guide-steps" className="mt-4 grid gap-2 sm:grid-cols-3">
+        <ol id="ctb-guide-steps" className="mt-4 grid gap-2 sm:grid-cols-2">
           {steps.map(([title, description], i) => (
             <li key={title} className="rounded-lg border border-line p-3">
               <span className="font-mono text-xs font-bold text-pine">{String(i + 1).padStart(2, '0')}</span>

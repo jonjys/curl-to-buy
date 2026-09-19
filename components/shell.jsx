@@ -43,7 +43,7 @@ export function SiteHeader() {
 
 export function SiteFooter() {
   const { t, locale } = useLocale()
-  const bits = [t.footerPay, locale === 'sv' ? 'Platform fee via abonnemang' : 'Platform fee through subscriptions', t.footerPayout]
+  const bits = [t.footerPay, t.footerFee, t.footerPayout]
   return (
     <footer className="relative z-10 mt-16 border-t border-white/10 bg-black/35 px-4 py-8 sm:px-6" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
       <div className="mx-auto max-w-5xl">

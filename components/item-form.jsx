@@ -63,6 +63,7 @@ export default function ItemForm({ stripeReady, blobReady }) {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft),
       })
       const json = await readJson(response)
+      if (response.status === 402 && json.quotaExceeded) throw Error(json.error || (sv ? 'Du har använt alla nya länkar för den här månaden.' : 'You have used all new links for this billing month.'))
       if (response.status === 402) { window.location.assign('/plans'); return }
       if (!response.ok || !json.id) throw Error(json.error || 'Could not publish item.')
       window.localStorage.removeItem(ITEM_DRAFT)
@@ -98,7 +99,7 @@ export default function ItemForm({ stripeReady, blobReady }) {
         })
         photoUrl = blob.url
       }
-      const draft = { requestId, accepted: adult, title: title.trim(), description: description.trim(), condition,
+      const draft = { requestId, accepted: adult, locale, title: title.trim(), description: description.trim(), condition,
         priceSek: amount, photoUrl, shippingIncluded, shippingCountries, brand, contactEmail, deliveryEstimate, returnPolicy,
         salesLimit: stock === 'unlimited' ? null : Number(stock) }
       window.localStorage.setItem(ITEM_DRAFT, JSON.stringify(draft))
@@ -143,7 +144,7 @@ export default function ItemForm({ stripeReady, blobReady }) {
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Skick' : 'Condition'}<select className={field} value={condition} onChange={(e) => setCondition(e.target.value)}><option value="new">{sv ? 'Ny' : 'New'}</option><option value="used_good">{sv ? 'Begagnad – bra skick' : 'Used – good condition'}</option><option value="used_fair">{sv ? 'Begagnad – bruksskick' : 'Used – fair condition'}</option></select></label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Beskrivning (valfri)' : 'Description (optional)'}<textarea className={`${field} min-h-24 py-3`} maxLength={300} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={sv ? 'Storlek, mått, eventuella skador…' : 'Size, dimensions, any flaws…'} /></label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Pris inklusive frakt, kr' : 'Price including shipping, SEK'}<input className={field} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.,]/g, ''))} /></label>
-      <p className="text-xs leading-relaxed text-muted">{sv ? 'Platform fee: ditt abonnemang. Stripes betalningsavgift dras från försäljningen.' : 'Platform fee: your subscription. Stripe processing fees are deducted from your sales.'}</p>
+      <p className="text-xs leading-relaxed text-muted">{sv ? 'Curl-to-Buy tar ingen procent på försäljningen. Stripe drar sin kortavgift från beloppet. Köparen anger leveransadressen i Stripe Checkout.' : 'Curl-to-Buy takes no percentage of the sale. Stripe deducts its card fee from the amount. The buyer enters the shipping address in Stripe Checkout.'}</p>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Varumärke (valfritt)' : 'Brand (optional)'}<input className={field} maxLength={80} value={brand} onChange={(e) => setBrand(e.target.value)} /></label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Antal att sälja' : 'Quantity available'}<select className={field} value={stock === 'unlimited' ? 'unlimited' : 'limited'} onChange={(e) => setStock(e.target.value === 'unlimited' ? 'unlimited' : '1')}><option value="limited">{sv ? 'Begränsat lager' : 'Limited stock'}</option><option value="unlimited">{sv ? 'Ingen köpgräns' : 'No purchase limit'}</option></select>{stock !== 'unlimited' ? <input className={field} type="number" min={1} max={100000} value={stock} onChange={(e) => setStock(e.target.value)} /> : null}</label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Leveransländer' : 'Delivery countries'}<select className={`${field} h-32`} multiple value={shippingCountries} onChange={(e) => setShippingCountries(Array.from(e.target.selectedOptions, (o) => o.value))}>{[['SE','Sverige'],['DK','Danmark'],['FI','Finland'],['NO','Norge'],['DE','Deutschland'],['FR','France'],['NL','Nederland'],['BE','België'],['AT','Österreich'],['IE','Ireland'],['IT','Italia'],['ES','España'],['PT','Portugal'],['PL','Polska']].map(([code,name]) => <option key={code} value={code}>{name}</option>)}</select></label>

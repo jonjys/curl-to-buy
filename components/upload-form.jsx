@@ -82,7 +82,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          requestId: draft.requestId, accepted: draft.accepted,
+          requestId: draft.requestId, accepted: draft.accepted, locale,
           files: draft.uploaded,
           title: draft.title,
           priceUsd: draft.priceUsd,
@@ -93,6 +93,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         }),
       })
       const json = await readJson(res)
+      if (res.status === 402 && json.quotaExceeded) throw new Error(json.error || (sv ? 'Du har använt alla nya länkar för den här månaden.' : 'You have used all new links for this billing month.'))
       if (res.status === 402) { window.location.assign('/plans'); return }
       if (!res.ok) throw new Error(json.error || 'Could not create the link.')
       clearDraft()
@@ -104,7 +105,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       setBusy(false)
       finalizingRef.current = false
     }
-  }, [])
+  }, [locale, sv])
 
   useEffect(() => {
     if (connect.loading) return
@@ -450,7 +451,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             </button>
           ))}
         </div>
-        <p className="text-sm text-muted">{sv ? 'Platform fee: ditt abonnemang. Stripes betalningsavgift dras från försäljningen.' : 'Platform fee: your subscription. Stripe processing fees are deducted from your sales.'}</p>
+        <p className="text-sm text-muted">{sv ? 'Curl-to-Buy tar ingen procent på försäljningen. Stripe drar sin kortavgift från beloppet.' : 'Curl-to-Buy takes no percentage of the sale. Stripe deducts its card fee from the amount.'}</p>
       </div>
 
       <div className="space-y-2">

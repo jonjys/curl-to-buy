@@ -41,7 +41,7 @@ export async function POST(req, { params }) {
   }
 
   const seller = listing.sellerId ? await getSeller(listing.sellerId) : null
-  if (!seller?.stripeAccountId) {
+  if (!seller?.paymentAccountId && !seller?.stripeAccountId) {
     return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
   }
   const direct = listing.billingMode === 'subscription'

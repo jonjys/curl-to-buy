@@ -11,7 +11,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 export async function POST(req) {
   if (!sameOrigin(req)) return privateJson({ error: 'Invalid origin.' }, 403)
-  if (!billingEnabled()) return privateJson({ error: 'Subscription checkout is temporarily unavailable.' }, 503)
+  if (!billingEnabled() || !stripe()) return privateJson({ error: 'Subscription checkout is temporarily unavailable.' }, 503)
   try {
     const seller = await authenticatedSeller(req)
     if (!seller || !(await readySubscriptionMerchant(seller))) return privateJson({ error: 'Add your payout details first.', needsConnect: true }, 403)
@@ -25,7 +25,8 @@ export async function POST(req) {
     const current = await billingState({ ...freshSeller, billingIdentity: identity })
     const origin = originFrom(req)
     if (current.subscriptionId) {
-      const portal = await client.billingPortal.sessions.create({ ...identity, configuration: await portalConfiguration(), return_url: `${origin}/plans` })
+      const configuration = portalConfiguration()
+      const portal = await client.billingPortal.sessions.create({ ...identity, ...(configuration ? { configuration } : {}), return_url: `${origin}/plans` })
       return privateJson({ url: portal.url })
     }
     // One open session per seller and plan. Stripe expires abandoned sessions;

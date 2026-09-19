@@ -20,7 +20,7 @@ function allowedPhoto(url) {
 
 export async function POST(req) {
   const seller = await loadReadySeller(req)
-  if (!seller?.stripeAccountId) {
+  if (!seller?.paymentAccountId && !seller?.stripeAccountId) {
     return Response.json({ error: 'Connect Stripe before publishing an item.' }, { status: 403 })
   }
   const body = await req.json().catch(() => null)
@@ -73,7 +73,7 @@ export async function POST(req) {
   try {
     listing = await publishListing(seller, body, listing)
   } catch (error) {
-    return Response.json({ error: error.status ? error.message : storageErrorMessage(error), needsPlan: Boolean(error.needsPlan) }, { status: error.status || 500 })
+    return Response.json({ error: error.status ? error.message : storageErrorMessage(error), needsPlan: Boolean(error.needsPlan), quotaExceeded: Boolean(error.quotaExceeded) }, { status: error.status || 500 })
   }
   return Response.json({ id: listing.id, name: listing.name, kind: 'physical', priceSek: listing.priceSek, currency: 'sek', salesLimit: listing.salesLimit })
 }
