@@ -16,9 +16,13 @@ export default async function DlPage({ params }) {
   const expired = Number.isInteger(listing.expiresAt) && Date.now() > listing.expiresAt
   const safeListing = {
     id: listing.id,
+    kind: listing.kind === 'physical' ? 'physical' : 'digital',
     name: listing.name,
     description: listing.description || null,
-    fileCount: listingFiles(listing).length,
+    photoUrl: listing.kind === 'physical' ? listing.photoUrl || null : null,
+    condition: listing.kind === 'physical' ? listing.condition || null : null,
+    shippingIncluded: listing.kind === 'physical' && listing.shippingIncluded === true,
+    fileCount: listing.kind === 'physical' ? 0 : listingFiles(listing).length,
     salesLimit: listing.salesLimit,
     sold,
     soldOut,
