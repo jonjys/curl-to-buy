@@ -118,13 +118,15 @@ No 500s. Header/footer CTAs (`Create link`, `Subscriptions`, `My links`, legal, 
 
 ## 6. Merge / deploy
 
-Already on live `main` before this overnight pass:
+**Git `main` is merged:** https://github.com/jonjys/curl-to-buy/pull/25 → `fcd5a34` plus the follow-up item-form `catch` restore so `next build` succeeds.
+
+Already proven on live before this overnight pass (production was `469cbb2`):
 
 - `1b99287` Fix Connect account-link configs and live catalog read
 - `b9bf421` / `197a6c5` Freemium $10/5% vs subscribed $5/0%
-- `469cbb2` Wider homepage (current production SHA)
+- Live `POST /api/connect` 200 + Stripe URL
 
-This branch adds retrieve-and-match account_links, config-mismatch retries, Connect source on the JSON, physical Create→Connect handoff, and the fetch-level regression. Merge to `main` and wait for the Vercel production deploy of this SHA. If Vercel rate-limits, retry the git production deploy; do not leave the hardening only on the branch.
+This hardening is on `main`. First Vercel production attempt of `fcd5a34` failed (`npm run build` — missing `catch` in `item-form.jsx`). That is fixed; retry the production deploy. Live `pay.nyttolabs.com` stayed on the last good SHA (`469cbb2`) and still serves the working Connect URL.
 
 ## BLOCKED — Fredrik Dashboard
 

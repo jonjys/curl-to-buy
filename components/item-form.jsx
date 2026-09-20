@@ -112,6 +112,7 @@ export default function ItemForm({ stripeReady, blobReady }) {
       if (connect.ready) await finish(draft)
       else if (connect.hasSeller || email) await startConnect()
       else setError(sv ? 'Anslut Stripe först. Ange din e-postadress ovan.' : 'Connect Stripe first. Enter your email above.')
+    } catch (err) { setError(err.message || 'Could not publish item.') }
     finally { setBusy(false) }
   }
 
