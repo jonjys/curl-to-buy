@@ -10,8 +10,9 @@ export async function POST(req) {
     const seller = await authenticatedSeller(req)
     if (!seller?.billingIdentity) return privateJson({ error: 'Choose a plan first.' }, 403)
     const configuration = portalConfiguration()
+    if (!configuration) return privateJson({ error: 'Billing management is temporarily unavailable.' }, 503)
     const session = await stripe().billingPortal.sessions.create({
-      ...seller.billingIdentity, ...(configuration ? { configuration } : {}), return_url: `${originFrom(req)}/plans`,
+      ...seller.billingIdentity, configuration, return_url: `${originFrom(req)}/plans`,
     })
     return privateJson({ url: session.url })
   } catch { return privateJson({ error: 'Could not open billing.' }, 503) }

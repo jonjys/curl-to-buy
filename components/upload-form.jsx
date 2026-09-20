@@ -130,7 +130,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
 
   useEffect(() => {
     if (connect.subscribed && price === String(FREE_MIN_USD)) setPrice(String(SUB_MIN_USD))
-  }, [connect.subscribed, price])
+  }, [connect.subscribed])
 
   async function startConnect() {
     setError(null)

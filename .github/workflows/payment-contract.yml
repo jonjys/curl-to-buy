@@ -18,5 +18,4 @@ jobs:
         with:
           node-version: '22'
       - name: Run secret-free payment, links and billing contract tests
-        run: node --experimental-vm-modules --test tests/payment-flow.test.mjs tests/physical-flow.test.mjs tests/saved-links.test.mjs tests/billing-foundations.test.mjs tests/subscription-commerce.test.mjs tests/freemium-pricing.test.mjs
-
+        run: node --experimental-vm-modules --test tests/*.test.mjs

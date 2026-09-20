@@ -2,11 +2,15 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { runtime, catalog } from './integration-helper.mjs'
 
-test('billing is available when a Stripe key is present', async () => {
-  const disabled = await runtime({ env: { STRIPE_SECRET_KEY: '' } }).load('lib/billing.js')
-  assert.equal(disabled.billingEnabled(), false)
-  const enabled = await runtime().load('lib/billing.js')
-  assert.equal(enabled.billingEnabled(), true)
+test('billing stays closed until explicitly released with both webhooks and scoped portal', async () => {
+  assert.equal((await runtime().load('lib/billing.js')).billingEnabled(), false)
+  const env = { STRIPE_CTB_BILLING_ENABLED: 'true', STRIPE_CTB_WEBHOOK_SECRET: 'whsec_platform',
+    STRIPE_CTB_CONNECT_WEBHOOK_SECRET: 'whsec_connect', STRIPE_CTB_PORTAL_CONFIGURATION: 'bpc_scoped' }
+  assert.equal((await runtime({ env }).load('lib/billing.js')).billingEnabled(), true)
+  for (const key of Object.keys(env)) {
+    assert.equal((await runtime({ env: { ...env, [key]: '' } }).load('lib/billing.js')).billingEnabled(), false)
+  }
+  assert.equal((await runtime({ env: { ...env, VERCEL_ENV: 'preview', STRIPE_SECRET_KEY: 'sk_live_contract' } }).load('lib/billing.js')).billingEnabled(), false)
 })
 
 test('price catalog validates monthly EUR amounts, product ownership, tax behavior and quotas', async () => {
@@ -99,28 +103,23 @@ test('no subscription charge when Stripe is not configured', async () => {
   assert.equal(response.status, 503)
 })
 
-test('verified live Price IDs unlock checkout even when product metadata is incomplete', async () => {
+test('known IDs cannot bypass ownership, tax, active state, mode or quota validation', async () => {
   const billing = await runtime().load('lib/billing.js')
-  const client = {
-    prices: {
-      retrieve: async (id) => {
-        const spec = Object.values(billing.VERIFIED_PLANS).find((item) => item.priceId === id)
-        if (!spec) throw Error('missing')
-        return {
-          id: spec.priceId, lookup_key: spec.lookup, currency: 'eur', unit_amount: spec.amount,
-          recurring: { interval: 'month', interval_count: 1 }, product: spec.priceId,
-        }
-      },
-      list: async () => { throw Error('list should not run when retrieve matches verified IDs') },
-    },
+  for (const corrupt of [
+    (p) => { p.metadata.app = 'other' },
+    (p) => { p.product.metadata.app = 'other' },
+    (p) => { p.tax_behavior = 'exclusive' },
+    (p) => { p.active = false },
+    (p) => { p.product.active = false },
+    (p) => { p.livemode = true },
+    (p) => { p.unit_amount = 999 },
+    (p) => { p.product.metadata.monthly_links = '999' },
+  ]) {
+    const prices = catalog().map((price, i) => ({ ...price, id: Object.values(billing.VERIFIED_PLANS)[i].priceId }))
+    corrupt(prices[0])
+    const client = { prices: { retrieve: async (id) => prices.find((p) => p.id === id), list: async () => ({ data: prices }) } }
+    await assert.rejects(() => billing.getPlans(client))
   }
-  const plans = await billing.getPlans(client)
-  assert.equal(JSON.stringify(plans.map((plan) => [plan.key, plan.priceId, plan.amount, plan.monthlyLinks])),
-    JSON.stringify([
-      ['start', billing.VERIFIED_PLANS.start.priceId, 500, 10],
-      ['grow', billing.VERIFIED_PLANS.grow.priceId, 1900, 50],
-      ['scale', billing.VERIFIED_PLANS.scale.priceId, 4900, null],
-    ]))
 })
 
 test('account links request every configuration on the connected account', async () => {

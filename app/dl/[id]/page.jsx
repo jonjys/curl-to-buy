@@ -31,6 +31,8 @@ export default async function DlPage({ params }) {
     salesLimit: listing.salesLimit,
     sold,
     soldOut,
+    paused: listing.paused === true,
+    variant: listing.variant || null,
     expiresAt: listing.expiresAt || null,
     expired,
   }

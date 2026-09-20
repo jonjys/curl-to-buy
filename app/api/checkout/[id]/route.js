@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { stripe } from '../../../../lib/stripe'
 import { getListing, getSalesCount, getSeller, listingFiles } from '../../../../lib/store'
 import { displayPrice } from '../../../../lib/price'
@@ -20,6 +21,7 @@ export async function POST(req, { params }) {
 
   const listing = await getListing(id)
   if (!listing) return Response.json({ error: 'This link is not for sale.' }, { status: 404 })
+  if (listing.paused === true) return Response.json({ error: 'This link is paused.' }, { status: 409 })
   const isPhysical = listing.kind === 'physical'
   if (isPhysical && (listing.shippingIncluded !== true || !Array.isArray(listing.shippingCountries) || !listing.shippingCountries.length)) {
     return Response.json({ error: 'Shipping is not configured for this item.' }, { status: 400 })
@@ -45,15 +47,19 @@ export async function POST(req, { params }) {
   if (!seller?.paymentAccountId && !seller?.stripeAccountId) {
     return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
   }
-  const billing = await billingState(seller)
+  const direct = usesDirectCharge(listing)
+  const billing = direct ? await billingState(seller) : { active: false }
   const subscribed = isSubscribed(billing)
   const terms = saleTerms(subscribed)
-  const feeBps = checkoutFeeBps(subscribed, seller)
+  if (listing.billingMode === 'subscription' && !subscribed) {
+    return Response.json({ error: 'This seller must renew their subscription before accepting new payments.' }, { status: 409 })
+  }
+  // Preserve legacy fee agreements even if the seller later subscribes.
+  const feeBps = direct ? checkoutFeeBps(subscribed, seller) : (listing.feeBps ?? seller.feeBps ?? 500)
   const minCents = price.currency === 'sek' ? terms.minSek * 100 : terms.minUsd * 100
-  if (price.amount < minCents) {
+  if (direct && price.amount < minCents) {
     return Response.json({ error: 'This link is below the current minimum price.' }, { status: 400 })
   }
-  const direct = usesDirectCharge(listing)
   const accountId = listing.paymentAccountId || (direct ? seller.paymentAccountId : null) || null
   if (direct) {
     if (!accountId || accountId !== seller.paymentAccountId || !(await readySubscriptionMerchant(seller))) {
@@ -73,7 +79,6 @@ export async function POST(req, { params }) {
   const fileCount = listingFiles(listing).length
   const checkoutParams = {
     mode: 'payment',
-    payment_method_types: ['card'],
     line_items: [{
       quantity: 1,
       price_data: {
@@ -110,10 +115,10 @@ export async function POST(req, { params }) {
     },
   }
   const body = await req.json().catch(() => ({}))
-  const attemptId = body.attemptId
+  const attemptId = body.attemptId || (!direct ? randomUUID() : null)
   const context = { accountId, listingId: listing.id, sellerId: seller.id, amount: price.amount, currency: price.currency }
   let session
-  if (direct && Number.isInteger(listing.salesLimit)) {
+  if (Number.isInteger(listing.salesLimit)) {
     if (!/^[a-zA-Z0-9_-]{16,80}$/.test(attemptId || '')) return Response.json({ error: 'Refresh the item page and try again.' }, { status: 400 })
     session = await createReservedCheckout(client, listing, attemptId, checkoutParams, context)
   } else {

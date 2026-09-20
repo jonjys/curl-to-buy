@@ -1,3 +1,4 @@
+import { reconcileBillingEvent } from '../../../../lib/billing-events'
 import { checkoutContext, paymentCanFulfill, retrieveCheckout } from '../../../../lib/payment-context'
 import { stripe } from '../../../../lib/stripe'
 import { getListing, recordPurchase } from '../../../../lib/store'
@@ -26,6 +27,14 @@ export async function handleWebhook(req, connected = false) {
     event = client.webhooks.constructEvent(await req.text(), signature, secret)
   } catch {
     return Response.json({ error: 'Invalid Stripe signature.' }, { status: 400 })
+  }
+
+  if (!connected) {
+    try {
+      if (await reconcileBillingEvent(client, event)) return Response.json({ received: true })
+    } catch {
+      return Response.json({ error: 'Subscription reconciliation pending.' }, { status: 503 })
+    }
   }
 
   if (event.type !== 'checkout.session.completed' &&

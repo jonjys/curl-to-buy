@@ -1,5 +1,5 @@
 import { list } from '@vercel/blob'
-import { getListing, getSeller } from '../../../lib/store'
+import { getListing, getSeller, getSalesCount } from '../../../lib/store'
 import { sellerIdFromRequest } from '../../../lib/seller'
 
 export const runtime = 'nodejs'
@@ -23,9 +23,9 @@ export async function GET(req) {
     const page = await list({ prefix: 'listings/', limit: 50, ...(cursor ? { cursor } : {}) })
     const ids = page.blobs.map((blob) => ID_FROM_PATH.exec(blob.pathname)?.[1]).filter(Boolean)
     const records = await Promise.all(ids.map((id) => getListing(id)))
-    const links = records
+    const links = await Promise.all(records
       .filter((item) => item?.sellerId === sellerId)
-      .map((item) => ({
+      .map(async (item) => ({
         id: item.id,
         name: item.name,
         kind: item.kind === 'physical' ? 'physical' : 'digital',
@@ -36,8 +36,10 @@ export async function GET(req) {
         createdAt: item.createdAt || null,
         expiresAt: item.expiresAt || null,
         salesLimit: item.salesLimit ?? null,
-      }))
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+        paused: item.paused === true,
+        salesCount: await getSalesCount(item.id),
+      })))
+    links.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
 
     return Response.json({ links, nextCursor: page.hasMore ? page.cursor : null }, {
       headers: { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' },

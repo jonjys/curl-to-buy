@@ -26,7 +26,7 @@ export async function POST(req) {
     const origin = originFrom(req)
     if (current.subscriptionId) {
       const configuration = portalConfiguration()
-      const portal = await client.billingPortal.sessions.create({ ...identity, ...(configuration ? { configuration } : {}), return_url: `${origin}/plans` })
+      const portal = await client.billingPortal.sessions.create({ ...identity, configuration, return_url: `${origin}/plans` })
       return privateJson({ url: portal.url })
     }
     // One open session per seller and plan. Stripe expires abandoned sessions;
@@ -46,7 +46,7 @@ export async function POST(req) {
       line_items: [{ price: plan.priceId, quantity: 1 }],
       billing_address_collection: 'required', tax_id_collection: { enabled: true },
       automatic_tax: { enabled: true },
-      customer_update: { address: 'auto', name: 'auto' },
+      ...(identity.customer ? { customer_update: { address: 'auto', name: 'auto' } } : {}),
       metadata, subscription_data: { metadata },
       success_url: `${attempt.origin}/upload?billing=success`, cancel_url: `${attempt.origin}/plans?billing=canceled`,
       expires_at: attempt.expiresAt,

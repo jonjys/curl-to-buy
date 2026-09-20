@@ -10,7 +10,7 @@ export async function GET(req) {
     if (!seller) return privateJson({ authenticated: false, subscription: null, merchantReady: false })
     const [billing, merchant] = await Promise.all([billingState(seller), readySubscriptionMerchant(seller)])
     return privateJson({ authenticated: true, merchantReady: Boolean(merchant), acceptingSubscriptions: billingEnabled(),
-      subscription: billing.active ? { plan: billing.plan.key, name: billing.plan.name, status: billing.status,
+      subscription: billing.subscriptionId ? { plan: billing.plan.key, name: billing.plan.name, status: billing.status,
         monthlyLinks: billing.plan.links, used: await linkUsage(seller.id, billing), periodEnd: billing.periodEnd,
         cancelAtPeriodEnd: billing.cancelAtPeriodEnd } : null })
   } catch { return privateJson({ error: 'Could not load your subscription.' }, 503) }
