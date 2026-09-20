@@ -11,7 +11,7 @@ Scanned 20 September 2026 against live `https://pay.nyttolabs.com` (Vercel produ
 | 3 | Plans Subscribe opens Stripe | **PASS** |
 | 4 | Physical item title + shipping address | **PASS** |
 | 5 | Public page scan | **PASS** |
-| 6 | Fixes on `main` / production | **PASS** for already-live commits; this hardening PR still needs merge/deploy |
+| 6 | Fixes on `main` / production | **PASS on git `main`** (`35b3575`). Live still `469cbb2` — Vercel Hobby 100-deploy/day cap. Connect already works on live. |
 | 7 | Safe to attempt a real $10 test purchase | **YES** — after Fredrik finishes hosted Stripe onboarding (or uses an already-ready seller) |
 
 ## 1. Create → Stripe Connect — PASS
