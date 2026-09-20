@@ -113,6 +113,22 @@ test('entitlement tokens: free $10/5%, subscribed $5/0%, zero bps takes no cent'
   assert.equal(entitlement.usesDirectCharge({}), false)
 })
 
+test('physical items require a title and reject prices below the entitlement floor', async () => {
+  const { app, seller } = sellerFixture({ subscribed: false })
+  await (await app.load('lib/store.js')).saveSeller(seller)
+  const auth = await app.load('lib/seller.js')
+  const cookie = auth.sellerCookie(seller.id).split(';')[0]
+  const register = await app.load('app/api/register-item/route.js')
+  const post = (body) => register.POST(new Request('https://app.test/api/register-item', {
+    method: 'POST',
+    headers: { cookie, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requestId: randomUUID(), accepted: true, locale: 'en', condition: 'new', shippingIncluded: true, shippingCountries: ['SE'], ...body }),
+  }))
+  assert.equal((await post({ title: '', priceSek: 300 })).status, 400)
+  assert.equal((await post({ title: 'Hoodie size M', priceSek: 50 })).status, 400)
+  assert.equal((await post({ title: 'Hoodie size M', priceSek: 100 })).status, 200)
+})
+
 test('new listings never destination-charge; $1 checkout is rejected for both entitlements', async () => {
   const { app, seller, state } = sellerFixture({ subscribed: true })
   const store = await app.load('lib/store.js')

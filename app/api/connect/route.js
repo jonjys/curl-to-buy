@@ -40,7 +40,8 @@ export async function POST(req) {
     const origin = originFrom(req)
     if (!seller.paymentAccountId) return Response.json({ url: `${origin}/plans` })
     const link = await merchantOnboardingLink(seller.paymentAccountId, origin, account)
-    const response = Response.json({ url: link.url })
+    if (!link?.url) return Response.json({ error: 'Stripe did not return an onboarding URL.' }, { status: 502 })
+    const response = Response.json({ url: link.url, source: link.source || 'v2' })
     if (setCookie) response.headers.append('Set-Cookie', setCookie)
     return response
   } catch (error) {

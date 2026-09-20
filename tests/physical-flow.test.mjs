@@ -113,6 +113,8 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
   state.sellerReady = false
   assert.equal((await register.POST(new Request('https://example.test/api/register-item', { method: 'POST', body: JSON.stringify(item) }))).status, 403)
   state.sellerReady = true
+  assert.equal((await register.POST(new Request('https://example.test/api/register-item', { method: 'POST', body: JSON.stringify({ ...item, title: '' }) }))).status, 400)
+  assert.equal((await register.POST(new Request('https://example.test/api/register-item', { method: 'POST', body: JSON.stringify({ ...item, title: 'ab' }) }))).status, 400)
   assert.equal((await register.POST(new Request('https://example.test/api/register-item', { method: 'POST', body: JSON.stringify({ ...item, shippingIncluded: false }) }))).status, 400)
   const created = await register.POST(new Request('https://example.test/api/register-item', { method: 'POST', body: JSON.stringify(item) }))
   assert.equal(created.status, 200)

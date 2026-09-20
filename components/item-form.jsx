@@ -110,7 +110,8 @@ export default function ItemForm({ stripeReady, blobReady }) {
         salesLimit: stock === 'unlimited' ? null : Number(stock) }
       window.localStorage.setItem(ITEM_DRAFT, JSON.stringify(draft))
       if (connect.ready) await finish(draft)
-    } catch (err) { setError(err.message || 'Could not publish item.') }
+      else if (connect.hasSeller || email) await startConnect()
+      else setError(sv ? 'Anslut Stripe först. Ange din e-postadress ovan.' : 'Connect Stripe first. Enter your email above.')
     finally { setBusy(false) }
   }
 

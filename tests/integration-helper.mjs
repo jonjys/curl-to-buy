@@ -26,10 +26,10 @@ export function memoryBlob() {
     },
   }
 }
-export function runtime({ blob = memoryBlob(), env = {}, mocks = {}, client = {} } = {}) {
+export function runtime({ blob = memoryBlob(), env = {}, mocks = {}, client = {}, fetch: fetchImpl } = {}) {
   const context = vm.createContext({ process: { env: { STRIPE_SECRET_KEY: 'sk_test_contract_only', ...env } },
     console, Request, Response, URL, URLSearchParams, Headers, Buffer, Date, setTimeout,
-    fetch: () => { throw Error('External HTTP is forbidden in contract tests') } })
+    fetch: fetchImpl || (() => { throw Error('External HTTP is forbidden in contract tests') }) })
   const modules = new Map()
   function getModule(path) {
     if (modules.has(path)) return modules.get(path)

@@ -127,11 +127,64 @@ test('account links request every configuration on the connected account', async
   const connect = await runtime().load('lib/stripe-connect.js')
   assert.equal(JSON.stringify(connect.accountLinkConfigurations({
     configuration: { merchant: {}, customer: {} },
-  })), '["merchant","customer"]')
+  })), '["customer","merchant"]')
   assert.equal(JSON.stringify(connect.accountLinkConfigurations({
     configuration: { merchant: {}, recipient: {} },
   })), '["merchant","recipient"]')
-  assert.equal(JSON.stringify(connect.accountLinkConfigurations({})), '["merchant","customer"]')
+  assert.equal(JSON.stringify(connect.accountLinkConfigurations({})), '["customer","merchant"]')
+  assert.equal(JSON.stringify(connect.accountLinkConfigurations({
+    configuration: { merchant: {}, customer: {}, storer: { capabilities: {} } },
+  })), '["customer","merchant","storer"]')
+})
+
+test('merchant account creation configs match account_links or Stripe rejects the mismatch', async () => {
+  const calls = []
+  const created = {
+    id: 'acct_match',
+    configuration: {
+      merchant: { capabilities: { card_payments: { requested: true } } },
+      customer: { capabilities: { automatic_indirect_tax: { requested: true } } },
+    },
+  }
+  const app = runtime({
+    fetch: async (url, options = {}) => {
+      const path = String(url).replace('https://api.stripe.com', '')
+      const body = options.body ? JSON.parse(options.body) : null
+      calls.push({ path, method: options.method || 'GET', body })
+      if (path === '/v2/core/accounts' && options.method === 'POST') {
+        return new Response(JSON.stringify(created), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }
+      if (path.startsWith('/v2/core/accounts/acct_match')) {
+        return new Response(JSON.stringify(created), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }
+      if (path === '/v2/core/account_links') {
+        const configurations = body?.use_case?.account_onboarding?.configurations || []
+        const expected = ['customer', 'merchant']
+        const match = configurations.length === expected.length && expected.every((key) => configurations.includes(key))
+        if (!match) {
+          return new Response(JSON.stringify({
+            error: { code: 'configs_must_match_to_use_account_links', message: 'The configurations in the request must match those on the account.' },
+          }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+        }
+        return new Response(JSON.stringify({
+          url: 'https://connect.stripe.com/setup/s/acct_match/ok',
+          use_case: { account_onboarding: { configurations } },
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }
+      return new Response(JSON.stringify({ error: { message: `unexpected ${path}` } }), { status: 500 })
+    },
+  })
+  const connect = await app.load('lib/stripe-connect.js')
+  const body = connect.merchantAccountBody({ email: 'seller@example.test', sellerId: 'seller1' })
+  assert.deepEqual(connect.accountLinkConfigurations({ configuration: body.configuration }), connect.MERCHANT_CONFIGURATIONS)
+  assert.equal(connect.accountLinkConfigurations({ configuration: body.configuration }).includes('customer'), true)
+  const account = await connect.createSubscriptionMerchant({ email: 'seller@example.test', sellerId: 'seller1' })
+  const link = await connect.merchantOnboardingLink(account.id, 'https://pay.nyttolabs.com', account)
+  assert.equal(link.url, 'https://connect.stripe.com/setup/s/acct_match/ok')
+  assert.equal(link.source, 'v2')
+  const linkCall = calls.find((call) => call.path === '/v2/core/account_links')
+  assert.equal(JSON.stringify([...linkCall.body.use_case.account_onboarding.configurations].sort()), '["customer","merchant"]')
+  assert.equal(JSON.stringify(Object.keys(calls.find((call) => call.path === '/v2/core/accounts').body.configuration).sort()), '["customer","merchant"]')
 })
 
 test('fee payer must be Stripe and cards must be active before selling on subscription', async () => {
