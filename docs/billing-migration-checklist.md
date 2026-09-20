@@ -12,7 +12,7 @@ Finishes PR #18 on `cursor/finish-seller-subscriptions-0135`. Production still r
 
 A subscription is paid to Nytto Labs. New product sales are **direct charges** on a new merchant/customer connected account. The server verifies Stripe fee collection and loss responsibility (`stripe`), active card payments, seller ownership and a paid, unexpired subscription. `application_fee_amount: 0` overrides default application pricing. Stripe processing fees are charged to the merchant. Billing/Tax costs on the subscription itself remain Nytto Labs costs.
 
-There is no Curl-to-Buy percentage on subscription links. Do not describe Stripe's card fee as a "5% platform fee".
+There is no GetPaidLink percentage on subscription links. Do not describe Stripe's card fee as a "5% platform fee".
 
 ## Existing merchants and purchases
 
@@ -27,13 +27,13 @@ Current recipient accounts have platform fee responsibility. Stripe sets the fee
 These writes are blocked from this agent (portal configuration permission denied; webhook secrets live in Vercel).
 
 1. **Customer portal**  
-   Dashboard → Settings → Billing → Customer portal. Create a configuration named “Curl-to-Buy seller subscriptions”. Enable payment-method update, invoice history, period-end cancel, and switching among the three prices above. Immediate upgrades should invoice prorations; downgrades should schedule at period end. Copy the configuration ID (`bpc_…`) into Vercel as `STRIPE_CTB_PORTAL_CONFIGURATION` for Production and Preview.
+   Dashboard → Settings → Billing → Customer portal. Create a configuration named “GetPaidLink seller subscriptions”. Enable payment-method update, invoice history, period-end cancel, and switching among the three prices above. Immediate upgrades should invoice prorations; downgrades should schedule at period end. Copy the configuration ID (`bpc_…`) into Vercel as `STRIPE_CTB_PORTAL_CONFIGURATION` for Production and Preview.
 
 2. **Platform webhook (already live)**  
-   Keep `https://pay.nyttolabs.com/api/stripe/webhook` and `STRIPE_CTB_WEBHOOK_SECRET`. Add events if missing: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.updated`, `customer.subscription.deleted`. Entitlements are also read live from Stripe on each publish.
+   Keep `https://getpaidlink.nyttolabs.com/api/stripe/webhook` and `STRIPE_CTB_WEBHOOK_SECRET`. Add events if missing: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.updated`, `customer.subscription.deleted`. Entitlements are also read live from Stripe on each publish. Until `pay.nyttolabs.com` 308-redirects, Stripe may still deliver to the old host — add the new URL in the Dashboard.
 
 3. **Connected-account webhook (for new direct charges)**  
-   Create a **connected account** endpoint: `https://pay.nyttolabs.com/api/stripe/connect-webhook` for `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Save its signing secret as `STRIPE_CTB_CONNECT_WEBHOOK_SECRET`. Buyer success-page verification still records the sale if this is late.
+   Create a **connected account** endpoint: `https://getpaidlink.nyttolabs.com/api/stripe/connect-webhook` for `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Save its signing secret as `STRIPE_CTB_CONNECT_WEBHOOK_SECRET`. Buyer success-page verification still records the sale if this is late.
 
 4. **Do not** replace the live Start / Grow / Scale prices, add a fourth tier, or change existing destination-charge links.
 

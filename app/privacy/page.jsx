@@ -2,7 +2,7 @@ import { LocaleProvider } from '../../components/locale'
 import { Frame } from '../../components/shell'
 import LegalView from '../../components/legal-view'
 
-export const metadata = { title: 'Privacy — Curl-to-Buy' }
+export const metadata = { title: 'Privacy — GetPaidLink' }
 
 export default function Page() {
   return (

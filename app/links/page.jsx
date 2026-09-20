@@ -5,7 +5,7 @@ import SavedLinks from '../../components/saved-links'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Saved links — Curl-to-Buy',
+  title: 'Saved links — GetPaidLink',
   robots: { index: false, follow: false },
 }
 
