@@ -126,7 +126,19 @@ Already proven on live before this overnight pass (production was `469cbb2`):
 - `b9bf421` / `197a6c5` Freemium $10/5% vs subscribed $5/0%
 - Live `POST /api/connect` 200 + Stripe URL
 
-This hardening is on `main`. First Vercel production attempt of `fcd5a34` failed (`npm run build` — missing `catch` in `item-form.jsx`). That is fixed; retry the production deploy. Live `pay.nyttolabs.com` stayed on the last good SHA (`469cbb2`) and still serves the working Connect URL.
+This hardening is on `main` (`35b3575`: missing `catch` restored, `next build` green locally).
+
+**Vercel production is still `469cbb2`.** The free Hobby account hit `api-deployments-free-per-day` (100/100, reset in ~24h). A production build of `fcd5a34` failed on the missing `catch`; that is fixed on `main` but cannot be deployed until the quota resets or Fredrik promotes from the Vercel dashboard / upgrades the plan. Live `pay.nyttolabs.com` stayed on the last good SHA and still returns a Stripe onboarding URL.
+
+A second live probe after merge:
+
+```bash
+curl -sS -X POST https://pay.nyttolabs.com/api/connect \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"overnight-hardening-20260920b@nyttolabs.com"}'
+```
+
+**200** `https://connect.stripe.com/setup/s/acct_1UHZ9NAy5KcWJmqz/AY5xkn4OHNvC`
 
 ## BLOCKED — Fredrik Dashboard
 
@@ -135,7 +147,10 @@ These cannot be finished from the agent (no hosted-onboarding identity, no porta
 1. Open the Stripe URL from Create/Connect and finish identity + payouts until card payments are active (`configuration.merchant.capabilities.card_payments.status === active`).
 2. Confirm Customer portal config `STRIPE_CTB_PORTAL_CONFIGURATION` if changing plans after subscribe (`bpc_…`).
 3. Confirm connected-account webhook `https://pay.nyttolabs.com/api/stripe/connect-webhook` + `STRIPE_CTB_CONNECT_WEBHOOK_SECRET` (buyer success-page verification still records the sale if this is late).
-4. Recover the overnight probe seller `overnight-hardening-20260920@nyttolabs.com` / `acct_1UHYg6B3OwzmLLDD` if you want that account, or ignore it.
+4. Recover or ignore the overnight probe sellers:
+   - `overnight-hardening-20260920@nyttolabs.com` / `acct_1UHYg6B3OwzmLLDD`
+   - `overnight-hardening-20260920b@nyttolabs.com` / `acct_1UHZ9NAy5KcWJmqz`
+5. **Vercel Hobby deploy cap** — `api-deployments-free-per-day` is exhausted. After reset (or from the Vercel dashboard), deploy `main` @ `35b3575` so physical Create→Connect and the stricter account_links matcher go live. Current production already has the original config-match fix and a working Connect URL.
 
 ## Safe to attempt a real $10 test purchase: YES
 
