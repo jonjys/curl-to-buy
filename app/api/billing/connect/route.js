@@ -20,7 +20,8 @@ export async function POST(req) {
         current = await updateSeller(current.id, { paymentAccountId: created.id })
       }
       const link = await merchantOnboardingLink(current.paymentAccountId, originFrom(req), created)
-      return privateJson({ url: link.url })
+      if (!link?.url) return privateJson({ error: 'Stripe did not return an onboarding URL.' }, 502)
+      return privateJson({ url: link.url, source: link.source || 'v2' })
     })
   } catch (error) {
     console.error('Subscription merchant setup failed', { type: error.type || error.name })
