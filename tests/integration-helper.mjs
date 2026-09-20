@@ -60,7 +60,7 @@ export function runtime({ blob = memoryBlob(), env = {}, mocks = {}, client = {}
 }
 export function catalog() {
   return [['start',500,'10'], ['grow',1900,'50'], ['scale',4900,'unlimited']].map(([key,amount,links]) => ({
-    id: `price_${key}`, active: true, lookup_key: `ctb_${key}_monthly_v1`, currency: 'eur', unit_amount: amount,
+    id: `price_${key}`, active: true, livemode: false, lookup_key: `ctb_${key}_monthly_v1`, currency: 'eur', unit_amount: amount,
     recurring: { interval: 'month', interval_count: 1 }, tax_behavior: 'inclusive', metadata: { app: 'curl_to_buy', plan: key },
     product: { id: `prod_${key}`, active: true, metadata: { app: 'curl_to_buy', plan: key, monthly_links: links } },
   }))

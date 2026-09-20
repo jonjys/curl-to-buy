@@ -3,6 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
+import { randomUUID } from 'node:crypto'
 
 const root = new URL('../', import.meta.url)
 
@@ -61,6 +62,8 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
     recordPurchase: async (id, sessionId) => { state.sales.add(`${id}/${sessionId}`) },
   }
   const dependencies = {
+    'node:crypto': { randomUUID },
+    'lib/billing-events': { reconcileBillingEvent: async () => false },
     'lib/store': store,
     'lib/publish-listing': { publishListing: async (_, body, listing) => { state.listing = { ...listing, id: 'physical1' }; return state.listing } },
     'lib/billing': { billingState: async () => ({ active: false }) },
@@ -74,7 +77,7 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
       usesDirectCharge: (listing) => listing?.billingMode === 'freemium' || listing?.billingMode === 'subscription' || Boolean(listing?.paymentAccountId),
     },
     'lib/payment-context': { saveCheckoutContext: async () => {}, checkoutContext: async () => null, retrieveCheckout: async (_, id) => client.checkout.sessions.retrieve(id), paymentCanFulfill: (s) => s.mode === 'payment' && s.payment_status === 'paid' },
-    'lib/checkout-reservations': { createReservedCheckout: async () => { throw Error('Unexpected direct charge') } },
+    'lib/checkout-reservations': { createReservedCheckout: async (client, listing, attemptId, params) => client.checkout.sessions.create(params) },
     'lib/id': { newId: () => 'physical1' },
     'lib/price': {
       parsePrice: (input) => Number(input.priceSek) >= 50 ? {

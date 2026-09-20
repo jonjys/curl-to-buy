@@ -66,6 +66,7 @@ export default function SubscriptionPlans() {
       </div>
       {current ? <div className="nl-card rounded-xl p-5 text-sm">
         <p className="font-semibold">{current.name || current.plan}</p>
+        {current.status !== 'active' ? <p role="status" className="mt-2 text-warn">{sv ? 'Abonnemanget är inte aktivt. Hantera betalningen nedan.' : 'Your subscription is not active. Manage your payment below.'}</p> : null}
         <p className="mt-2 text-muted">{current.used} / {current.monthlyLinks ?? '∞'} {sv ? 'nya länkar denna period' : 'new links this period'}</p>
         <p className="mt-2 text-muted">{current.cancelAtPeriodEnd ? (sv ? 'Avslutas' : 'Ends') : (sv ? 'Förnyas' : 'Renews')} {new Date(current.periodEnd * 1000).toLocaleDateString(sv ? 'sv-SE' : 'en-GB')}</p>
         <button type="button" disabled={busy} onClick={() => openBilling('/api/billing/portal')} className="mt-4 min-h-11 rounded-lg border border-line px-4 font-semibold">{sv ? 'Byt nivå eller hantera abonnemang' : 'Change plan or manage subscription'}</button>
@@ -83,7 +84,7 @@ export default function SubscriptionPlans() {
           <button type="button" disabled={busy || !enabled || Boolean(current)} onClick={() => choose(plan.key)} className="mt-5 min-h-12 w-full rounded-lg bg-pine px-4 text-sm font-semibold text-pine-fg disabled:opacity-50">{current?.plan === plan.key ? (sv ? 'Ditt abonnemang' : 'Your plan') : (sv ? `Välj ${plan.name}` : `Choose ${plan.name}`)}</button>
         </article>)}
       </div>
-      {!loading && plans.length > 0 && !enabled ? <p role="status" className="text-sm text-muted">{sv ? 'Priserna visas, men ny prenumeration väntar på att den här miljön kan läsa Stripe-katalogen. Ingen betalning tas innan du bekräftar i Stripe.' : 'Prices are shown, but new checkout waits until this environment can read the Stripe catalog. No payment is taken until you confirm in Stripe.'}</p> : null}
+      {!loading && plans.length > 0 && !enabled ? <p role="status" className="text-sm text-muted">{sv ? 'Priserna visas, men nya abonnemang är inte öppna i den här miljön ännu. Ingen betalning tas innan du bekräftar i Stripe.' : 'Prices are shown, but new subscriptions are not open in this environment yet. No payment is taken until you confirm in Stripe.'}</p> : null}
       {chosen && !current && enabled ? <div className="nl-card space-y-3 rounded-xl p-5">
         <h2 className="font-semibold">{status?.merchantReady ? (sv ? 'Fortsätt med ditt abonnemang' : 'Continue with your subscription') : (sv ? 'Anslut betalningar hos Stripe' : 'Connect payments with Stripe')}</h2>
         {!status?.merchantReady ? <p className="text-sm leading-relaxed text-ink-soft">{sv ? 'Stripe verifierar säljaren och bankkontot. Har du en äldre anslutning kan Stripe behöva uppdatera din setup för abonnemang. Dina tidigare länkar och köp finns kvar.' : 'Stripe verifies the seller and bank account. An older connection may need an updated setup for subscriptions. Your existing links and purchases remain available.'}</p> : null}

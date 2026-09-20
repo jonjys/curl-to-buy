@@ -4,6 +4,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
+import { randomUUID } from 'node:crypto'
 
 const root = new URL('../', import.meta.url)
 
@@ -72,6 +73,8 @@ async function setup() {
     },
   }
   const dependencies = {
+    'node:crypto': { randomUUID },
+    'lib/billing-events': { reconcileBillingEvent: async () => false },
     'lib/stripe': { stripe: () => client },
     'lib/billing': { billingState: async () => ({ active: false }) },
     'lib/entitlement': {
@@ -83,7 +86,7 @@ async function setup() {
       usesDirectCharge: (listing) => listing?.billingMode === 'freemium' || listing?.billingMode === 'subscription' || Boolean(listing?.paymentAccountId),
     },
     'lib/payment-context': { saveCheckoutContext: async () => {}, checkoutContext: async () => null, retrieveCheckout: async (_, id) => client.checkout.sessions.retrieve(id), paymentCanFulfill: (s) => s.mode === 'payment' && s.payment_status === 'paid' },
-    'lib/checkout-reservations': { createReservedCheckout: async () => { throw Error('Unexpected direct charge') } },
+    'lib/checkout-reservations': { createReservedCheckout: async (client, listing, attemptId, params) => client.checkout.sessions.create(params) },
     'lib/store': store,
     'lib/price': { displayPrice: () => ({ currency: 'sek', amount: 10000 }) },
     'lib/site': { originFrom: () => 'https://example.test' },

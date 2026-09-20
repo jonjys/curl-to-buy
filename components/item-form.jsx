@@ -13,6 +13,8 @@ export default function ItemForm({ stripeReady, blobReady }) {
   const sv = locale === 'sv'
   const [connect, setConnect] = useState({ loading: true, ready: false, hasSeller: false, subscribed: false, minSek: FREE_MIN_SEK, feeBps: 500 })
   const [email, setEmail] = useState('')
+  const [sourceUrl, setSourceUrl] = useState('')
+  const [variant, setVariant] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [condition, setCondition] = useState('used_good')
@@ -106,7 +108,7 @@ export default function ItemForm({ stripeReady, blobReady }) {
         photoUrl = blob.url
       }
       const draft = { requestId, accepted: adult, locale, title: title.trim(), description: description.trim(), condition,
-        priceSek: amount, photoUrl, shippingIncluded, shippingCountries, brand, contactEmail, deliveryEstimate, returnPolicy,
+        priceSek: amount, photoUrl, shippingIncluded, shippingCountries, brand, contactEmail, deliveryEstimate, returnPolicy, sourceUrl, variant,
         salesLimit: stock === 'unlimited' ? null : Number(stock) }
       window.localStorage.setItem(ITEM_DRAFT, JSON.stringify(draft))
       if (connect.ready) await finish(draft)
@@ -146,11 +148,20 @@ export default function ItemForm({ stripeReady, blobReady }) {
           <button type="button" onClick={startConnect} disabled={busy || (!connect.hasSeller && !email)} className="min-h-12 w-full rounded-lg bg-pine text-sm font-semibold text-pine-fg disabled:opacity-50">{busy ? '…' : (sv ? 'Fortsätt till Stripe' : 'Continue to Stripe')}</button>
         </div>
       ) : null}
+      <details className="rounded-xl border border-line p-4">
+        <summary className="cursor-pointer text-sm font-semibold">{sv ? 'Har du redan en produkt i en webbutik?' : 'Already have a product in a web store?'}</summary>
+        <label className="mt-3 block space-y-2 text-sm">{sv ? 'Produktens URL (valfri)' : 'Product URL (optional)'}<input type="url" className={field} value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://…" /></label>
+        <label className="mt-3 block space-y-2 text-sm">{sv ? 'Variant, storlek eller färg' : 'Variant, size or colour'}<input className={field} maxLength={120} value={variant} onChange={(e) => setVariant(e.target.value)} /></label>
+        <p className="mt-3 text-xs text-muted">{sv ? 'Kopiera titel, bild och pris till formuläret och kontrollera leveransvillkoren. Länken sparas som referens; inga produkter hämtas och inga lager eller ordrar synkas.' : 'Copy the title, photo and price into the form and confirm delivery terms. The URL is saved as a reference; products are not fetched and inventory or orders are not synced.'}</p>
+      </details>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Vad säljer du?' : 'What are you selling?'}<input className={field} maxLength={100} placeholder={sv ? 'T.ex. Hoodie, storlek M' : 'e.g. Hoodie, size M'} value={title} onChange={(e) => setTitle(e.target.value)} /></label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Bild (valfri)' : 'Photo (optional)'}<input className="block w-full text-sm font-normal" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setPhoto(e.target.files?.[0] || null)} />{photo ? <span className="block text-xs font-normal text-muted">{photo.name}</span> : null}</label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Skick' : 'Condition'}<select className={field} value={condition} onChange={(e) => setCondition(e.target.value)}><option value="new">{sv ? 'Ny' : 'New'}</option><option value="used_good">{sv ? 'Begagnad – bra skick' : 'Used – good condition'}</option><option value="used_fair">{sv ? 'Begagnad – bruksskick' : 'Used – fair condition'}</option></select></label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Beskrivning (valfri)' : 'Description (optional)'}<textarea className={`${field} min-h-24 py-3`} maxLength={300} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={sv ? 'Storlek, mått, eventuella skador…' : 'Size, dimensions, any flaws…'} /></label>
-      <label className="block space-y-2 text-sm font-semibold">{sv ? 'Pris inklusive frakt, kr' : 'Price including shipping, SEK'}<input className={field} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.,]/g, ''))} /></label>
+      <label className="block space-y-2 text-sm font-semibold">{sv ? 'Sätt priset på din vara/länk, kr' : 'Set your item/link price, SEK'}<input className={field} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.,]/g, ''))} /></label>
+      <input type="range" aria-label={sv ? 'Justera varans pris' : 'Adjust item price'} min={connect.minSek} max={5000} step={1} value={Math.max(connect.minSek, Math.min(5000, Number(price.replace(',', '.')) || connect.minSek))} onChange={(e) => setPrice(e.target.value)} className="w-full accent-pine" />
+      <div className="flex gap-2">{[connect.minSek, 300, 1000].map((amount) => <button key={amount} type="button" onClick={() => setPrice(String(amount))} className="min-h-11 rounded-lg border border-line px-4 text-sm">{amount} kr</button>)}</div>
+      <p className="text-sm text-ink-soft">{sv ? 'Köparen betalar' : 'Buyer pays'}: {Number(price.replace(',', '.')).toFixed(2)} SEK · {sv ? 'frakt ingår' : 'shipping included'}</p>
       <p className="text-xs leading-relaxed text-muted">{connect.subscribed
         ? (sv ? 'Med abonnemang: minst 50 kr. Curl-to-Buy tar ingen procent på försäljningen. Stripe drar sin kortavgift från beloppet. Köparen anger leveransadressen i Stripe Checkout.' : 'With a subscription: 50 SEK minimum. Curl-to-Buy takes no percentage of the sale. Stripe deducts its card fee from the amount. The buyer enters the shipping address in Stripe Checkout.')
         : (sv ? 'Utan abonnemang: minst 100 kr. Curl-to-Buy tar 5%. Stripe drar också sin kortavgift. Köparen anger leveransadressen i Stripe Checkout.' : 'Without a subscription: 100 SEK minimum. Curl-to-Buy takes 5%. Stripe also deducts its card fee. The buyer enters the shipping address in Stripe Checkout.')}</p>

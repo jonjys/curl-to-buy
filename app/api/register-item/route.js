@@ -51,8 +51,18 @@ export async function POST(req) {
   const countries = Array.isArray(body.shippingCountries) ? [...new Set(body.shippingCountries)] : ['SE']
   const allowed = new Set(['SE', 'DK', 'FI', 'NO', 'DE', 'FR', 'NL', 'BE', 'AT', 'IE', 'IT', 'ES', 'PT', 'PL'])
   if (!countries.length || countries.some((c) => !allowed.has(c))) return Response.json({ error: 'Choose delivery countries.' }, { status: 400 })
+  let sourceUrl = null
+  if (body.sourceUrl) {
+    try {
+      const url = new URL(String(body.sourceUrl))
+      if (url.protocol !== 'https:' || url.username || url.password || url.href.length > 2048) throw Error()
+      sourceUrl = url.href
+    } catch { return Response.json({ error: 'Enter a valid HTTPS product URL without credentials.' }, { status: 400 }) }
+  }
   let listing = {
     kind: 'physical',
+    sourceUrl,
+    variant: String(body.variant || '').trim().slice(0, 120),
     name: title,
     description: description || null,
     condition,
