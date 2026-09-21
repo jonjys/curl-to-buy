@@ -30,12 +30,12 @@ export default function SellerGuide() {
 
   const steps = sv ? [
     ['Anslut Stripe', 'Ange din e-post och fyll i de uppgifter Stripe behöver. Det görs en gång.'],
-    ['Valfritt abonnemang', 'Utan abonnemang: minst $10 och 5% till Curl-to-Buy. Start €5, Grow €19 eller Scale €49 sänker minsta priset till $5 och tar bort plattformsavgiften. Stripe drar sin kortavgift i båda fallen.'],
+    ['Valfritt abonnemang', 'Utan abonnemang: minst $10 och 5% till GetPaidLink. Start €5, Grow €19 eller Scale €49 sänker minsta priset till $5 och tar bort plattformsavgiften. Stripe drar sin kortavgift i båda fallen.'],
     ['Lägg upp det du säljer', 'Välj fysisk vara eller digital fil, beskriv den och sätt priset.'],
     ['Dela köplänken', 'Skapa en unik länk och skicka den till köparen. Köparen behöver inget konto.'],
   ] : [
     ['Connect Stripe', 'Enter your email and complete the details Stripe requests. You only do this once.'],
-    ['Optional subscription', 'Without a subscription: $10 minimum and 5% to Curl-to-Buy. Start €5, Grow €19 or Scale €49 lowers the minimum to $5 and removes the platform fee. Stripe deducts its card fee either way.'],
+    ['Optional subscription', 'Without a subscription: $10 minimum and 5% to GetPaidLink. Start €5, Grow €19 or Scale €49 lowers the minimum to $5 and removes the platform fee. Stripe deducts its card fee either way.'],
     ['List what you sell', 'Choose a physical item or digital file, describe it and set your price.'],
     ['Share your payment link', 'Create a unique link and send it to your buyer. Buyers need no account.'],
   ]
