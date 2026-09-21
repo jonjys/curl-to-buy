@@ -85,7 +85,7 @@ export default function SavedLinks() {
         <div>
           <p className="font-mono text-[10px] uppercase tracking-kicker text-pine">{sv ? 'Säljaröversikt' : 'Seller dashboard'}</p>
           <h1 className="mt-2 font-display text-3xl font-black">{sv ? 'Dina sparade länkar' : 'Your saved links'}</h1>
-          <p className="mt-2 text-sm leading-relaxed text-ink-soft">{sv ? 'Länkarna sparas i Curl-to-Buy, inte bara i din mobil. Logga in med samma säljarkonto för att se dem igen.' : 'Your links are saved in Curl-to-Buy, not just on this device. Use the same seller account to see them again.'}</p>
+          <p className="mt-2 text-sm leading-relaxed text-ink-soft">{sv ? 'Länkarna sparas i GetPaidLink, inte bara i din mobil. Logga in med samma säljarkonto för att se dem igen.' : 'Your links are saved in GetPaidLink, not just on this device. Use the same seller account to see them again.'}</p>
         </div>
         <a href="/upload" className="inline-flex min-h-11 items-center rounded-lg bg-pine px-4 text-sm font-semibold text-pine-fg no-underline">{sv ? 'Skapa ny länk' : 'Create new link'}</a>
       </div>
