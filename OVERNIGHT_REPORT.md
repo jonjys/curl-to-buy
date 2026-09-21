@@ -1,5 +1,7 @@
 # Overnight production hardening — pay.nyttolabs.com
 
+> Historical overnight scan (2026-09-20) against the previous host/brand (`pay.nyttolabs.com` / Curl-to-Buy). Canonical product is now **GetPaidLink** at `https://getpaidlink.nyttolabs.com`. Curl examples below are the commands that were actually run.
+
 Scanned 20 September 2026 against live `https://pay.nyttolabs.com` (Vercel production `dpl_D4qx11RXFqLXxULY2AecuvbRe6LM`, git `469cbb2` on `main`) and this follow-up hardening branch.
 
 ## Scorecard
