@@ -20,7 +20,7 @@ export function middleware(request) {
 
   // Catalog is a read-only display; it cannot grant entitlements or take payment.
   if (path === '/api/billing/plans') return NextResponse.next()
-  if (!previewIsolated(process.env)) {
+  if (path.startsWith('/api/') && !previewIsolated(process.env)) {
     return NextResponse.json({
       error: 'This preview needs an isolated Stripe sandbox and Blob store before account or payment flows can be tested.',
       code: 'preview_not_isolated',
