@@ -178,7 +178,7 @@ test('merchant account creation configs match account_links or Stripe rejects th
   assert.deepEqual(connect.accountLinkConfigurations({ configuration: body.configuration }), connect.MERCHANT_CONFIGURATIONS)
   assert.equal(connect.accountLinkConfigurations({ configuration: body.configuration }).includes('customer'), true)
   const account = await connect.createSubscriptionMerchant({ email: 'seller@example.test', sellerId: 'seller1' })
-  const link = await connect.merchantOnboardingLink(account.id, 'https://pay.nyttolabs.com', account)
+  const link = await connect.merchantOnboardingLink(account.id, 'https://getpaidlink.nyttolabs.com', account)
   assert.equal(link.url, 'https://connect.stripe.com/setup/s/acct_match/ok')
   assert.equal(link.source, 'v2')
   const linkCall = calls.find((call) => call.path === '/v2/core/account_links')
