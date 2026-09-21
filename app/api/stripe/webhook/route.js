@@ -56,7 +56,7 @@ export async function handleWebhook(req, connected = false) {
   try {
     const listing = await getListing(listingId)
     if (!listing) {
-      console.error('Paid Checkout session references an unavailable GetPaidLink listing.', {
+      console.error('Paid Checkout session references an unavailable Curl-to-Buy listing.', {
         eventId: event.id,
         listingId,
       })

@@ -62,7 +62,7 @@ export default function SubscriptionPlans() {
         <p className="font-mono text-[10px] uppercase tracking-kicker text-pine">{sv ? 'Abonnemang' : 'Subscriptions'}</p>
         <h1 className="mt-2 font-display text-3xl font-black">{sv ? 'Dina produkter. Dina länkar.' : 'Your products. Your links.'}</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">{sv ? 'Sälj fysiska produkter, ditt eget varumärke och digitala filer. Välj hur många nya köplänkar du behöver varje månad.' : 'Sell physical products, your own brand and digital files. Choose how many new payment links you need each month.'}</p>
-        <p className="mt-3 text-sm text-muted">{sv ? 'Du betalar abonnemanget till Nytto Labs. GetPaidLink tar ingen procent på varje försäljning. Stripe drar sin kortavgift från beloppet som landar hos dig.' : 'You pay the subscription to Nytto Labs. GetPaidLink takes no percentage of each sale. Stripe deducts its card fee from the amount that reaches you.'}</p>
+        <p className="mt-3 text-sm text-muted">{sv ? 'Du betalar abonnemanget till Nytto Labs. Curl-to-Buy tar ingen procent på varje försäljning. Stripe drar sin kortavgift från beloppet som landar hos dig.' : 'You pay the subscription to Nytto Labs. Curl-to-Buy takes no percentage of each sale. Stripe deducts its card fee from the amount that reaches you.'}</p>
       </div>
       {current ? <div className="nl-card rounded-xl p-5 text-sm">
         <p className="font-semibold">{current.name || current.plan}</p>

@@ -2,22 +2,22 @@ import './globals.css'
 import { SITE } from '../lib/site'
 
 const OG = `${SITE}/og.jpg`
-const title = 'GetPaidLink — Get paid via a link'
-const description = 'Create a payment link — sell digital or physical without a full store. Buyers pay by card through Stripe. No buyer account.'
+const title = 'Curl-to-Buy — Sell an item or file with one link.'
+const description = 'Sell a hoodie, stroller or digital file with a shareable payment link. Buyers pay by card through Stripe without creating a buyer account.'
 
 export const metadata = {
   metadataBase: new URL(SITE),
   title,
   description,
-  applicationName: 'GetPaidLink',
+  applicationName: 'Curl-to-Buy',
   openGraph: {
     title,
     description,
     url: SITE,
-    siteName: 'GetPaidLink by Nytto Labs',
+    siteName: 'Curl-to-Buy — Nytto Labs',
     locale: 'en_GB',
     type: 'website',
-    images: [{ url: OG, width: 1200, height: 630, alt: 'GetPaidLink — get paid via a link' }],
+    images: [{ url: OG, width: 1200, height: 630, alt: 'Curl-to-Buy — shareable payment links' }],
   },
   twitter: {
     card: 'summary_large_image',

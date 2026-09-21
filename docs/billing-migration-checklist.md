@@ -1,4 +1,4 @@
-# GetPaidLink release verification — 20 September 2026
+# Curl-to-Buy release verification — 20 September 2026
 
 ## Actual state inspected
 
@@ -52,6 +52,6 @@ Sources: https://docs.stripe.com/connect/direct-charges and https://docs.stripe.
 - Platform webhook `we_1UDMsgBEo0YzuylwOhFhz9n0` now includes subscription created/updated/deleted and invoice paid/payment_failed, preserving existing events.
 - Prepared connected-account endpoint `we_1UHzP9BEo0YzuylwsZctIFbi` at `/api/stripe/connect-webhook`, snapshot API `2026-07-29.dahlia`. It remains **disabled** until its own signing secret is deployed; this avoids delivering to an unrelated previously configured secret.
 - Automatic approval review again rejected applying portal `bpc_1UHqEyBEo0Yzuylwswblrd7x` to Vercel Production, requiring explicit approval of that specific billing configuration change.
-- No GetPaidLink subscriptions were returned by a complete live subscription listing. New billing remains disabled until the end-to-end gates above pass.
+- No Curl-to-Buy subscriptions were returned by a complete live subscription listing. New billing remains disabled until the end-to-end gates above pass.
 - Preview API requests now fail closed unless Stripe credentials are test credentials and the actual Blob token identifies a separate store matching `CTB_TEST_BLOB_STORE_ID`. The known production store is explicitly denied. The read-only plan catalog can still render. This guard does not provision a sandbox or migrate public files.
 - Required user action: connect a Stripe sandbox to the Stripe connector. Preview needs that sandbox's restricted key and a distinct Blob store, not the current shared token.
