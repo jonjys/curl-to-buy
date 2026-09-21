@@ -16,7 +16,7 @@ export async function GET() {
       source: 'stripe',
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
-    console.error('GetPaidLink subscription catalog unavailable', {
+    console.error('Curl-to-Buy subscription catalog unavailable', {
       mode: /_test_/.test(process.env.STRIPE_SECRET_KEY || '') ? 'test' : 'live',
       code: error.code || error.type || error.name,
       message: String(error.message || '').replace(/(?:sk|rk)_(?:live|test)_[A-Za-z0-9]+/g, '[redacted]'),

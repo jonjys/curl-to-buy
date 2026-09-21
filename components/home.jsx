@@ -17,9 +17,9 @@ function HomeInner({ stripeReady, blobReady, maxMB }) {
       <main>
         <section className="mx-auto grid w-full max-w-7xl items-stretch gap-8 px-4 pb-6 pt-7 sm:px-6 sm:pt-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)] lg:gap-12 lg:px-8">
           <div className="min-w-0">
-            <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{sv ? 'Få betalt via en länk' : 'Get paid via a link'}</p>
-            <h1 className="mt-3 font-display text-display font-black tracking-tight">{sv ? 'Skapa en betallänk.' : 'Create a payment link.'}<br />{sv ? 'Sälj digitalt eller fysiskt utan en hel butik.' : 'Sell digital or physical without a full store.'}</h1>
-            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">{sv ? 'En hoodie, barnvagn, guide eller ett filpaket. Skapa en betallänk, dela den i en chatt och låt köparen betala med kort via Stripe — ingen butik krävs.' : 'A hoodie, stroller, guide or file bundle. Create a payment link, share it in a chat and let buyers pay by card through Stripe — no storefront required.'}</p>
+            <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{sv ? 'Filer och prylar. En köplänk.' : 'Files and items. One payment link.'}</p>
+            <h1 className="mt-3 font-display text-display font-black tracking-tight">{sv ? 'Lägg upp en vara.' : 'Post an item.'}<br />{t.hero2}</h1>
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">{sv ? 'En hoodie, barnvagn, guide eller ett helt filpaket. Skapa en egen länk, dela den i en chatt och låt köparen betala tryggt med kort via Stripe.' : 'A hoodie, stroller, guide or file bundle. Make a link, share it in a chat and let buyers pay by card through Stripe.'}</p>
             <ol className="mt-6 grid gap-2 sm:grid-cols-3">
               {steps.map((step, i) => (
                 <li key={step.title} className="nl-card rounded-xl px-3.5 py-3">
@@ -32,7 +32,7 @@ function HomeInner({ stripeReady, blobReady, maxMB }) {
             <ul className="mt-5 flex flex-wrap gap-1.5">
               {(sv ? ['Fysiska varor', 'Digitala filer', 'Kort via Stripe', 'Inget köparkonto'] : ['Physical items', 'Digital files', 'Cards via Stripe', 'No buyer account']).map((chip) => <li key={chip} className="nl-chip rounded-md px-2.5 py-1 text-[11px]">{chip}</li>)}
             </ul>
-            <p className="mt-3 max-w-2xl text-sm text-muted">{sv ? 'Utan abonnemang: minst $10 och 5% till GetPaidLink. Med Start/Grow/Scale: minst $5 och ingen plattformsprocent. Köpare behöver inget konto.' : 'Without a subscription: $10 minimum and 5% to GetPaidLink. With Start/Grow/Scale: $5 minimum and no platform percentage. Buyers need no account.'}</p>
+            <p className="mt-3 max-w-2xl text-sm text-muted">{sv ? 'Utan abonnemang: minst $10 och 5% till Curl-to-Buy. Med Start/Grow/Scale: minst $5 och ingen plattformsprocent. Köpare behöver inget konto.' : 'Without a subscription: $10 minimum and 5% to Curl-to-Buy. With Start/Grow/Scale: $5 minimum and no platform percentage. Buyers need no account.'}</p>
             <a href="#post" className="mt-6 inline-flex min-h-12 items-center rounded-sm bg-pine px-5 text-base font-medium text-pine-fg no-underline">{sv ? 'Skapa en köplänk' : 'Create a payment link'}</a>
           </div>
           <figure className="nl-card nl-card-glow relative flex min-h-[22rem] flex-col overflow-hidden rounded-2xl lg:min-h-full">

@@ -4,8 +4,8 @@ import SubscriptionPlans from '../../components/subscription-plans'
 
 export const dynamic = 'force-dynamic'
 export const metadata = {
-  title: 'Subscription plans — GetPaidLink',
-  description: 'Create payment links with Start, Grow or Scale. Sell digital or physical without a full store.',
+  title: 'Subscription plans — Curl-to-Buy',
+  description: 'Monthly plans for physical products and digital files. Choose Start, Grow or Scale.',
 }
 
 export default function PlansPage() {

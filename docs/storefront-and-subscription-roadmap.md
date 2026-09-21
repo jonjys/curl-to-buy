@@ -1,6 +1,6 @@
-# GetPaidLink: storefront connections and subscription pricing (proposal, NOT enabled)
+# Curl-to-Buy: storefront connections and subscription pricing (proposal, NOT enabled)
 
-This is the existing GetPaidLink product (repo `curl-to-buy`), not a new repository. Physical items and digital files share a checkout-link concept. Stripe Connect seller onboarding is NOT a Shopify/WooCommerce store connection.
+This is the existing Curl-to-Buy product, not a new repository. Physical items and digital files share a checkout-link concept. Stripe Connect seller onboarding is NOT a Shopify/WooCommerce store connection.
 
 ## Product modes
 
@@ -27,4 +27,4 @@ This is the existing GetPaidLink product (repo `curl-to-buy`), not a new reposit
 2. Isolated test-mode Connect + Stripe Billing + storage E2E; test correct webhook signatures, idempotency, physical buyer information, digital entitlements, subscription lifecycle and partial failure.
 3. Stripe platform/category approval as applicable; Swedish/EU physical-goods, consumer information, return, tax and privacy terms; clearly distinguish private vs business sellers.
 4. Production fee and payout economics based on real Stripe statement, with appropriate seller disclosures.
-5. Explicit deployment go/no-go: keep getpaidlink.nyttolabs.com on main until all release gates pass. Preview builds are not live launches.
+5. Explicit deployment go/no-go: keep pay.nyttolabs.com on main until all release gates pass. Preview builds are not live launches.
