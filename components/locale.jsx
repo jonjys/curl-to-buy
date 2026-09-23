@@ -6,6 +6,15 @@ import { COPY } from '../lib/copy'
 const STORAGE = 'nytto-locale-v2'
 const LocaleContext = createContext(null)
 
+function browserLocale() {
+  try {
+    const language = String(navigator.language || navigator.languages?.[0] || '').toLowerCase()
+    return language.startsWith('sv') ? 'sv' : 'en'
+  } catch {
+    return 'en'
+  }
+}
+
 export function LocaleProvider({ children }) {
   const [locale, setLocale] = useState('en')
 
@@ -13,7 +22,10 @@ export function LocaleProvider({ children }) {
     try {
       const stored = localStorage.getItem(STORAGE)
       if (stored === 'sv' || stored === 'en') setLocale(stored)
-    } catch {}
+      else setLocale(browserLocale())
+    } catch {
+      setLocale(browserLocale())
+    }
   }, [])
 
   useEffect(() => {

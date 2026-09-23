@@ -28,7 +28,7 @@ test('saved links require signed seller account and never include another seller
     '@vercel/blob': { list: async () => ({ blobs: [
       { pathname: 'listings/mine.json' }, { pathname: 'listings/theirs.json' },
     ], hasMore: false }) },
-    '../../../lib/store': { getSalesCount: async () => 0, getListing: async (id) => listings[id] || null, getSeller: async (id) => id === 'owner' ? { id } : null },
+    '../../../lib/store': { getSalesCount: async () => 0, getListing: async (id) => listings[id] || null, getSeller: async (id) => id === 'owner' ? { id } : null, listSellerListingIds: async () => ({ ids: [], nextCursor: null, indexed: false }) },
     '../../../lib/seller': { sellerIdFromRequest: () => authorized ? 'owner' : null },
   }
   const route = await loadRoute(dependencies)
@@ -55,6 +55,7 @@ test('saved links page cursor scans legacy listings without mixing sellers', asy
     '../../../lib/store': { getSalesCount: async () => 0,
       getSeller: async () => ({ id: 'owner' }),
       getListing: async (id) => ({ id, sellerId: 'owner', name: id, currency: 'usd', priceCents: 500 }),
+      listSellerListingIds: async () => ({ ids: [], nextCursor: null, indexed: false }),
     },
     '../../../lib/seller': { sellerIdFromRequest: () => 'owner' },
   }
