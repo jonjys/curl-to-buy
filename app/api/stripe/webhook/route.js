@@ -42,7 +42,6 @@ export async function handleWebhook(req, connected = false) {
     return Response.json({ received: true })
   }
 
-  if (Boolean(event.account) !== connected) return Response.json({ error: 'Wrong event scope.' }, { status: 400 })
   const session = event.data.object
   const listingId = session.metadata?.file_id
   // This Stripe account also hosts unrelated products; never register their sales here.
@@ -63,7 +62,7 @@ export async function handleWebhook(req, connected = false) {
       return Response.json({ error: 'Listing unavailable.' }, { status: 503 })
     }
 
-    if (connected) {
+    if (event.account) {
       const context = await checkoutContext(session.id)
       if (!context) return Response.json({ error: 'Payment reference pending.' }, { status: 503 })
       if (context.accountId !== event.account || context.sellerId !== listing.sellerId || context.listingId !== listingId
