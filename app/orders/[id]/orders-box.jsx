@@ -8,14 +8,30 @@ export default function OrdersBox({ id }) {
   const { locale } = useLocale()
   const sv = locale === 'sv'
   const [state, setState] = useState({ loading: true, error: null, result: null })
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (cursor) => {
     setState((current) => ({ ...current, loading: true, error: null }))
     try {
-      const res = await fetch(`/api/item-orders/${encodeURIComponent(id)}`, { cache: 'no-store' })
+      const url = cursor
+        ? `/api/item-orders/${encodeURIComponent(id)}?cursor=${encodeURIComponent(cursor)}`
+        : `/api/item-orders/${encodeURIComponent(id)}`
+      const res = await fetch(url, { cache: 'no-store' })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Could not load orders.')
-      setState({ loading: false, error: null, result: json })
-    } catch (error) { setState({ loading: false, error: error.message || 'Could not load orders.', result: null }) }
+      setState((current) => {
+        if (!cursor) return { loading: false, error: null, result: json }
+        const seen = new Map((current.result?.orders || []).map((order) => [order.reference, order]))
+        for (const order of json.orders || []) seen.set(order.reference, order)
+        return {
+          loading: false,
+          error: null,
+          result: {
+            ...json,
+            name: json.name || current.result?.name,
+            orders: [...seen.values()].sort((a, b) => b.created - a.created),
+          },
+        }
+      })
+    } catch (error) { setState((current) => ({ ...current, loading: false, error: error.message || 'Could not load orders.', result: cursor ? current.result : null })) }
   }, [id])
   useEffect(() => { refresh() }, [refresh])
   return (
@@ -41,7 +57,11 @@ export default function OrdersBox({ id }) {
           <p className="break-all pt-2 font-mono text-[10px] text-muted">{order.reference}</p>
         </article>
       })}
-      {state.result?.hasMore ? <p className="text-xs text-warn">{sv ? 'Fler än 100 beställningar – kontakta support för resterande.' : 'More than 100 orders — contact support for the remainder.'}</p> : null}
+      {state.result?.hasMore && state.result?.nextCursor ? (
+        <button type="button" disabled={state.loading} onClick={() => refresh(state.result.nextCursor)} className="min-h-12 w-full rounded-lg border border-line px-4 text-sm font-semibold disabled:opacity-50">
+          {state.loading ? '…' : (sv ? 'Visa fler beställningar' : 'Load more orders')}
+        </button>
+      ) : null}
     </div>
   )
 }

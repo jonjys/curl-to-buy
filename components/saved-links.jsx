@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale } from './locale'
+import AccountRecover from './account-recover'
 
 function priceLabel(item, locale) {
   const currency = item.currency === 'sek' ? 'SEK' : item.currency === 'usd' ? 'USD' : null
@@ -91,9 +92,9 @@ export default function SavedLinks() {
       </div>
 
       {unauthorized ? (
-        <div className="nl-card rounded-xl p-5 text-sm leading-relaxed">
-          <p>{sv ? 'Vi hittar inget säljarkonto på den här enheten. Återställ kontot med din e-postadress under Digital fil → Återställ säljarkonto.' : 'No seller account found on this device. Recover it by email from Create link → Digital file → Recover seller account.'}</p>
-          <a href="/upload" className="mt-3 inline-flex min-h-11 items-center text-pine underline">{sv ? 'Gå till återställning' : 'Go to account recovery'}</a>
+        <div className="nl-card space-y-3 rounded-xl p-5 text-sm leading-relaxed">
+          <p>{sv ? 'Vi hittar inget säljarkonto på den här enheten. Återställ det här med samma e-postadress som du använde när du anslöt Stripe.' : 'No seller account found on this device. Recover it here with the same email you used when connecting Stripe.'}</p>
+          <AccountRecover />
         </div>
       ) : null}
 
