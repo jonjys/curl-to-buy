@@ -18,9 +18,14 @@ function limit(value, allowed) {
 }
 
 function salesLimitOrNull(value) {
-  if (value === null || value === undefined || value === 'unlimited' || value === '') return null
+  if (value === null || value === undefined || value === 'unlimited') return null
   const number = Math.floor(Number(value))
-  return Number.isInteger(number) && number >= 1 && number <= MAX_SALES_LIMIT ? number : null
+  if (!Number.isInteger(number) || number < 1 || number > MAX_SALES_LIMIT) {
+    const error = new Error('Enter a valid sales limit or choose unlimited.')
+    error.status = 400
+    throw error
+  }
+  return number
 }
 
 function expiresAtOrNull(timeLimitMinutes) {
@@ -53,7 +58,7 @@ export async function POST(req) {
   if (!/^[a-zA-Z0-9_-]{16,80}$/.test(body.requestId || '')) return Response.json({ error: 'Refresh the form and retry.' }, { status: 400 })
   const id = listingIdFor(seller.id, body.requestId)
   try {
-    const blob = await put(`files/${id}/${file.name}`, file, { access: 'public', addRandomSuffix: false })
+    const blob = await put(`files/${id}/${file.name}`, file, { access: 'private', addRandomSuffix: false })
     let listing = {
       id,
       name: String(form.get('title') || file.name).slice(0, 100),
@@ -86,4 +91,3 @@ export async function POST(req) {
     return Response.json({ error: err.status ? err.message : storageErrorMessage(err), needsPlan: Boolean(err.needsPlan) }, { status: err.status || 500 })
   }
 }
-

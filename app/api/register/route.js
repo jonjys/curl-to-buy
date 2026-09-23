@@ -19,9 +19,14 @@ function numberOrNull(value, allowed) {
 }
 
 function salesLimitOrNull(value) {
-  if (value === null || value === undefined || value === 'unlimited' || value === '') return null
+  if (value === null || value === undefined || value === 'unlimited') return null
   const number = Math.floor(Number(value))
-  return Number.isInteger(number) && number >= 1 && number <= MAX_SALES_LIMIT ? number : null
+  if (!Number.isInteger(number) || number < 1 || number > MAX_SALES_LIMIT) {
+    const error = new Error('Enter a valid sales limit or choose unlimited.')
+    error.status = 400
+    throw error
+  }
+  return number
 }
 
 function expiresAtOrNull(timeLimitMinutes) {
@@ -69,23 +74,23 @@ export async function POST(req) {
   const price = parsePrice(body, { minUsd: terms.minUsd, minSek: terms.minSek })
   if (!price) return Response.json({ error: priceError(terms, locale, body.priceSek != null && body.priceUsd == null ? 'sek' : 'usd') }, { status: 400 })
 
-  let listing = {
-    name: String(body.title || (files.length === 1 ? files[0].name : `${files.length}-file package`)).slice(0, 100),
-    files,
-    size: files.reduce((sum, file) => sum + file.size, 0),
-    currency: price.currency,
-    priceUsd: price.priceUsd,
-    priceSek: price.priceSek,
-    priceCents: price.priceCents,
-    salesLimit: salesLimitOrNull(body.salesLimit),
-    downloadsPerFile: numberOrNull(body.downloadsPerFile, DOWNLOAD_LIMITS),
-    description: descriptionOrNull(body.description),
-    expiresAt: expiresAtOrNull(body.timeLimitMinutes),
-    sellerId: seller.id,
-    createdAt: Date.now(),
-  }
-
+  let listing
   try {
+    listing = {
+      name: String(body.title || (files.length === 1 ? files[0].name : `${files.length}-file package`)).slice(0, 100),
+      files,
+      size: files.reduce((sum, file) => sum + file.size, 0),
+      currency: price.currency,
+      priceUsd: price.priceUsd,
+      priceSek: price.priceSek,
+      priceCents: price.priceCents,
+      salesLimit: salesLimitOrNull(body.salesLimit),
+      downloadsPerFile: numberOrNull(body.downloadsPerFile, DOWNLOAD_LIMITS),
+      description: descriptionOrNull(body.description),
+      expiresAt: expiresAtOrNull(body.timeLimitMinutes),
+      sellerId: seller.id,
+      createdAt: Date.now(),
+    }
     listing = await publishListing(seller, body, listing)
   } catch (err) {
     return Response.json({ error: err.status ? err.message : storageErrorMessage(err), needsPlan: Boolean(err.needsPlan), quotaExceeded: Boolean(err.quotaExceeded) }, { status: err.status || 500 })
@@ -103,4 +108,3 @@ export async function POST(req) {
     expiresAt: listing.expiresAt,
   })
 }
-
