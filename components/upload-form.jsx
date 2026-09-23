@@ -234,7 +234,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       for (let index = 0; index < files.length; index++) {
         const file = files[index]
         const blob = await upload(`uploads/${batch}/${file.name}`, file, {
-          access: 'public', handleUploadUrl: '/api/upload-url',
+          access: 'private', handleUploadUrl: '/api/upload-url',
           onUploadProgress: ({ percentage }) => setProgress(Math.round(((index + percentage / 100) / files.length) * 90)),
         })
         uploaded.push({ blobPathname: blob.pathname, name: file.name, size: file.size, type: file.type })
@@ -570,4 +570,3 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     </div>
   )
 }
-
