@@ -52,6 +52,7 @@ export default function SubscriptionPlans() {
   function choose(plan) {
     setChosen(plan)
     try { window.localStorage.setItem('ctb:selected-plan', plan) } catch {}
+    if (!enabled) return
     if (status?.merchantReady) openBilling('/api/billing/checkout', { plan })
   }
 
@@ -81,7 +82,7 @@ export default function SubscriptionPlans() {
           <p className="mt-1 text-xs text-muted">{sv ? 'per månad, inklusive moms där tillämpligt' : 'per month, including applicable tax'}</p>
           <p className="mt-4 text-sm font-semibold">{plan.monthlyLinks === null ? (sv ? 'Obegränsat antal nya länkar' : 'Unlimited new links') : (sv ? `${plan.monthlyLinks} nya länkar per månad` : `${plan.monthlyLinks} new links per month`)}</p>
           <p className="mt-2 text-xs leading-relaxed text-muted">{sv ? 'En länk kan ta emot flera köp. Du bestämmer pris och lagerantal.' : 'A link can receive multiple purchases. You choose the price and stock quantity.'}</p>
-          <button type="button" disabled={busy || Boolean(current)} onClick={() => choose(plan.key)} className="mt-5 min-h-12 w-full rounded-lg bg-pine px-4 text-sm font-semibold text-pine-fg disabled:opacity-50">{current?.plan === plan.key ? (sv ? 'Ditt abonnemang' : 'Your plan') : (sv ? `Välj ${plan.name}` : `Choose ${plan.name}`)}</button>
+          <button type="button" disabled={busy || Boolean(current) || !enabled} onClick={() => choose(plan.key)} className="mt-5 min-h-12 w-full rounded-lg bg-pine px-4 text-sm font-semibold text-pine-fg disabled:opacity-50">{current?.plan === plan.key ? (sv ? 'Ditt abonnemang' : 'Your plan') : !enabled ? (sv ? 'Kommer snart' : 'Coming soon') : (sv ? `Välj ${plan.name}` : `Choose ${plan.name}`)}</button>
         </article>)}
       </div>
       {!loading && plans.length > 0 && !enabled ? <p role="status" className="text-sm text-muted">{sv ? 'Stripe-anslutningen slutförs innan abonnemang kan startas. Välj en nivå för att fortsätta med setup; ingen betalning tas ännu.' : 'Stripe setup must be completed before a subscription can start. Choose a plan to continue setup; no payment is taken yet.'}</p> : null}
@@ -89,7 +90,7 @@ export default function SubscriptionPlans() {
         <h2 className="font-semibold">{status?.merchantReady ? (sv ? 'Fortsätt med ditt abonnemang' : 'Continue with your subscription') : (sv ? 'Anslut betalningar hos Stripe' : 'Connect payments with Stripe')}</h2>
         {!status?.merchantReady ? <p className="text-sm leading-relaxed text-ink-soft">{sv ? 'Stripe verifierar säljaren och bankkontot. Har du en äldre anslutning kan Stripe behöva uppdatera din setup för abonnemang. Dina tidigare länkar och köp finns kvar.' : 'Stripe verifies the seller and bank account. An older connection may need an updated setup for subscriptions. Your existing links and purchases remain available.'}</p> : null}
         {!status?.authenticated ? <><label className="block text-sm">{sv ? 'Din e-postadress' : 'Your email'}<input type="email" autoComplete="email" className="mt-2 h-12 w-full rounded-lg border border-line bg-paper-tint px-3" value={email} onChange={(e) => setEmail(e.target.value)} /></label><a href="/upload" className="block text-xs text-pine">{sv ? 'Redan säljare? Återställ via e-post på sidan Skapa köplänk.' : 'Already selling? Recover by email on the Create link page.'}</a></> : null}
-        <button type="button" disabled={busy || (!status?.authenticated && !email)} onClick={() => status?.merchantReady ? openBilling('/api/billing/checkout', { plan: chosen }) : openBilling(status?.authenticated ? '/api/billing/connect' : '/api/connect', { email })} className="min-h-12 rounded-lg bg-pine px-5 font-semibold text-pine-fg disabled:opacity-50">{sv ? 'Fortsätt till Stripe' : 'Continue to Stripe'}</button>
+        <button type="button" disabled={busy || (!status?.authenticated && !email) || (status?.merchantReady && !enabled)} onClick={() => (enabled && status?.merchantReady) ? openBilling('/api/billing/checkout', { plan: chosen }) : openBilling(status?.authenticated ? '/api/billing/connect' : '/api/connect', { email })} className="min-h-12 rounded-lg bg-pine px-5 font-semibold text-pine-fg disabled:opacity-50">{sv ? 'Fortsätt till Stripe' : 'Continue to Stripe'}</button>
       </div> : null}
       <div className="space-y-2 text-sm leading-relaxed text-muted"><p>{sv ? 'Alla nivåer inkluderar digital leverans, leveransadress för fysiska varor och sparade länkar. Avsluta före nästa förnyelse; abonnemanget fungerar till den betalda periodens slut.' : 'All plans include digital delivery, shipping address collection for physical products and saved links. Cancel before the next renewal; access continues until the paid period ends.'}</p><p>{sv ? 'Försäljningarna sker via din köplänk. Du sköter leveransen; detta synkar inte lager eller order med Shopify.' : 'Sales take place through your payment link. You handle fulfillment; stock and orders do not sync with Shopify.'}</p></div>
       <a href="/links" className="inline-flex min-h-11 items-center text-sm text-pine underline">{sv ? 'Mina sparade länkar' : 'My saved links'}</a>
