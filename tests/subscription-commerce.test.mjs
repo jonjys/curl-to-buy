@@ -57,6 +57,7 @@ test('subscription item: no commission, connected Stripe scope, address and priv
   assert.equal(purchase.status,200)
   const created=state.creates[0]
   assert.equal(created.opts.stripeAccount,'acct_merchant')
+  assert.ok(created.args.expires_at >= Math.floor(Date.now() / 1000) + 30 * 60)
   assert.equal(created.args.payment_intent_data.application_fee_amount,0)
   assert.equal(created.args.payment_intent_data.transfer_data,undefined)
   assert.deepEqual([...created.args.shipping_address_collection.allowed_countries],['SE','DE'])
@@ -133,4 +134,14 @@ test('publish idempotency, no subscription bypass and historical platform paymen
   const payments=await app.load('lib/payment-context.js')
   assert.equal((await payments.retrieveCheckout(client,'cs_test_legacy','legacy')).payment_status,'paid')
   await assert.rejects(()=>payments.retrieveCheckout(client,'cs_test_legacy',first.id),/does not match/)
+  const direct={id:'cs_test_direct',mode:'payment',payment_status:'paid',metadata:{file_id:'item1',seller_id:'seller1'},account:'acct_merchant',
+    payment_intent:{latest_charge:{refunded:false,disputed:false}}}
+  state.sessions.set(direct.id,direct)
+  const original=client.checkout.sessions.retrieve
+  client.checkout.sessions.retrieve=async(id,params,opts={})=>{
+    if(params?.expand) throw Error('expand rejected')
+    return original(id,params,opts)
+  }
+  assert.equal((await payments.retrieveCheckout(client,direct.id,'item1','acct_merchant')).payment_status,'paid')
+  await assert.rejects(()=>payments.retrieveCheckout(client,direct.id,'item1','acct_other'),/Wrong Stripe account scope/)
 })

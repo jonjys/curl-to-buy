@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { runtime, catalog } from './integration-helper.mjs'
+import { memoryBlob, runtime, catalog } from './integration-helper.mjs'
 
 const env = { STRIPE_CTB_BILLING_ENABLED: 'true', STRIPE_CTB_WEBHOOK_SECRET: 'whsec_platform',
   STRIPE_CTB_CONNECT_WEBHOOK_SECRET: 'whsec_connect', STRIPE_CTB_PORTAL_CONFIGURATION: 'bpc_scoped' }
@@ -119,6 +119,15 @@ test('parallel downloads cannot exceed a one-download entitlement', async () => 
   const store = await runtime().load('lib/store.js')
   const results = await Promise.all([1, 2, 3].map(() => store.consumeDownload('cs_test_file', 0, 1)))
   assert.equal(results.filter((r) => r.allowed).length, 1)
+})
+
+test('a listing written as a public blob is still for sale', async () => {
+  const blob = memoryBlob()
+  const read = blob.get.bind(blob)
+  blob.get = async (path, opts) => opts?.access === 'public' ? read(path) : null
+  await blob.put('listings/oldpub.json', JSON.stringify({ id: 'oldpub', name: 'Old public item' }), { allowOverwrite: true })
+  const store = await runtime({ blob }).load('lib/store.js')
+  assert.equal((await store.getListing('oldpub')).name, 'Old public item')
 })
 
 test('expired attempt gets a new idempotency key while a pending attempt is reused', async () => {

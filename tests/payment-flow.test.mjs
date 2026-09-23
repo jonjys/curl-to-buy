@@ -36,6 +36,14 @@ async function setup() {
   }
   const seller = { id: 'seller1', stripeAccountId: 'acct_test_seller', feeBps: 500 }
   const state = { listing, seller, sales, downloads, session: null, checkoutArgs: null, transfersEnabled: true }
+  state.recordPurchase = async (id, session) => { sales.add(`${id}/${session}`) }
+  state.consumeDownload = async (session, index, limit) => {
+    const key = `${session}/${index}`
+    const used = downloads.get(key) || 0
+    if (Number.isInteger(limit) && used >= limit) return { allowed: false, remaining: 0 }
+    downloads.set(key, used + 1)
+    return { allowed: true, remaining: Number.isInteger(limit) ? limit - used - 1 : null }
+  }
   const client = {
     checkout: { sessions: {
       create: async (args) => {
@@ -63,14 +71,8 @@ async function setup() {
     getSeller: async (id) => id === seller.id ? state.seller : null,
     getSalesCount: async () => sales.size,
     listingFiles: (item) => item?.files || [],
-    recordPurchase: async (id, session) => { sales.add(`${id}/${session}`) },
-    consumeDownload: async (session, index, limit) => {
-      const key = `${session}/${index}`
-      const used = downloads.get(key) || 0
-      if (Number.isInteger(limit) && used >= limit) return { allowed: false, remaining: 0 }
-      downloads.set(key, used + 1)
-      return { allowed: true, remaining: Number.isInteger(limit) ? limit - used - 1 : null }
-    },
+    recordPurchase: async (id, session) => state.recordPurchase(id, session),
+    consumeDownload: async (session, index, limit) => state.consumeDownload(session, index, limit),
   }
   const dependencies = {
     'node:crypto': { randomUUID },
@@ -176,5 +178,22 @@ test('Checkout refuses missing recipient and sold-out listing; paid session cann
   state.session.payment_status = 'paid'
   assert.equal((await download.GET(new Request('https://example.test/api/download/other-listing?session_id=cs_test_contract_1'),
     { params: Promise.resolve({ id: 'other-listing' }) })).status, 403)
+})
+
+test('a paid buyer still gets the file when the purchase ledger is down', async () => {
+  const { state, checkout, verify, download } = await setup()
+  await checkout.POST(new Request('https://example.test/api/checkout/listing1', { method: 'POST' }),
+    { params: Promise.resolve({ id: 'listing1' }) })
+  state.session.payment_status = 'paid'
+  state.recordPurchase = async () => { throw Error('purchase ledger down') }
+  state.consumeDownload = async () => { throw Error('download allowance down') }
+  const verifyUrl = 'https://example.test/api/verify-session?session_id=cs_test_contract_1&listing_id=listing1'
+  const confirmed = await verify.GET(new Request(verifyUrl))
+  assert.equal(confirmed.status, 200)
+  assert.equal((await confirmed.json()).status, 'paid')
+  const file = await download.GET(new Request('https://example.test/api/download/listing1?session_id=cs_test_contract_1&file=0'),
+    { params: Promise.resolve({ id: 'listing1' }) })
+  assert.equal(file.status, 200)
+  assert.equal(await file.text(), 'example file contents')
 })
 

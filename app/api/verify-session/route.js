@@ -14,16 +14,20 @@ export async function GET(req) {
   if (!client) return Response.json({ error: 'Stripe is not configured.' }, { status: 500 })
 
   try {
-    const session = await retrieveCheckout(client, sessionId, listingId)
+    let listing = listingId ? await getListing(listingId) : null
+    const session = await retrieveCheckout(client, sessionId, listingId, listing?.paymentAccountId)
     listingId = listingId || session.metadata?.file_id || ''
     if (!listingId) return Response.json({ error: 'Payment reference is incomplete.' }, { status: 400 })
-
-    const listing = await getListing(listingId)
+    if (!listing || listing.id !== listingId) listing = await getListing(listingId)
     if (!listing) return Response.json({ error: 'The listing is no longer available.' }, { status: 404 })
     if (!paymentCanFulfill(session) || session.metadata?.file_id !== listingId) {
       return Response.json({ status: session.payment_status === 'paid' ? 'unavailable' : session.payment_status, file_id: listingId }, { headers: { 'Cache-Control': 'private, no-store' } })
     }
-    await recordPurchase(listingId, sessionId)
+    try {
+      await recordPurchase(listingId, sessionId)
+    } catch (error) {
+      console.error('Purchase ledger write failed', { listingId, message: error instanceof Error ? error.message : 'Unknown error' })
+    }
 
     if (listing.kind === 'physical') {
       return Response.json({

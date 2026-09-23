@@ -15,9 +15,10 @@ export async function GET(req, { params }) {
   const client = stripe()
   if (!client) return Response.json({ error: 'Stripe is not configured.' }, { status: 500 })
 
+  const listing = await getListing(id)
   let session
   try {
-    session = await retrieveCheckout(client, sessionId)
+    session = await retrieveCheckout(client, sessionId, id, listing?.paymentAccountId)
   } catch {
     return Response.json({ error: 'Could not verify the payment.' }, { status: 400 })
   }
@@ -28,20 +29,35 @@ export async function GET(req, { params }) {
     return Response.json({ error: 'Session does not match this product.' }, { status: 403 })
   }
 
-  const listing = await getListing(id)
   const files = listingFiles(listing)
   if (!listing || !Number.isInteger(fileIndex) || !files[fileIndex]?.blobPathname) {
     return Response.json({ error: 'File is gone.' }, { status: 404 })
   }
 
   const file = files[fileIndex]
-  const result = await get(file.blobPathname, { access: 'private' })
-  if (!result || result.statusCode !== 200) {
+  let result = null
+  for (const access of ['private', 'public']) {
+    try {
+      const found = await get(file.blobPathname, { access })
+      if (found?.statusCode === 200 && found.stream) { result = found; break }
+    } catch { /* Older uploads are public. */ }
+  }
+  if (!result) {
     return Response.json({ error: 'File is gone.' }, { status: 404 })
   }
 
-  await recordPurchase(id, sessionId)
-  const entitlement = await consumeDownload(sessionId, fileIndex, listing.downloadsPerFile)
+  try {
+    await recordPurchase(id, sessionId)
+  } catch (error) {
+    console.error('Purchase ledger write failed', { listingId: id, message: error instanceof Error ? error.message : 'Unknown error' })
+  }
+  let entitlement
+  try {
+    entitlement = await consumeDownload(sessionId, fileIndex, listing.downloadsPerFile)
+  } catch (error) {
+    console.error('Download allowance unavailable', { message: error instanceof Error ? error.message : 'Unknown error' })
+    entitlement = { allowed: true, remaining: null }
+  }
   if (!entitlement.allowed) {
     return Response.json({ error: 'Download limit reached for this file.' }, { status: 410 })
   }
