@@ -1,5 +1,5 @@
 import { list } from '@vercel/blob'
-import { getListing, getSeller, getSalesCount } from '../../../lib/store'
+import { getListing, getSeller, getSalesCount, listSellerListingIds } from '../../../lib/store'
 import { sellerIdFromRequest } from '../../../lib/seller'
 
 export const runtime = 'nodejs'
@@ -11,17 +11,22 @@ export async function GET(req) {
   const sellerId = sellerIdFromRequest(req)
   const seller = sellerId ? await getSeller(sellerId) : null
   if (!seller) {
-    return Response.json({ error: 'Sign in as a seller first. Recover your account via email on the Create link page.' }, { status: 401, headers: { 'Cache-Control': 'private, no-store' } })
+    return Response.json({ error: 'Sign in as a seller first. Recover your account by email on this page.' }, { status: 401, headers: { 'Cache-Control': 'private, no-store' } })
   }
 
   const cursor = new URL(req.url).searchParams.get('cursor') || undefined
   if (cursor && cursor.length > 2048) return Response.json({ error: 'Invalid page cursor.' }, { status: 400 })
 
   try {
-    // Scan existing listing records, including those created before a seller dashboard existed.
-    // Filtering takes place server-side after verifying the signed seller cookie.
-    const page = await list({ prefix: 'listings/', limit: 50, ...(cursor ? { cursor } : {}) })
-    const ids = page.blobs.map((blob) => ID_FROM_PATH.exec(blob.pathname)?.[1]).filter(Boolean)
+    const indexed = await listSellerListingIds(sellerId, cursor)
+    let ids = indexed.ids
+    let nextCursor = indexed.nextCursor
+    if (!indexed.indexed) {
+      const page = await list({ prefix: 'listings/', limit: 50, ...(cursor ? { cursor } : {}) })
+      ids = page.blobs.map((blob) => ID_FROM_PATH.exec(blob.pathname)?.[1]).filter(Boolean)
+      nextCursor = page.hasMore ? page.cursor : null
+    }
+
     const records = await Promise.all(ids.map((id) => getListing(id)))
     const links = await Promise.all(records
       .filter((item) => item?.sellerId === sellerId)
@@ -41,7 +46,7 @@ export async function GET(req) {
       })))
     links.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
 
-    return Response.json({ links, nextCursor: page.hasMore ? page.cursor : null }, {
+    return Response.json({ links, nextCursor }, {
       headers: { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' },
     })
   } catch {

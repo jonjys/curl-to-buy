@@ -34,16 +34,16 @@ export async function GET(req, { params }) {
     return Response.json({ error: 'File is gone.' }, { status: 404 })
   }
 
+  const file = files[fileIndex]
+  const result = await get(file.blobPathname, { access: 'private' })
+  if (!result || result.statusCode !== 200) {
+    return Response.json({ error: 'File is gone.' }, { status: 404 })
+  }
+
   await recordPurchase(id, sessionId)
   const entitlement = await consumeDownload(sessionId, fileIndex, listing.downloadsPerFile)
   if (!entitlement.allowed) {
     return Response.json({ error: 'Download limit reached for this file.' }, { status: 410 })
-  }
-
-  const file = files[fileIndex]
-  const result = await get(file.blobPathname, { access: 'public' })
-  if (!result || result.statusCode !== 200) {
-    return Response.json({ error: 'File is gone.' }, { status: 404 })
   }
 
   const filename = file.name.replace(/[\r\n\"]/g, '_')
@@ -56,4 +56,3 @@ export async function GET(req, { params }) {
     },
   })
 }
-
