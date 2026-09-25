@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { upload } from '@vercel/blob/client'
-import { MAX_FILES, MAX_MB, MAX_SALES_LIMIT } from '../lib/site'
+import { MAX_FILES, MAX_MB, MAX_SALES_LIMIT, onboardingNotice } from '../lib/site'
+import { visibleError } from '../lib/http'
 import { FREE_MIN_USD, FREE_PRESETS, SUB_MIN_USD, SUB_PRESETS } from '../lib/entitlement'
 import { formatUsd } from '../lib/copy'
 import { useLocale } from './locale'
@@ -69,17 +70,25 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   useEffect(() => {
     fetch('/api/connect/status', { cache: 'no-store' })
       .then((response) => response.json())
-      .then((json) => setConnect({
-        loading: false,
-        hasSeller: Boolean(json.hasSeller),
-        ready: Boolean(json.ready),
-        subscribed: Boolean(json.subscribed),
-        minUsd: json.subscribed ? SUB_MIN_USD : FREE_MIN_USD,
-        presets: json.subscribed ? SUB_PRESETS : FREE_PRESETS,
-        feeBps: json.subscribed ? 0 : (json.feeBps || 500),
-      }))
+      .then((json) => {
+        const hasSeller = Boolean(json.hasSeller)
+        const ready = Boolean(json.ready)
+        setConnect({
+          loading: false,
+          hasSeller,
+          ready,
+          subscribed: Boolean(json.subscribed),
+          minUsd: json.subscribed ? SUB_MIN_USD : FREE_MIN_USD,
+          presets: json.subscribed ? SUB_PRESETS : FREE_PRESETS,
+          feeBps: json.subscribed ? 0 : (json.feeBps || 500),
+        })
+        const notice = onboardingNotice(new URLSearchParams(window.location.search).get('stripe'), { hasSeller, ready })
+        if (json.error) setError(visibleError(json.error, t.connectError))
+        else if (notice === 'incomplete') { setShowConnect(true); setError(t.connectResume) }
+        else if (notice === 'expired') { setShowConnect(true); setError(t.connectExpired) }
+      })
       .catch(() => setConnect((current) => ({ ...current, loading: false })))
-  }, [])
+  }, [t.connectError, t.connectExpired, t.connectResume])
 
   const finalizeDraft = useCallback(async (draft) => {
     if (finalizingRef.current) return
@@ -139,10 +148,10 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       const response = await fetch(connect.hasSeller ? '/api/billing/connect' : '/api/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, returnTo: 'sell' }),
       })
       const json = await readJson(response)
-      if (!response.ok || !json.url) throw new Error(json.error || t.connectError)
+      if (!response.ok || !json.url || !/^https:\/\//.test(json.url)) throw new Error(visibleError(json.error, t.connectError))
       window.location.href = json.url
     } catch (err) {
       setError(err.message || t.connectError)
@@ -153,7 +162,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   async function readJson(res) {
     const text = await res.text()
     if (!text) return {}
-    try { return JSON.parse(text) } catch { return { error: text.slice(0, 200) } }
+    try { return JSON.parse(text) } catch { return { error: visibleError(text, t.connectError) } }
   }
 
   async function requestRecoveryCode() {

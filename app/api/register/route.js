@@ -6,6 +6,7 @@ import { isSubscribed, priceError, saleTerms } from '../../../lib/entitlement'
 import { MAX_DESCRIPTION_LENGTH, MAX_FILES, MAX_MB, MAX_SALES_LIMIT, TIME_LIMIT_MINUTES } from '../../../lib/site'
 import { storageErrorMessage } from '../../../lib/blob-error'
 import { loadReadySeller } from '../../../lib/stripe-connect'
+import { clientError } from '../../../lib/http'
 
 export const runtime = 'nodejs'
 
@@ -41,7 +42,13 @@ function descriptionOrNull(value) {
 }
 
 export async function POST(req) {
-  const seller = await loadReadySeller(req)
+  let seller
+  try {
+    seller = await loadReadySeller(req)
+  } catch (error) {
+    const failure = clientError(error, 'Could not check Stripe setup. Please try again.')
+    return Response.json({ error: failure.error }, { status: failure.status })
+  }
   if (!seller?.paymentAccountId) {
     return Response.json({ error: 'Connect Stripe before creating a selling link.' }, { status: 403 })
   }
