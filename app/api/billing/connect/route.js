@@ -1,30 +1,27 @@
 import { authenticatedSeller } from '../../../../lib/billing'
-import { createSubscriptionMerchant, merchantOnboardingLink, readySubscriptionMerchant } from '../../../../lib/stripe-connect'
-import { getSeller, updateSeller } from '../../../../lib/store'
+import { startOnboarding } from '../../../../lib/stripe-connect'
+import { assertPrivateBlobAccess } from '../../../../lib/store'
 import { withBillingLock } from '../../../../lib/commerce-store'
-import { privateJson, sameOrigin } from '../../../../lib/http'
-import { originFrom } from '../../../../lib/site'
+import { clientError, privateJson, sameOrigin } from '../../../../lib/http'
+import { httpsOrigin } from '../../../../lib/site'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 export async function POST(req) {
   if (!sameOrigin(req)) return privateJson({ error: 'Invalid origin.' }, 403)
   try {
+    await assertPrivateBlobAccess()
     const seller = await authenticatedSeller(req)
     if (!seller) return privateJson({ error: 'Enter your seller email first.', needsConnect: true }, 401)
+    const body = await req.json().catch(() => ({}))
     return await withBillingLock(seller.id, async () => {
-      let current = await getSeller(seller.id)
-      if (await readySubscriptionMerchant(current)) return privateJson({ url: `${originFrom(req)}/plans` })
-      let created = null
-      if (!current.paymentAccountId) {
-        created = await createSubscriptionMerchant({ email: current.email, sellerId: current.id })
-        current = await updateSeller(current.id, { paymentAccountId: created.id })
-      }
-      const link = await merchantOnboardingLink(current.paymentAccountId, originFrom(req), created)
-      if (!link?.url) return privateJson({ error: 'Stripe did not return an onboarding URL.' }, 502)
-      return privateJson({ url: link.url, source: link.source || 'v2' })
+      const current = await authenticatedSeller(req)
+      if (!current) return privateJson({ error: 'Enter your seller email first.', needsConnect: true }, 401)
+      const started = await startOnboarding(current, httpsOrigin(req), body.returnTo === 'plans' ? 'plans' : 'sell')
+      return privateJson({ url: started.url, source: started.source || 'v2', ready: Boolean(started.ready) })
     })
   } catch (error) {
-    console.error('Subscription merchant setup failed', { type: error.type || error.name })
-    return privateJson({ error: 'Could not open Stripe setup. Please try again.' }, 503)
+    console.error('Subscription merchant setup failed', { type: error.type || error.name, code: error.code })
+    const failure = clientError(error, 'Could not open Stripe setup. Please try again.')
+    return privateJson({ error: failure.error }, failure.status)
   }
 }

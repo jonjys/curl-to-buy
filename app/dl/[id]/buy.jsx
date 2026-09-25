@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useLocale } from '../../../components/locale'
+import { visibleError } from '../../../lib/http'
 
 function formatCountdown(ms) {
   const total = Math.max(0, Math.floor(ms / 1000))
@@ -42,10 +43,10 @@ export default function BuyBox({ listing, price }) {
       let attemptId = window.sessionStorage.getItem(storageKey)
       if (!attemptId) { attemptId = crypto.randomUUID(); window.sessionStorage.setItem(storageKey, attemptId) }
       const res = await fetch(`/api/checkout/${listing.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ attemptId }) })
-      const json = await res.json()
-      if (!res.ok || !json.url) throw new Error(json.error || 'Could not start checkout.')
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.url || !/^https:\/\//.test(json.url)) throw new Error(visibleError(json.error, 'Could not start checkout.'))
       window.location.href = json.url
-    } catch (err) { setError(err.message); setBusy(false) }
+    } catch (err) { setError(visibleError(err.message, 'Could not start checkout.')); setBusy(false) }
   }
 
   const condition = {

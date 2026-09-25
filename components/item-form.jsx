@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from 'react'
 import { upload } from '@vercel/blob/client'
 import { useLocale } from './locale'
 import { FREE_MIN_SEK, SUB_MIN_SEK } from '../lib/entitlement'
+import { onboardingNotice } from '../lib/site'
+import { visibleError } from '../lib/http'
 
 const ITEM_DRAFT = 'curl-to-buy:pending-item'
 const PHOTO_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
@@ -37,26 +39,34 @@ export default function ItemForm({ stripeReady, blobReady }) {
   useEffect(() => {
     fetch('/api/connect/status', { cache: 'no-store' })
       .then((response) => response.json())
-      .then((json) => setConnect({
-        loading: false, ready: Boolean(json.ready), hasSeller: Boolean(json.hasSeller),
-        subscribed: Boolean(json.subscribed), minSek: json.subscribed ? SUB_MIN_SEK : FREE_MIN_SEK,
-        feeBps: json.subscribed ? 0 : (json.feeBps || 500),
-      }))
+      .then((json) => {
+        const hasSeller = Boolean(json.hasSeller)
+        const ready = Boolean(json.ready)
+        setConnect({
+          loading: false, ready, hasSeller,
+          subscribed: Boolean(json.subscribed), minSek: json.subscribed ? SUB_MIN_SEK : FREE_MIN_SEK,
+          feeBps: json.subscribed ? 0 : (json.feeBps || 500),
+        })
+        const notice = onboardingNotice(new URLSearchParams(window.location.search).get('stripe'), { hasSeller, ready })
+        if (json.error) setError(visibleError(json.error, sv ? 'Kunde inte öppna Stripe-inställningen.' : 'Could not open Stripe setup.'))
+        else if (notice === 'incomplete') setError(sv ? 'Stripe-inställningen är inte klar. Fortsätt för att återuppta den.' : 'Stripe setup is not finished. Continue to pick up where you left off.')
+        else if (notice === 'expired') setError(sv ? 'Stripe-länken har gått ut. Fortsätt för att öppna en ny.' : 'That Stripe link expired. Continue to open a new one.')
+      })
       .catch(() => setConnect((current) => ({ ...current, loading: false })))
-  }, [])
+  }, [sv])
 
   async function readJson(response) {
     const body = await response.text()
-    try { return JSON.parse(body) } catch { return { error: body.slice(0, 160) } }
+    try { return JSON.parse(body) } catch { return { error: visibleError(body, 'Stripe setup failed.') } }
   }
 
   async function startConnect() {
     setBusy(true)
     setError('')
     try {
-      const response = await fetch(connect.hasSeller ? '/api/billing/connect' : '/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) })
+      const response = await fetch(connect.hasSeller ? '/api/billing/connect' : '/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, returnTo: 'sell' }) })
       const json = await readJson(response)
-      if (!response.ok || !json.url) throw new Error(json.error || 'Stripe setup failed.')
+      if (!response.ok || !json.url || !/^https:\/\//.test(json.url)) throw new Error(visibleError(json.error, 'Stripe setup failed.'))
       window.location.assign(json.url)
     } catch (err) { setError(err.message || 'Stripe setup failed.'); setBusy(false) }
   }
@@ -145,6 +155,7 @@ export default function ItemForm({ stripeReady, blobReady }) {
           <h3 className="text-base font-semibold">{sv ? 'Anslut Stripe för att få betalt' : 'Connect Stripe to receive payments'}</h3>
           <p className="text-xs text-ink-soft">{sv ? 'Detta behövs bara en gång. Har du redan sålt på en annan enhet kan du återställa ditt säljarkonto via Digital fil-fliken.' : 'This is a one-time step. If you sold on another device, recover your seller account from the Digital file tab.'}</p>
           {!connect.hasSeller ? <input className={field} type="email" autoComplete="email" placeholder={sv ? 'Din e-postadress' : 'Your email'} value={email} onChange={(e) => setEmail(e.target.value)} /> : null}
+          {error ? <p role="alert" className="text-sm text-warn">{error}</p> : null}
           <button type="button" onClick={startConnect} disabled={busy || (!connect.hasSeller && !email)} className="min-h-12 w-full rounded-lg bg-pine text-sm font-semibold text-pine-fg disabled:opacity-50">{busy ? '…' : (sv ? 'Fortsätt till Stripe' : 'Continue to Stripe')}</button>
         </div>
       ) : null}

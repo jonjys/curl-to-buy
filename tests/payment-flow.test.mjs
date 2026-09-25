@@ -89,7 +89,8 @@ async function setup() {
     'lib/checkout-reservations': { createReservedCheckout: async (client, listing, attemptId, params) => client.checkout.sessions.create(params) },
     'lib/store': store,
     'lib/price': { displayPrice: () => ({ currency: 'sek', amount: 10000 }) },
-    'lib/site': { originFrom: () => 'https://example.test' },
+    'lib/site': { originFrom: () => 'https://example.test', httpsOrigin: () => 'https://example.test' },
+    'lib/http': { clientError: (error, fallback, status = 503) => ({ error: error?.message || fallback, status: error?.status || status }) },
     'lib/fees': { applicationFeeCents: (amount, bps) => Math.round(amount * bps / 10000) },
     'lib/stripe-connect': {
       readySubscriptionMerchant: async () => null,

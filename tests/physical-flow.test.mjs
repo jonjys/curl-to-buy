@@ -92,8 +92,9 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
       recipientStatus: () => ({ transfers: true }),
       retrieveConnectedRecipient: async () => ({ id: seller.stripeAccountId }),
     },
-    'lib/blob-error': { storageErrorMessage: () => 'Storage error' },
-    'lib/site': { originFrom: () => 'https://example.test' },
+    'lib/blob-error': { storageErrorMessage: () => 'Storage error', blobAccessError: () => null },
+    'lib/site': { originFrom: () => 'https://example.test', httpsOrigin: () => 'https://example.test' },
+    'lib/http': { clientError: (error, fallback, status = 503) => ({ error: error?.message || fallback, status: error?.status || status }) },
     'lib/fees': { applicationFeeCents: (amount, bps) => Math.round(amount * bps / 10000) },
     'lib/seller': { sellerIdFromRequest: () => state.sellerCookie ? 'seller1' : null },
     '@vercel/blob': {

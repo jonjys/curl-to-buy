@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { stripe } from '../../../../lib/stripe'
 import { getListing, getSalesCount, getSeller, listingFiles } from '../../../../lib/store'
 import { displayPrice } from '../../../../lib/price'
-import { originFrom } from '../../../../lib/site'
+import { httpsOrigin } from '../../../../lib/site'
+import { clientError } from '../../../../lib/http'
 import { applicationFeeCents } from '../../../../lib/fees'
 import { billingState } from '../../../../lib/billing'
 import { checkoutFeeBps, isSubscribed, saleTerms, usesDirectCharge } from '../../../../lib/entitlement'
@@ -75,7 +76,7 @@ export async function POST(req, { params }) {
     return Response.json({ error: 'The seller has not finished payout setup yet.' }, { status: 409 })
   }
 
-  const origin = originFrom(req)
+  const origin = httpsOrigin(req)
   const fileCount = listingFiles(listing).length
   const checkoutParams = {
     mode: 'payment',
@@ -127,8 +128,9 @@ export async function POST(req, { params }) {
   }
   return Response.json({ url: session.url })
   } catch (error) {
-    console.error('Buyer checkout failed', { type: error.type || error.name })
-    return Response.json({ error: error.status ? error.message : 'Could not open checkout. Please try again.' }, { status: error.status || 503 })
+    console.error('Buyer checkout failed', { type: error.type || error.name, code: error.code })
+    const failure = clientError(error, 'Could not open checkout. Please try again.')
+    return Response.json({ error: failure.error }, { status: failure.status })
   }
 }
 

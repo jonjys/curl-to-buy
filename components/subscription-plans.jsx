@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useLocale } from './locale'
+import { visibleError } from '../lib/http'
 
 function money(amount, currency, locale) {
   return new Intl.NumberFormat(locale === 'sv' ? 'sv-SE' : 'en-IE', {
@@ -20,6 +21,7 @@ export default function SubscriptionPlans() {
   const [error, setError] = useState('')
   const [email, setEmail] = useState('')
   const [chosen, setChosen] = useState(null)
+  const [returned, setReturned] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -37,16 +39,22 @@ export default function SubscriptionPlans() {
     return () => { mounted = false }
   }, [sv])
 
+  useEffect(() => {
+    const flag = new URLSearchParams(window.location.search).get('stripe')
+    if (flag === 'refresh') window.location.replace('/api/connect/refresh')
+    if (flag === 'return') setReturned(true)
+  }, [])
+
   async function openBilling(path, body = {}) {
     setBusy(true); setError('')
     try {
       const response = await fetch(path, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(path.includes('/connect') ? { ...body, returnTo: 'plans' } : body),
       })
-      const data = await response.json()
-      if (!response.ok || !data.url) throw Error(data.error || 'Could not open Stripe.')
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || !data.url || !/^https:\/\//.test(data.url)) throw Error(visibleError(data.error, 'Could not open Stripe.'))
       window.location.assign(data.url)
-    } catch (err) { setError(err.message); setBusy(false) }
+    } catch (err) { setError(visibleError(err.message, sv ? 'Kunde inte öppna Stripe.' : 'Could not open Stripe.')); setBusy(false) }
   }
 
   function choose(plan) {
@@ -74,6 +82,8 @@ export default function SubscriptionPlans() {
         <a href="/upload" className="ml-4 inline-flex min-h-11 items-center text-pine">{sv ? 'Fortsätt med din länk' : 'Continue your link'}</a>
       </div> : null}
       {error ? <p role="alert" className="text-sm text-warn">{error}</p> : null}
+      {returned && status?.merchantReady ? <p role="status" className="text-sm text-ink-soft">{sv ? 'Stripe är anslutet. Du kan skapa en köplänk.' : 'Stripe is connected. You can create a payment link.'} <a href="/" className="text-pine underline">{sv ? 'Skapa köplänk' : 'Create a payment link'}</a></p> : null}
+      {returned && status && !status.merchantReady ? <p role="status" className="text-sm text-ink-soft">{sv ? 'Stripe-inställningen är inte klar. Fortsätt nedan för att återuppta den.' : 'Stripe setup is not finished. Continue below to pick up where you left off.'}</p> : null}
       {loading ? <p className="text-sm text-muted">{sv ? 'Hämtar abonnemang…' : 'Loading subscriptions…'}</p> : null}
       <div className="grid gap-4 md:grid-cols-3">
         {plans.map((plan) => <article key={plan.key} className={`nl-card rounded-xl p-5 ${chosen === plan.key ? 'border-pine' : ''}`}>

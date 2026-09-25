@@ -5,6 +5,7 @@ import { billingState } from '../../../lib/billing'
 import { isSubscribed, priceError, saleTerms } from '../../../lib/entitlement'
 import { loadReadySeller } from '../../../lib/stripe-connect'
 import { storageErrorMessage } from '../../../lib/blob-error'
+import { clientError } from '../../../lib/http'
 
 export const runtime = 'nodejs'
 
@@ -21,7 +22,13 @@ function allowedPhoto(url) {
 }
 
 export async function POST(req) {
-  const seller = await loadReadySeller(req)
+  let seller
+  try {
+    seller = await loadReadySeller(req)
+  } catch (error) {
+    const failure = clientError(error, 'Could not check Stripe setup. Please try again.')
+    return Response.json({ error: failure.error }, { status: failure.status })
+  }
   if (!seller?.paymentAccountId) {
     return Response.json({ error: 'Connect Stripe before publishing an item.' }, { status: 403 })
   }
