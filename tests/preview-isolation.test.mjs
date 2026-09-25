@@ -12,7 +12,7 @@ test('preview refuses live credentials, shared production storage, missing or mi
   assert.equal(previewIsolated({ ...isolated, BLOB_READ_WRITE_TOKEN: '' }), false)
   assert.equal(previewIsolated({ ...isolated, CTB_TEST_BLOB_STORE_ID: '' }), false)
   assert.equal(previewIsolated({ ...isolated, CTB_TEST_BLOB_STORE_ID: 'store_other' }), false)
-  assert.equal(previewIsolated({ ...isolated, BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_JJzYG3wynRksz8aJ_fixture', CTB_TEST_BLOB_STORE_ID: 'store_JJzYG3wynRksz8aJ' }), false)
+  assert.equal(previewIsolated({ ...isolated, BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_2cxkdjkcxi34trtf_fixture', CTB_TEST_BLOB_STORE_ID: 'store_2cxkdjkcxi34trtf' }), false)
   assert.equal(previewIsolated({ VERCEL_ENV: 'production' }), true)
   assert.equal(previewIsolated({}), true)
 })

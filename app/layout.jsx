@@ -2,8 +2,8 @@ import './globals.css'
 import { SITE } from '../lib/site'
 
 const OG = `${SITE}/og.jpg`
-const title = 'Curl-to-Buy — Sell an item or file with one link.'
-const description = 'Sell a hoodie, stroller or digital file with a shareable payment link. Buyers pay by card through Stripe without creating a buyer account.'
+const title = 'Curl-to-Buy — Sell a file. Get paid.'
+const description = 'Upload a template, preset, ebook or client delivery. Set a price and share one link. Buyers pay by card. The money goes to your Stripe. 5% fee, no monthly fee.'
 
 export const metadata = {
   metadataBase: new URL(SITE),

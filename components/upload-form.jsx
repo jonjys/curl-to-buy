@@ -63,6 +63,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   const [connect, setConnect] = useState({ loading: true, hasSeller: false, ready: false, subscribed: false, minUsd: FREE_MIN_USD, presets: FREE_PRESETS, feeBps: 500 })
   const [email, setEmail] = useState('')
   const [connecting, setConnecting] = useState(false)
+  const [connectError, setConnectError] = useState(null)
   const [showConnect, setShowConnect] = useState(false)
   const [recover, setRecover] = useState({ mode: 'idle', email: '', code: '', busy: false, error: null })
   const finalizingRef = useRef(false)
@@ -143,6 +144,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
 
   async function startConnect() {
     setError(null)
+    setConnectError(null)
     setConnecting(true)
     try {
       const response = await fetch(connect.hasSeller ? '/api/billing/connect' : '/api/connect', {
@@ -154,7 +156,9 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       if (!response.ok || !json.url || !/^https:\/\//.test(json.url)) throw new Error(visibleError(json.error, t.connectError))
       window.location.href = json.url
     } catch (err) {
-      setError(err.message || t.connectError)
+      const message = err.message || t.connectError
+      setError(message)
+      setConnectError(message)
       setConnecting(false)
     }
   }
@@ -404,6 +408,31 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
 
   return (
     <div className="space-y-5">
+      {!connect.loading && !connect.ready ? (
+        <div className="space-y-3 rounded-md border border-pine/40 bg-paper-tint p-4">
+          <h3 className="text-base font-semibold">{sv ? 'Anslut Stripe för att få betalt' : 'Connect Stripe to get paid'}</h3>
+          <p className="text-xs leading-relaxed text-ink-soft">{sv ? 'Bara din e-post behövs här. Stripe samlar in de juridiska uppgifterna.' : 'Only your email is needed here. Stripe collects the legal details.'}</p>
+          {!connect.hasSeller ? (
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder={t.email}
+              autoComplete="email"
+              className="h-12 w-full rounded-sm border border-line bg-paper px-3 text-base text-ink outline-none placeholder:text-muted"
+            />
+          ) : null}
+          {connectError ? <p className="text-sm text-warn">{connectError}</p> : null}
+          <button
+            type="button"
+            onClick={startConnect}
+            disabled={connecting || (!connect.hasSeller && !email)}
+            className="inline-flex h-12 w-full items-center justify-center rounded-sm bg-pine px-5 text-base font-medium text-pine-fg disabled:opacity-50"
+          >
+            {connecting ? t.openingStripe : connect.hasSeller ? t.continueStripe : t.connectButton}
+          </button>
+        </div>
+      ) : null}
       <p className="text-sm leading-relaxed text-ink-soft">{sv ? 'Köparen får filerna direkt efter betalning. För kläder, ditt eget varumärke eller andra produkter som ska skickas, välj Fysisk vara.' : 'Buyers get the files after payment. For clothing, your own brand or products you ship, choose Physical item.'}</p>
       <div className="space-y-2">
         <p className="text-sm font-medium">{t.files}</p>
@@ -480,77 +509,80 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         <p className="text-sm text-muted">{connect.subscribed ? t.feeNoteSub : t.feeNote}</p>
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="description" className="text-sm font-medium">{t.descriptionLabel}</label>
-        <textarea
-          id="description"
-          value={description}
-          maxLength={300}
-          rows={3}
-          onChange={(event) => setDescription(event.target.value)}
-          placeholder={t.descriptionHint}
-          className="w-full resize-none rounded-sm border border-line bg-paper-tint px-3 py-2.5 text-base text-ink outline-none placeholder:text-muted"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">{t.quantityLabel}</label>
-          <label className="flex items-center gap-2 text-xs text-muted">
-            <input
-              type="checkbox"
-              checked={salesLimit === 'unlimited'}
-              onChange={(event) => setSalesLimit(event.target.checked ? 'unlimited' : '50')}
-            />
-            {t.quantityUnlimited}
-          </label>
-        </div>
-        {salesLimit !== 'unlimited' ? (
-          <div className="flex items-center gap-3">
-            <input
-              type="range"
-              min={0}
-              max={QUANTITY_SLIDER_MAX}
-              value={quantityToSlider(Number(salesLimit) || 1)}
-              onChange={(event) => setSalesLimit(String(sliderToQuantity(Number(event.target.value))))}
-              className="h-2 flex-1 accent-pine"
-            />
-            <input
-              type="number"
-              min={1}
-              max={MAX_SALES_LIMIT}
-              value={salesLimit}
-              onChange={(event) => setSalesLimit(event.target.value.replace(/[^\d]/g, ''))}
-              className="h-11 w-24 rounded-sm border border-line bg-paper-tint px-2 text-center text-base text-ink outline-none"
+      <details className="rounded-md border border-line px-3.5 py-2.5 text-sm">
+        <summary className="cursor-pointer font-medium text-ink">{sv ? 'Valfria uppgifter' : 'Optional details'}</summary>
+        <div className="mt-4 space-y-5">
+          <div className="space-y-2">
+            <label htmlFor="description" className="text-sm font-medium">{t.descriptionLabel}</label>
+            <textarea
+              id="description"
+              value={description}
+              maxLength={300}
+              rows={3}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder={t.descriptionHint}
+              className="w-full resize-none rounded-sm border border-line bg-paper-tint px-3 py-2.5 text-base text-ink outline-none placeholder:text-muted"
             />
           </div>
-        ) : null}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2 text-sm font-medium">
-          {t.downloadLimit}
-          <select value={downloadsPerFile} onChange={(event) => setDownloadsPerFile(event.target.value)} className="h-12 w-full rounded-sm border border-line bg-paper-tint px-3 text-base font-normal text-ink outline-none">
-            <option value="1">1</option>
-            <option value="3">3</option>
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="unlimited">{t.unlimited}</option>
-          </select>
-        </label>
-        <label className="space-y-2 text-sm font-medium">
-          {t.timeLimitLabel}
-          <select value={timeLimitMinutes} onChange={(event) => setTimeLimitMinutes(event.target.value)} className="h-12 w-full rounded-sm border border-line bg-paper-tint px-3 text-base font-normal text-ink outline-none">
-            <option value="none">{t.timeNoLimit}</option>
-            <option value="15">{t.time15m}</option>
-            <option value="60">{t.time1h}</option>
-            <option value="360">{t.time6h}</option>
-            <option value="1440">{t.time24h}</option>
-            <option value="4320">{t.time3d}</option>
-          </select>
-        </label>
-      </div>
-      <p className="text-xs leading-relaxed text-muted">{t.limitHint}</p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">{t.quantityLabel}</label>
+              <label className="flex items-center gap-2 text-xs text-muted">
+                <input
+                  type="checkbox"
+                  checked={salesLimit === 'unlimited'}
+                  onChange={(event) => setSalesLimit(event.target.checked ? 'unlimited' : '50')}
+                />
+                {t.quantityUnlimited}
+              </label>
+            </div>
+            {salesLimit !== 'unlimited' ? (
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={QUANTITY_SLIDER_MAX}
+                  value={quantityToSlider(Number(salesLimit) || 1)}
+                  onChange={(event) => setSalesLimit(String(sliderToQuantity(Number(event.target.value))))}
+                  className="h-2 flex-1 accent-pine"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  max={MAX_SALES_LIMIT}
+                  value={salesLimit}
+                  onChange={(event) => setSalesLimit(event.target.value.replace(/[^\d]/g, ''))}
+                  className="h-11 w-24 rounded-sm border border-line bg-paper-tint px-2 text-center text-base text-ink outline-none"
+                />
+              </div>
+            ) : null}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium">
+              {t.downloadLimit}
+              <select value={downloadsPerFile} onChange={(event) => setDownloadsPerFile(event.target.value)} className="h-12 w-full rounded-sm border border-line bg-paper-tint px-3 text-base font-normal text-ink outline-none">
+                <option value="1">1</option>
+                <option value="3">3</option>
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="unlimited">{t.unlimited}</option>
+              </select>
+            </label>
+            <label className="space-y-2 text-sm font-medium">
+              {t.timeLimitLabel}
+              <select value={timeLimitMinutes} onChange={(event) => setTimeLimitMinutes(event.target.value)} className="h-12 w-full rounded-sm border border-line bg-paper-tint px-3 text-base font-normal text-ink outline-none">
+                <option value="none">{t.timeNoLimit}</option>
+                <option value="15">{t.time15m}</option>
+                <option value="60">{t.time1h}</option>
+                <option value="360">{t.time6h}</option>
+                <option value="1440">{t.time24h}</option>
+                <option value="4320">{t.time3d}</option>
+              </select>
+            </label>
+          </div>
+          <p className="text-xs leading-relaxed text-muted">{t.limitHint}</p>
+        </div>
+      </details>
       <label className="flex items-start gap-3 text-xs leading-relaxed text-muted">
         <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} className="mt-0.5" />
         {t.ageConfirm}
