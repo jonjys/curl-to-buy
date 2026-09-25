@@ -36,7 +36,7 @@ export function SiteHeader() {
           <Link href="/upload" className="inline-flex min-h-11 items-center rounded-sm border border-white/15 px-3.5 text-sm font-medium text-ink no-underline transition-colors hover:border-pine/50">{locale === 'sv' ? 'Skapa köplänk' : 'Create link'}</Link>
         </div>
       </div>
-      <nav className="mx-auto flex w-full max-w-7xl gap-5 px-4 pb-2 text-xs sm:px-6 lg:px-8" aria-label={locale === 'sv' ? 'Säljverktyg' : 'Seller tools'}><Link href="/plans" className="text-pine no-underline">{locale === 'sv' ? 'Abonnemang' : 'Subscriptions'}</Link><Link href="/links" className="text-ink-soft no-underline">{locale === 'sv' ? 'Mina länkar' : 'My links'}</Link></nav>
+      <nav className="mx-auto flex w-full max-w-7xl gap-5 px-4 pb-2 text-xs sm:px-6 lg:px-8" aria-label={locale === 'sv' ? 'Säljverktyg' : 'Seller tools'}><Link href="/links" className="text-ink-soft no-underline">{locale === 'sv' ? 'Mina länkar' : 'My links'}</Link></nav>
     </header>
   )
 }

@@ -29,15 +29,13 @@ export default function SellerGuide() {
   if (connected !== false) return null
 
   const steps = sv ? [
-    ['Anslut Stripe', 'Ange din e-post och fyll i de uppgifter Stripe behöver. Det görs en gång.'],
-    ['Valfritt abonnemang', 'Utan abonnemang: minst $10 och 5% till Curl-to-Buy. Start €5, Grow €19 eller Scale €49 sänker minsta priset till $5 och tar bort plattformsavgiften. Stripe drar sin kortavgift i båda fallen.'],
-    ['Lägg upp det du säljer', 'Välj fysisk vara eller digital fil, beskriv den och sätt priset.'],
-    ['Dela köplänken', 'Skapa en unik länk och skicka den till köparen. Köparen behöver inget konto.'],
+    ['Anslut Stripe', 'Ange din e-post. Stripe samlar in de juridiska uppgifterna. Det görs en gång.'],
+    ['Ladda upp och sätt pris', 'Lägg till filen och sätt ett pris. Curl-to-Buy tar 5 %. Ingen månadsavgift.'],
+    ['Dela länken', 'Köparen betalar med kort och laddar ner filen. Pengarna går till ditt Stripe.'],
   ] : [
-    ['Connect Stripe', 'Enter your email and complete the details Stripe requests. You only do this once.'],
-    ['Optional subscription', 'Without a subscription: $10 minimum and 5% to Curl-to-Buy. Start €5, Grow €19 or Scale €49 lowers the minimum to $5 and removes the platform fee. Stripe deducts its card fee either way.'],
-    ['List what you sell', 'Choose a physical item or digital file, describe it and set your price.'],
-    ['Share your payment link', 'Create a unique link and send it to your buyer. Buyers need no account.'],
+    ['Connect Stripe', 'Enter your email. Stripe collects the legal details. You only do this once.'],
+    ['Upload and set a price', 'Add your file and set a price. Curl-to-Buy takes 5%. No monthly fee.'],
+    ['Share the link', 'The buyer pays by card and downloads the file. The money goes to your Stripe.'],
   ]
 
   return (
@@ -51,7 +49,7 @@ export default function SellerGuide() {
           {expanded ? (sv ? 'Dölj' : 'Hide') : (sv ? 'Visa steg' : 'Show steps')}
         </button>
       </div>
-      <p className="mt-2 text-sm leading-relaxed text-ink-soft">{sv ? 'E-post och Stripe → Vara och pris → Dela länken. Abonnemang är valfritt.' : 'Email and Stripe → Item and price → Share the link. A subscription is optional.'}</p>
+      <p className="mt-2 text-sm leading-relaxed text-ink-soft">{sv ? 'E-post och Stripe → Fil och pris → Dela länken.' : 'Email and Stripe → File and price → Share the link.'}</p>
       {expanded ? (
         <ol id="ctb-guide-steps" className="mt-4 grid gap-2 sm:grid-cols-2">
           {steps.map(([title, description], i) => (
