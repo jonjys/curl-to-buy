@@ -6,7 +6,7 @@ import { isSubscribed, priceError, saleTerms } from '../../../lib/entitlement'
 import { loadReadySeller } from '../../../lib/stripe-connect'
 import { storageErrorMessage } from '../../../lib/blob-error'
 import { clientError } from '../../../lib/http'
-import { publishListingImage } from '../../../lib/listing-image'
+import { discardListingImage, finishListingImage, publishListingImage } from '../../../lib/listing-image'
 
 export const runtime = 'nodejs'
 
@@ -92,8 +92,10 @@ export async function POST(req) {
   try {
     listing = await publishListing(seller, body, listing)
   } catch (error) {
+    await discardListingImage(image)
     return Response.json({ error: error.status ? error.message : storageErrorMessage(error), needsPlan: Boolean(error.needsPlan), quotaExceeded: Boolean(error.quotaExceeded) }, { status: error.status || 500 })
   }
+  await finishListingImage(image)
   return Response.json({ id: listing.id, name: listing.name, kind: 'physical', priceSek: listing.priceSek, currency: 'sek', salesLimit: listing.salesLimit })
 }
 

@@ -7,7 +7,7 @@ import { MAX_DESCRIPTION_LENGTH, MAX_FILES, MAX_MB, MAX_SALES_LIMIT, TIME_LIMIT_
 import { storageErrorMessage } from '../../../lib/blob-error'
 import { loadReadySeller } from '../../../lib/stripe-connect'
 import { clientError } from '../../../lib/http'
-import { publishListingImage } from '../../../lib/listing-image'
+import { discardListingImage, finishListingImage, publishListingImage } from '../../../lib/listing-image'
 
 export const runtime = 'nodejs'
 
@@ -83,8 +83,9 @@ export async function POST(req) {
   if (!price) return Response.json({ error: priceError(terms, locale, body.priceSek != null && body.priceUsd == null ? 'sek' : 'usd') }, { status: 400 })
 
   let listing
+  let image = null
   try {
-    const image = body.imageUpload
+    image = body.imageUpload
       ? await publishListingImage(body.imageUpload, { sellerId: seller.id, requestId: body.requestId, paidPaths: files.map((file) => file.blobPathname) })
       : null
     listing = {
@@ -106,9 +107,11 @@ export async function POST(req) {
     }
     listing = await publishListing(seller, body, listing)
   } catch (err) {
+    await discardListingImage(image)
     return Response.json({ error: err.status ? err.message : storageErrorMessage(err), needsPlan: Boolean(err.needsPlan), quotaExceeded: Boolean(err.quotaExceeded) }, { status: err.status || 500 })
   }
 
+  await finishListingImage(image)
   return Response.json({
     id: listing.id,
     name: listing.name,

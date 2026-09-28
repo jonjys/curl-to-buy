@@ -169,3 +169,49 @@ test('a paid file, a non-staging path, a non-image or a missing upload can never
   const missing = await GET(new Request('https://app.test/dl/missing_00000001/image'), { params: Promise.resolve({ id: 'missing_00000001' }) })
   assert.equal(missing.status, 404)
 })
+
+test('cleanup: a failed save removes the published copy but keeps the staged upload for a retry; junk uploads are deleted; paid files never', async () => {
+  const { app } = sellerApp()
+  const staged = 'uploads/image-staging/b/cover-Fail1.jpg'
+  await app.blob.put(staged, jpegWithMetadata(), {})
+  const failed = await register(app, { imageUpload: staged, accepted: false })
+  assert.equal(failed.response.status, 400)
+  const keys = () => [...app.blob.data.keys()]
+  assert.equal(keys().some((key) => key.startsWith('listing-images/')), false, 'no orphaned published image')
+  assert.equal(keys().some((key) => key.startsWith('listings/')), false, 'no listing saved')
+  assert.equal(app.blob.data.has(staged), true, 'staged upload kept for retry')
+  const retried = await register(app, { imageUpload: staged, requestId: failed.requestId })
+  assert.equal(retried.response.status, 200, 'same draft succeeds on retry')
+  assert.equal(app.blob.data.has(staged), false, 'staged upload removed after success')
+  assert.equal(keys().filter((key) => key.startsWith('listing-images/')).length, 1)
+
+  const junk = 'uploads/image-staging/b/junk.jpg'
+  await app.blob.put(junk, '%PDF-1.7 not an image', {})
+  assert.equal((await register(app, { imageUpload: junk })).response.status, 400)
+  assert.equal(app.blob.data.has(junk), false, 'non-image staged upload deleted')
+
+  const paid = 'uploads/image-staging/b/also-sold.jpg'
+  await app.blob.put(paid, jpegWithMetadata(), {})
+  const refused = await register(app, { imageUpload: paid, files: [{ name: 'also-sold.jpg', blobPathname: paid, size: 12, type: 'image/jpeg' }] })
+  assert.equal(refused.response.status, 400)
+  assert.equal(app.blob.data.has(paid), true, 'a paid file is never deleted or published')
+})
+
+test('physical item photo: staged -> cleaned private image; photo URLs from clients are refused', async () => {
+  const { app } = sellerApp()
+  const route = await app.load('app/api/register-item/route.js')
+  const staged = 'uploads/image-staging/r/item-Zz9.png'
+  await app.blob.put(staged, pngWithMetadata(), {})
+  const item = { requestId: randomUUID(), accepted: true, locale: 'sv', title: 'Jacka', condition: 'used_good', priceSek: 300, shippingIncluded: true, shippingCountries: ['SE'] }
+  const post = (body) => route.POST(new Request('https://app.test/api/register-item', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }))
+  assert.equal((await post({ ...item, photoUrl: 'https://abc.public.blob.vercel-storage.com/uploads/items/x.jpg' })).status, 400)
+  const created = await post({ ...item, photoUpload: staged })
+  assert.equal(created.status, 200)
+  const { id } = await created.json()
+  const listing = await (await app.load('lib/store.js')).getListing(id)
+  assert.equal(listing.imagePath, `listing-images/seller1/${item.requestId}.png`)
+  assert.equal(has(app.blob.data.get(listing.imagePath).text, SECRET), false)
+  assert.equal(app.blob.data.has(staged), false)
+  const { buyerListing } = await app.load('lib/listing-view.js')
+  assert.equal((await buyerListing(id)).listing.imageUrl, `/dl/${id}/image`)
+})
