@@ -308,7 +308,6 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     const pitch = sv ? `${listing.name}, ${label}. Betala med kort och ladda ner direkt:` : `${listing.name}, ${label}. Pay by card and download instantly:`
     const channels = [
       { label: 'X', href: `https://x.com/intent/post?text=${encodeURIComponent(pitch)}&url=${encodeURIComponent(shareUrl)}` },
-      { label: 'WhatsApp', href: `https://wa.me/?text=${encodeURIComponent(`${pitch} ${shareUrl}`)}` },
       { label: 'LinkedIn', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}` },
       { label: sv ? 'E-post' : 'Email', href: `mailto:?subject=${encodeURIComponent(listing.name)}&body=${encodeURIComponent(`${pitch}\n${shareUrl}`)}` },
     ]
@@ -325,7 +324,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
               <button type="button" onClick={copyLink} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-pine px-4 text-sm font-medium text-pine-fg">{copied ? t.copied : t.copy}</button>
               <button type="button" onClick={shareLink} className="inline-flex min-h-11 items-center justify-center rounded-sm border border-cyan/40 px-4 text-sm font-medium text-cyan">{t.share}</button>
             </div>
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="mt-2 grid grid-cols-3 gap-2">
               {channels.map((channel) => <a key={channel.label} href={channel.href} target="_blank" rel="noopener noreferrer" className="nl-chip inline-flex min-h-10 items-center justify-center rounded-sm px-3 text-xs font-medium text-ink no-underline">{channel.label}</a>)}
             </div>
             <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs text-pine">{sv ? 'Öppna köpsidan' : 'Open your page'} →</a>
@@ -526,7 +525,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         <label htmlFor="cover" className="text-sm font-medium">{sv ? 'Omslagsbild (rekommenderas)' : 'Cover image (recommended)'}</label>
         <label htmlFor="cover" className="flex cursor-pointer items-center gap-3 rounded-md border border-dashed border-line bg-sheet p-3 hover:border-pine/50">
           {coverPreview ? <img src={coverPreview} alt="" className="h-16 w-16 shrink-0 rounded-sm object-cover" /> : <span aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-sm bg-paper-tint text-2xl text-muted">＋</span>}
-          <span className="min-w-0 text-xs leading-relaxed text-muted">{cover ? <span className="block truncate text-sm text-ink">{cover.name}</span> : null}{sv ? 'Visas publikt på köpsidan, i Stripe-kassan och när länken delas. Använd en förhandsbild, inte filen du säljer. Platsdata och annan metadata tas bort.' : 'Shown publicly on your page, at Stripe checkout and when the link is shared. Use a preview, not the file you sell. Location and other metadata are removed.'}</span>
+          <span className="min-w-0 text-xs leading-relaxed text-muted">{cover ? <span className="block truncate text-sm text-ink">{cover.name}</span> : null}{sv ? 'Visas publikt på köpsidan, i Stripe-kassan och när länken delas. Använd en förhandsbild, inte filen du säljer. Formuläret tar bort platsdata och annan metadata i din webbläsare innan uppladdning.' : 'Shown publicly on your page, at Stripe checkout and when the link is shared. Use a preview, not the file you sell. This form removes location and other metadata in your browser before upload.'}</span>
         </label>
         <input id="cover" type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { setError(null); setCover(e.target.files?.[0] || null) }} />
       </div>
