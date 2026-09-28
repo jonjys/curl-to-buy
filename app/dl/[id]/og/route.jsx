@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og'
-import { buyerListing } from '../../../../lib/listing-view'
+import { buyerListing, loadListing } from '../../../../lib/listing-view'
+import { readListingImage } from '../../../../lib/listing-image'
 
 export const runtime = 'nodejs'
 
@@ -11,10 +12,15 @@ function clip(text, max) {
   return value.length > max ? `${value.slice(0, max - 1).trimEnd()}…` : value
 }
 
-// The image renderer decodes PNG and JPEG reliably; WebP covers fall back to
-// the text-only card rather than risk a broken preview.
-function renderableImage(url) {
-  return url && /\.(png|jpe?g)$/i.test(new URL(url).pathname) ? url : null
+// The image renderer decodes PNG and JPEG reliably; WebP falls back to the
+// text-only card. New images are read from private storage and inlined, so
+// the renderer never fetches a URL; legacy photos are pre-validated URLs.
+async function renderableImage(id, imageUrl) {
+  const stored = await readListingImage(await loadListing(id)).catch(() => null)
+  if (stored) {
+    return /^image\/(png|jpeg)$/.test(stored.type) ? `data:${stored.type};base64,${Buffer.from(stored.bytes).toString('base64')}` : null
+  }
+  return imageUrl && /^https:/.test(imageUrl) && /\.(png|jpe?g)$/i.test(new URL(imageUrl).pathname) ? imageUrl : null
 }
 
 export async function GET(_req, { params }) {
@@ -23,7 +29,7 @@ export async function GET(_req, { params }) {
   if (!view) return new Response('Not found', { status: 404 })
   const { listing, price } = view
   const physical = listing.kind === 'physical'
-  const image = renderableImage(listing.imageUrl)
+  const image = await renderableImage(id, listing.imageUrl)
   const unavailable = listing.paused ? 'Paused' : listing.soldOut ? (physical ? 'Sold' : 'Sold out') : listing.expired ? 'Offer ended' : null
   const detail = physical
     ? 'Shipping included · Pay by card'

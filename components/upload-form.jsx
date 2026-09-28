@@ -111,7 +111,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           salesLimit: draft.salesLimit,
           downloadsPerFile: draft.downloadsPerFile,
           description: draft.description,
-          coverUrl: draft.coverUrl || null,
+          imageUpload: draft.imageUpload || null,
           timeLimitMinutes: draft.timeLimitMinutes,
         }),
       })
@@ -256,8 +256,9 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     setProgress(2)
     try {
       const batch = crypto.randomUUID()
-      // Clean the public cover first so a bad image fails before any file upload.
-      const publicCover = cover ? await cleanImage(cover) : null
+      // Shrink the cover first so a bad image fails before any file upload. The
+      // server removes metadata again before the image is shown to anyone.
+      const smallCover = cover ? await cleanImage(cover) : null
       const uploaded = []
       for (let index = 0; index < files.length; index++) {
         const file = files[index]
@@ -267,14 +268,14 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         })
         uploaded.push({ blobPathname: blob.pathname, name: file.name, size: file.size, type: file.type })
       }
-      let coverUrl = null
-      if (publicCover) {
-        const blob = await upload(`uploads/covers/${batch}/cover.${IMAGE_TYPES[publicCover.type]}`, publicCover, {
-          access: 'public', handleUploadUrl: '/api/upload-url', contentType: publicCover.type,
+      let imageUpload = null
+      if (smallCover) {
+        const blob = await upload(`uploads/image-staging/${batch}/cover.${IMAGE_TYPES[smallCover.type]}`, smallCover, {
+          access: 'private', handleUploadUrl: '/api/upload-url', contentType: smallCover.type,
         })
-        coverUrl = blob.url
+        imageUpload = blob.pathname
       }
-      const draft = { requestId: batch, accepted, uploaded, title, priceUsd: String(usd), salesLimit, downloadsPerFile, description, timeLimitMinutes, coverUrl }
+      const draft = { requestId: batch, accepted, uploaded, title, priceUsd: String(usd), salesLimit, downloadsPerFile, description, timeLimitMinutes, imageUpload }
       writeDraft(draft)
       if (connect.ready) await finalizeDraft(draft)
       else setShowConnect(true)
@@ -315,7 +316,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       <div className="space-y-5">
         <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.linkReady}</p>
         <div className="nl-card overflow-hidden rounded-md">
-          {listing.coverUrl ? <img src={listing.coverUrl} alt="" className="max-h-48 w-full bg-paper-tint object-cover" /> : null}
+          {listing.imageUrl ? <img src={listing.imageUrl} alt="" className="max-h-48 w-full bg-paper-tint object-cover" /> : null}
           <div className="p-4">
             <h3 className="font-display text-2xl font-black">{listing.name}</h3>
             <p className="mt-1 text-sm text-ink-soft">{label} · {listing.fileCount} {listing.fileCount === 1 ? t.oneFile : t.manyFiles}</p>
@@ -525,7 +526,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         <label htmlFor="cover" className="text-sm font-medium">{sv ? 'Omslagsbild (rekommenderas)' : 'Cover image (recommended)'}</label>
         <label htmlFor="cover" className="flex cursor-pointer items-center gap-3 rounded-md border border-dashed border-line bg-sheet p-3 hover:border-pine/50">
           {coverPreview ? <img src={coverPreview} alt="" className="h-16 w-16 shrink-0 rounded-sm object-cover" /> : <span aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-sm bg-paper-tint text-2xl text-muted">＋</span>}
-          <span className="min-w-0 text-xs leading-relaxed text-muted">{cover ? <span className="block truncate text-sm text-ink">{cover.name}</span> : null}{sv ? 'Visas publikt på köpsidan, i Stripe-kassan och när länken delas. Använd en förhandsbild, inte filen du säljer. Formuläret tar bort platsdata och annan metadata i din webbläsare innan uppladdning.' : 'Shown publicly on your page, at Stripe checkout and when the link is shared. Use a preview, not the file you sell. This form removes location and other metadata in your browser before upload.'}</span>
+          <span className="min-w-0 text-xs leading-relaxed text-muted">{cover ? <span className="block truncate text-sm text-ink">{cover.name}</span> : null}{sv ? 'Visas publikt på köpsidan, i Stripe-kassan och när länken delas. Använd en förhandsbild, inte filen du säljer. Platsdata, kamerauppgifter och annan metadata tas bort innan bilden visas.' : 'Shown publicly on your page, at Stripe checkout and when the link is shared. Use a preview, not the file you sell. Location, camera details and other metadata are removed before the image is shown.'}</span>
         </label>
         <input id="cover" type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { setError(null); setCover(e.target.files?.[0] || null) }} />
       </div>

@@ -180,13 +180,13 @@ test('Checkout refuses missing recipient and sold-out listing; paid session cann
 })
 
 test('Cover image reaches Stripe Checkout; legacy listing without one sends no images; paid flow unchanged', async () => {
-  const cover = 'https://abc.public.blob.vercel-storage.com/uploads/covers/b/cover-x.jpg'
+  const cover = 'https://example.test/dl/listing1/image'
   const legacy = await setup()
   await legacy.checkout.POST(new Request('https://example.test/api/checkout/listing1', { method: 'POST' }), { params: Promise.resolve({ id: 'listing1' }) })
   assert.equal(legacy.state.checkoutArgs.line_items[0].price_data.product_data.images, undefined)
 
   const { state, checkout, webhook, download } = await setup()
-  state.listing = { ...state.listing, coverUrl: cover }
+  state.listing = { ...state.listing, imagePath: 'listing-images/seller1/0123456789abcdef.jpg', imageType: 'image/jpeg', coverUrl: 'https://abc.public.blob.vercel-storage.com/ignored.jpg' }
   const created = await checkout.POST(new Request('https://example.test/api/checkout/listing1', { method: 'POST' }), { params: Promise.resolve({ id: 'listing1' }) })
   assert.equal(created.status, 200)
   assert.equal(JSON.stringify(state.checkoutArgs.line_items[0].price_data.product_data.images), JSON.stringify([cover]))

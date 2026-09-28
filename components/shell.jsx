@@ -26,14 +26,14 @@ export function SiteHeader({ buyer = false }) {
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex min-h-11 items-center gap-2.5 no-underline">
           <Mark />
-          <span className="leading-tight">
-            <span className="block font-mono text-xs tracking-[0.3em] text-white">{t.brand.toUpperCase()}</span>
-            <span className="block font-mono text-[10px] uppercase tracking-kicker text-muted">{t.product}</span>
+          <span className="leading-tight max-[389px]:sr-only">
+            <span className="block whitespace-nowrap font-mono text-xs tracking-[0.18em] text-white sm:tracking-[0.3em]">{t.brand.toUpperCase()}</span>
+            <span className="block whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.18em] text-muted sm:tracking-kicker">{t.product}</span>
           </span>
         </Link>
         <div className="flex items-center gap-2">
           <LangToggle />
-          {buyer ? null : <Link href="/upload" className="inline-flex min-h-11 items-center rounded-sm border border-white/15 px-3.5 text-sm font-medium text-ink no-underline transition-colors hover:border-pine/50">{locale === 'sv' ? 'Skapa köplänk' : 'Create link'}</Link>}
+          {buyer ? null : <Link href="/upload" className="inline-flex min-h-11 items-center whitespace-nowrap rounded-sm border border-white/15 px-3 text-sm font-medium text-ink no-underline transition-colors hover:border-pine/50 sm:px-3.5">{locale === 'sv' ? 'Skapa köplänk' : 'Create link'}</Link>}
         </div>
       </div>
       {buyer ? null : <nav className="mx-auto flex w-full max-w-7xl gap-5 px-4 pb-2 text-xs sm:px-6 lg:px-8" aria-label={locale === 'sv' ? 'Säljverktyg' : 'Seller tools'}><Link href="/links" className="text-ink-soft no-underline">{locale === 'sv' ? 'Mina länkar' : 'My links'}</Link></nav>}

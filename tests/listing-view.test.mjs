@@ -6,7 +6,6 @@ import { runtime } from './integration-helper.mjs'
 // Route code runs in a vm context, so compare values, not prototypes.
 const same = (actual, expected, message) => assert.equal(JSON.stringify(actual), JSON.stringify(expected), message)
 
-const COVER = 'https://abc.public.blob.vercel-storage.com/uploads/covers/batch/cover-x1.jpg'
 const PHOTO = 'https://abc.public.blob.vercel-storage.com/uploads/items/req/item-x1.jpg'
 
 async function view(listings, purchases = {}) {
@@ -34,31 +33,33 @@ test('legacy single-file links still render and never expose file names or stora
   for (const secret of ['client-acme', 'uploads/', 'blobPathname', 'sellerId', 'paymentAccountId']) assert.equal(json.includes(secret), false, secret)
 })
 
-test('multi-file listing shows count, formats and size but not names; cover must be our public cover prefix', async () => {
+test('multi-file listing shows count, formats and size but not names; image is served by our own route', async () => {
   const listing = { id: 'multi_link_00001', name: 'Presets', files: [
     { name: 'jane-doe-portrait.zip', size: 3 * 1024 * 1024, blobPathname: 'uploads/b/jane-doe-portrait.zip' },
     { name: 'guide.pdf', size: 1024 * 1024, blobPathname: 'uploads/b/guide.pdf' },
-  ], priceUsd: 19, priceCents: 1900, currency: 'usd', downloadsPerFile: 3, coverUrl: COVER,
-  sellerId: 's1', paymentAccountId: 'acct_x' }
+  ], priceUsd: 19, priceCents: 1900, currency: 'usd', downloadsPerFile: 3,
+  imagePath: 'listing-images/s1/0123456789abcdef.jpg', imageType: 'image/jpeg', sellerId: 's1', paymentAccountId: 'acct_x' }
   const { buyerListing } = await view([listing])
   const { listing: out } = await buyerListing(listing.id)
   same(out.files, { count: 2, types: ['ZIP', 'PDF'], size: '4.0 MB' })
-  assert.equal(out.imageUrl, COVER)
+  assert.equal(out.imageUrl, '/dl/multi_link_00001/image')
   assert.equal(out.downloadsPerFile, 3)
-  assert.equal(JSON.stringify(out).includes('jane-doe'), false)
+  for (const secret of ['jane-doe', 'listing-images/', 'uploads/']) assert.equal(JSON.stringify(out).includes(secret), false, secret)
 })
 
-test('stored image URLs outside our public prefixes are dropped before render or server-side fetch', async () => {
+test('only our image paths or legacy public item photos are used; anything else is dropped', async () => {
   const base = { priceUsd: 10, priceCents: 1000, currency: 'usd', files: [{ name: 'a.zip', size: 1 }] }
   const { buyerListing } = await view([
     { ...base, id: 'bad_cover_000001', name: 'x', coverUrl: 'http://169.254.169.254/latest/meta-data' },
-    { ...base, id: 'bad_cover_000002', name: 'x', coverUrl: 'https://abc.public.blob.vercel-storage.com/uploads/b/paid-file.jpg' },
-    { ...base, id: 'bad_cover_000003', name: 'x', coverUrl: PHOTO },
-    { ...base, id: 'item_photo_00001', name: 'x', kind: 'physical', photoUrl: PHOTO, coverUrl: COVER },
+    { ...base, id: 'bad_cover_000002', name: 'x', imagePath: 'uploads/b/paid-file.jpg' },
+    { ...base, id: 'bad_cover_000003', name: 'x', imagePath: 'listing-images/../uploads/b/paid.jpg' },
+    { ...base, id: 'bad_cover_000004', name: 'x', photoUrl: PHOTO },
+    { ...base, id: 'item_photo_00001', name: 'x', kind: 'physical', photoUrl: PHOTO },
+    { ...base, id: 'item_photo_00002', name: 'x', kind: 'physical', photoUrl: 'https://evil.example/uploads/items/x.jpg' },
   ])
-  assert.equal((await buyerListing('bad_cover_000001')).listing.imageUrl, null)
-  assert.equal((await buyerListing('bad_cover_000002')).listing.imageUrl, null)
-  assert.equal((await buyerListing('bad_cover_000003')).listing.imageUrl, null)
+  for (const id of ['bad_cover_000001', 'bad_cover_000002', 'bad_cover_000003', 'bad_cover_000004', 'item_photo_00002']) {
+    assert.equal((await buyerListing(id)).listing.imageUrl, null, id)
+  }
   assert.equal((await buyerListing('item_photo_00001')).listing.imageUrl, PHOTO)
 })
 
@@ -82,34 +83,32 @@ test('sold out, paused, expired and unknown links', async () => {
   assert.equal(await buyerListing('../listings/x'), null)
 })
 
-test('public image policy: only listing image prefixes are public, and only as images', async () => {
+test('upload tokens are always private; image staging is limited to small images', async () => {
   let policy
   const app = runtime({ mocks: {
     '@vercel/blob/client': { handleUpload: async ({ body, onBeforeGenerateToken }) => { policy = await onBeforeGenerateToken(body.pathname); return {} } },
   } })
   const { POST } = await app.load('app/api/upload-url/route.js')
   const ask = (pathname) => POST(new Request('https://example.test/api/upload-url', { method: 'POST', body: JSON.stringify({ pathname }) }))
-  await ask('uploads/covers/b/cover.jpg')
-  assert.equal(policy.access, 'public')
+  await ask('uploads/image-staging/b/cover.jpg')
+  assert.equal(policy.access, 'private')
   same(policy.allowedContentTypes, ['image/jpeg', 'image/png', 'image/webp'])
   assert.equal(policy.maximumSizeInBytes, 8 * 1024 * 1024)
-  await ask('uploads/items/r/item.png')
-  assert.equal(policy.access, 'public')
-  assert.ok(policy.allowedContentTypes)
-  for (const path of ['uploads/b/file.zip', 'uploads/b/uploads/covers/x.jpg', 'covers/x.jpg', '']) {
+  for (const path of ['uploads/items/r/item.png', 'uploads/covers/b/cover.jpg', 'uploads/b/file.zip', 'listing-images/s/x.jpg', '']) {
     await ask(path)
     assert.equal(policy.access, 'private', path)
     assert.equal(policy.allowedContentTypes, undefined, path)
   }
 
-  const { publicImageUrl } = await app.load('lib/public-image.js')
-  assert.equal(publicImageUrl(COVER, 'uploads/covers/'), COVER)
+  const { legacyPhotoUrl } = await app.load('lib/public-image.js')
+  assert.equal(legacyPhotoUrl(PHOTO), PHOTO)
   for (const url of [
-    'http://abc.public.blob.vercel-storage.com/uploads/covers/x.jpg',
-    'https://abc.private.blob.vercel-storage.com/uploads/covers/x.jpg',
-    'https://evil.example/uploads/covers/x.jpg',
-    'https://abc.public.blob.vercel-storage.com.evil.example/uploads/covers/x.jpg',
+    'http://abc.public.blob.vercel-storage.com/uploads/items/x.jpg',
+    'https://abc.private.blob.vercel-storage.com/uploads/items/x.jpg',
+    'https://evil.example/uploads/items/x.jpg',
+    'https://abc.public.blob.vercel-storage.com.evil.example/uploads/items/x.jpg',
     'https://abc.public.blob.vercel-storage.com/uploads/b/paid.jpg',
+    'https://abc.public.blob.vercel-storage.com/uploads/items/../b/paid.jpg',
     'not a url', null,
-  ]) assert.equal(publicImageUrl(url, 'uploads/covers/'), null, String(url))
+  ]) assert.equal(legacyPhotoUrl(url), null, String(url))
 })

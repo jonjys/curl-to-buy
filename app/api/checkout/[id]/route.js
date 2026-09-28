@@ -78,7 +78,8 @@ export async function POST(req, { params }) {
 
   const origin = httpsOrigin(req)
   const fileCount = listingFiles(listing).length
-  const image = isPhysical ? listing.photoUrl : listing.coverUrl
+  // Stripe fetches this URL, so give it our own route (private image, metadata removed).
+  const image = listing.imagePath ? `${origin}/dl/${listing.id}/image` : (isPhysical && listing.photoUrl) || null
   const checkoutParams = {
     mode: 'payment',
     line_items: [{

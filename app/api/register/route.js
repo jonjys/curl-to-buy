@@ -7,7 +7,7 @@ import { MAX_DESCRIPTION_LENGTH, MAX_FILES, MAX_MB, MAX_SALES_LIMIT, TIME_LIMIT_
 import { storageErrorMessage } from '../../../lib/blob-error'
 import { loadReadySeller } from '../../../lib/stripe-connect'
 import { clientError } from '../../../lib/http'
-import { publicImageUrl } from '../../../lib/public-image'
+import { publishListingImage } from '../../../lib/listing-image'
 
 export const runtime = 'nodejs'
 
@@ -77,9 +77,6 @@ export async function POST(req) {
     return Response.json({ error: `Package is too large (max ${MAX_MB} MB).` }, { status: 400 })
   }
 
-  const coverUrl = publicImageUrl(body.coverUrl, 'uploads/covers/')
-  if (body.coverUrl && !coverUrl) return Response.json({ error: 'Invalid cover image.' }, { status: 400 })
-
   const locale = body.locale === 'sv' ? 'sv' : 'en'
   const terms = saleTerms(isSubscribed(await billingState(seller).catch(() => ({ active: false }))))
   const price = parsePrice(body, { minUsd: terms.minUsd, minSek: terms.minSek })
@@ -87,6 +84,9 @@ export async function POST(req) {
 
   let listing
   try {
+    const image = body.imageUpload
+      ? await publishListingImage(body.imageUpload, { sellerId: seller.id, requestId: body.requestId, paidPaths: files.map((file) => file.blobPathname) })
+      : null
     listing = {
       name: String(body.title || (files.length === 1 ? files[0].name : `${files.length}-file package`)).slice(0, 100),
       files,
@@ -98,7 +98,8 @@ export async function POST(req) {
       salesLimit: salesLimitOrNull(body.salesLimit),
       downloadsPerFile: numberOrNull(body.downloadsPerFile, DOWNLOAD_LIMITS),
       description: descriptionOrNull(body.description),
-      coverUrl,
+      imagePath: image?.imagePath || null,
+      imageType: image?.imageType || null,
       expiresAt: expiresAtOrNull(body.timeLimitMinutes),
       sellerId: seller.id,
       createdAt: Date.now(),
@@ -111,7 +112,7 @@ export async function POST(req) {
   return Response.json({
     id: listing.id,
     name: listing.name,
-    coverUrl: listing.coverUrl || null,
+    imageUrl: listing.imagePath ? `/dl/${listing.id}/image` : null,
     fileCount: files.length,
     priceUsd: listing.priceUsd,
     priceSek: listing.priceSek,

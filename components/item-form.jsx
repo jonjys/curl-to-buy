@@ -111,17 +111,17 @@ export default function ItemForm({ stripeReady, blobReady }) {
     setBusy(true)
     try {
       const requestId = crypto.randomUUID()
-      let photoUrl = null
+      let photoUpload = null
       if (photo) {
-        // Public photo: strip EXIF (GPS, device, owner) before it leaves the browser.
+        // Private staged upload; the server removes metadata before publishing it.
         const clean = await cleanImage(photo)
-        const blob = await upload(`uploads/items/${requestId}/item.${PHOTO_TYPES[clean.type]}`, clean, {
-          access: 'public', handleUploadUrl: '/api/upload-url', contentType: clean.type,
+        const blob = await upload(`uploads/image-staging/${requestId}/item.${PHOTO_TYPES[clean.type]}`, clean, {
+          access: 'private', handleUploadUrl: '/api/upload-url', contentType: clean.type,
         })
-        photoUrl = blob.url
+        photoUpload = blob.pathname
       }
       const draft = { requestId, accepted: adult, locale, title: title.trim(), description: description.trim(), condition,
-        priceSek: amount, photoUrl, shippingIncluded, shippingCountries, brand, contactEmail, deliveryEstimate, returnPolicy, sourceUrl, variant,
+        priceSek: amount, photoUpload, shippingIncluded, shippingCountries, brand, contactEmail, deliveryEstimate, returnPolicy, sourceUrl, variant,
         salesLimit: stock === 'unlimited' ? null : Number(stock) }
       window.localStorage.setItem(ITEM_DRAFT, JSON.stringify(draft))
       if (connect.ready) await finish(draft)
