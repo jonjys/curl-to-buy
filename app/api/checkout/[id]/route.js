@@ -78,6 +78,7 @@ export async function POST(req, { params }) {
 
   const origin = httpsOrigin(req)
   const fileCount = listingFiles(listing).length
+  const image = isPhysical ? listing.photoUrl : listing.coverUrl
   const checkoutParams = {
     mode: 'payment',
     line_items: [{
@@ -90,7 +91,7 @@ export async function POST(req, { params }) {
           description: isPhysical
             ? 'Physical item · shipping included in price'
             : fileCount > 1 ? `${fileCount} digital files via Curl-to-Buy` : 'Digital file via Curl-to-Buy',
-          ...(isPhysical && listing.photoUrl ? { images: [listing.photoUrl] } : {}),
+          ...(image ? { images: [image] } : {}),
         },
       },
     }],

@@ -55,24 +55,56 @@ export default function BuyBox({ listing, price }) {
     used_fair: sv ? 'Begagnad · bruksskick' : 'Used · fair condition',
   }[listing.condition]
 
+  const files = listing.files || { count: 0, types: [], size: null }
+  const summary = isPhysical
+    ? [condition || (sv ? 'Skick ej angivet' : 'Condition unspecified'), sv ? 'Frakt ingår' : 'Shipping included']
+    : [`${files.count} ${files.count === 1 ? t.oneFile : t.manyFiles}`, files.types.join(', '), files.size].filter(Boolean)
+  const promises = isPhysical
+    ? [
+        sv ? 'Säker kortbetalning via Stripe' : 'Secure card payment via Stripe',
+        `${sv ? 'Leverans till' : 'Ships to'} ${(listing.shippingCountries || ['SE']).join(', ')}`,
+        listing.deliveryEstimate,
+      ]
+    : [
+        sv ? 'Direkt nedladdning efter betalning' : 'Instant download right after payment',
+        sv ? 'Säker kortbetalning via Stripe' : 'Secure card payment via Stripe',
+        sv ? 'Inget konto behövs' : 'No account needed',
+        listing.downloadsPerFile ? (sv ? `Ladda ner varje fil upp till ${listing.downloadsPerFile} gånger` : `Download each file up to ${listing.downloadsPerFile} times`) : null,
+      ]
+  const blocked = busy || listing.soldOut || expired || listing.paused
+  const cta = listing.paused ? (sv ? 'Länken är pausad' : 'Link paused') : listing.soldOut ? (isPhysical ? (sv ? 'Såld' : 'Sold') : t.soldOut) : expired ? t.offerExpired : busy ? t.verifying : `${sv ? 'Köp för' : 'Buy for'} ${price.label}`
+
   return (
-    <div className="nl-card nl-card-glow rounded-2xl p-6 sm:p-8">
-      <p className="text-xs font-bold uppercase tracking-kicker text-pine">{isPhysical ? (sv ? 'Fysisk vara' : 'Physical item') : t.buyKicker}</p>
-      <h1 className="mt-2 font-display text-3xl font-black tracking-tight">{isPhysical ? (sv ? 'Köp varan' : 'Buy this item') : t.buyTitle}</h1>
-      {isPhysical && listing.photoUrl ? <img src={listing.photoUrl} alt={listing.name} className="mt-5 max-h-80 w-full rounded-xl object-contain" /> : null}
-      <p className="mt-5 break-words text-xl font-bold text-ink">{listing.name}</p>
-      {isPhysical ? <p className="mt-1 text-sm text-muted">{condition || (sv ? 'Skick ej angivet' : 'Condition unspecified')} · {sv ? 'Frakt ingår' : 'Shipping included'}</p> : <p className="mt-1 text-sm text-muted">{listing.fileCount} {listing.fileCount === 1 ? t.oneFile : t.manyFiles}</p>}
-      {listing.variant ? <p className="mt-2 text-sm text-ink-soft">{listing.variant}</p> : null}
-      {listing.description ? <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-soft">{listing.description}</p> : null}
-      {isPhysical ? <div className="mt-4 space-y-2 text-sm text-ink-soft">{listing.brand ? <p>{listing.brand}</p> : null}<p>{sv ? 'Leverans till' : 'Ships to'}: {(listing.shippingCountries || ['SE']).join(', ')}</p>{listing.deliveryEstimate ? <p>{listing.deliveryEstimate}</p> : null}{listing.returnPolicy ? <details><summary>{sv ? 'Returinformation' : 'Return information'}</summary><p className="mt-2 whitespace-pre-wrap">{listing.returnPolicy}</p></details> : null}{listing.sellerContact ? <a href={`mailto:${listing.sellerContact}`} className="text-pine">{sv ? 'Kontakta säljaren' : 'Contact seller'}</a> : null}</div> : null}
-      <p className="mt-6 font-display text-5xl font-black tabular-nums tracking-tight">{price.label}</p>
-      <p className="mt-2 text-sm text-muted">{isPhysical ? (sv ? 'Betala med kort via Stripe. Ange namn, e-post och leveransadress i kassan.' : 'Pay by card via Stripe. Enter your name, email and delivery address at checkout.') : t.payCard}</p>
-      {isPhysical ? <p className="mt-2 text-xs leading-relaxed text-muted">{sv ? 'Säljaren ansvarar för att skicka varan. Curl-to-Buy erbjuder inte köparskydd eller egen frakt.' : 'The seller is responsible for shipping. Curl-to-Buy does not provide buyer protection or shipping.'}</p> : null}
-      {remaining != null || listing.expiresAt ? <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">{remaining != null ? <p className="text-sm font-bold text-warn">{isPhysical && remaining === 0 ? (sv ? 'Såld' : 'Sold') : `${remaining} ${t.left}`}</p> : null}{listing.expiresAt && !expired ? <p className="font-mono text-sm font-bold tabular-nums text-warn">{t.timeLeft} {formatCountdown(msLeft)}</p> : null}</div> : null}
-      {listing.expiresAt && !expired ? <p className="mt-1 text-xs text-muted">{t.beFast}</p> : null}
-      <button type="button" onClick={pay} disabled={busy || listing.soldOut || expired || listing.paused} className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-xl bg-pine px-5 text-base font-bold text-pine-fg disabled:opacity-50">{listing.paused ? (sv ? 'Länken är pausad' : 'Link paused') : listing.soldOut ? (isPhysical ? (sv ? 'Såld' : 'Sold') : t.soldOut) : expired ? t.offerExpired : busy ? t.verifying : `${isPhysical ? (sv ? 'Betala' : 'Pay') : t.pay} ${price.label}`}</button>
-      {error ? <p role="alert" className="mt-3 text-sm text-warn">{error}</p> : null}
-    </div>
+    <article className="nl-card nl-card-glow overflow-hidden rounded-2xl">
+      {listing.imageUrl ? <img src={listing.imageUrl} alt={listing.name} className="max-h-96 w-full bg-paper-tint object-contain" /> : null}
+      <div className="p-6 sm:p-8">
+        <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{isPhysical ? (sv ? 'Fysisk vara' : 'Physical item') : (sv ? 'Digital nedladdning' : 'Digital download')}</p>
+        <h1 className="mt-2 break-words font-display text-3xl font-black tracking-tight sm:text-4xl">{listing.name}</h1>
+        <p className="mt-2 text-sm text-muted">{summary.join(' · ')}</p>
+        {listing.variant ? <p className="mt-2 text-sm text-ink-soft">{listing.variant}</p> : null}
+        {listing.description ? <p className="mt-4 whitespace-pre-wrap break-words text-base leading-relaxed text-ink-soft">{listing.description}</p> : null}
+
+        <div className="mt-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+          <p className="font-display text-5xl font-black tabular-nums tracking-tight">{price.label}</p>
+          {remaining != null || listing.expiresAt ? <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pb-1">{remaining != null ? <p className="text-sm font-bold text-warn">{isPhysical && remaining === 0 ? (sv ? 'Såld' : 'Sold') : `${remaining} ${t.left}`}</p> : null}{listing.expiresAt && !expired ? <p className="font-mono text-sm font-bold tabular-nums text-warn">{t.timeLeft} {formatCountdown(msLeft)}</p> : null}</div> : null}
+        </div>
+        {listing.expiresAt && !expired ? <p className="mt-1 text-xs text-muted">{t.beFast}</p> : null}
+        <button type="button" onClick={pay} disabled={blocked} className="mt-5 inline-flex h-14 w-full items-center justify-center rounded-xl bg-pine px-5 text-lg font-bold text-pine-fg disabled:opacity-50">{cta}</button>
+        {error ? <p role="alert" className="mt-3 text-sm text-warn">{error}</p> : null}
+
+        <ul className="mt-5 grid gap-1.5 text-sm text-ink-soft">
+          {promises.filter(Boolean).map((line) => <li key={line} className="flex gap-2"><span aria-hidden="true" className="text-pine">✓</span><span>{line}</span></li>)}
+        </ul>
+
+        {isPhysical ? (
+          <div className="mt-5 space-y-2 border-t border-line/70 pt-4 text-sm text-ink-soft">
+            {listing.brand ? <p>{listing.brand}</p> : null}
+            {listing.returnPolicy ? <details><summary className="cursor-pointer">{sv ? 'Returinformation' : 'Return information'}</summary><p className="mt-2 whitespace-pre-wrap">{listing.returnPolicy}</p></details> : null}
+            {listing.sellerContact ? <a href={`mailto:${listing.sellerContact}`} className="text-pine">{sv ? 'Kontakta säljaren' : 'Contact seller'}</a> : null}
+            <p className="text-xs leading-relaxed text-muted">{sv ? 'Säljaren ansvarar för att skicka varan. Curl-to-Buy erbjuder inte köparskydd eller egen frakt.' : 'The seller is responsible for shipping. Curl-to-Buy does not provide buyer protection or shipping.'}</p>
+          </div>
+        ) : null}
+      </div>
+    </article>
   )
 }
-

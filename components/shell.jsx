@@ -19,7 +19,7 @@ export function LangToggle() {
   )
 }
 
-export function SiteHeader() {
+export function SiteHeader({ buyer = false }) {
   const { t, locale } = useLocale()
   return (
     <header className="sticky top-0 z-20 border-b border-white/5 bg-paper/70 backdrop-blur-md">
@@ -33,10 +33,10 @@ export function SiteHeader() {
         </Link>
         <div className="flex items-center gap-2">
           <LangToggle />
-          <Link href="/upload" className="inline-flex min-h-11 items-center rounded-sm border border-white/15 px-3.5 text-sm font-medium text-ink no-underline transition-colors hover:border-pine/50">{locale === 'sv' ? 'Skapa köplänk' : 'Create link'}</Link>
+          {buyer ? null : <Link href="/upload" className="inline-flex min-h-11 items-center rounded-sm border border-white/15 px-3.5 text-sm font-medium text-ink no-underline transition-colors hover:border-pine/50">{locale === 'sv' ? 'Skapa köplänk' : 'Create link'}</Link>}
         </div>
       </div>
-      <nav className="mx-auto flex w-full max-w-7xl gap-5 px-4 pb-2 text-xs sm:px-6 lg:px-8" aria-label={locale === 'sv' ? 'Säljverktyg' : 'Seller tools'}><Link href="/links" className="text-ink-soft no-underline">{locale === 'sv' ? 'Mina länkar' : 'My links'}</Link></nav>
+      {buyer ? null : <nav className="mx-auto flex w-full max-w-7xl gap-5 px-4 pb-2 text-xs sm:px-6 lg:px-8" aria-label={locale === 'sv' ? 'Säljverktyg' : 'Seller tools'}><Link href="/links" className="text-ink-soft no-underline">{locale === 'sv' ? 'Mina länkar' : 'My links'}</Link></nav>}
     </header>
   )
 }
@@ -61,7 +61,35 @@ export function SiteFooter() {
   )
 }
 
-export function Frame({ children }) {
-  return <div className="relative min-h-dvh bg-paper text-ink"><div className="nl-grid" aria-hidden="true" /><div className="relative z-10 flex min-h-dvh flex-col"><SiteHeader /><div className="flex-1">{children}</div><SiteFooter /></div></div>
+// Buyers never see seller pricing or tools. The footer invites them to sell
+// their own files, so every shared link also markets Curl-to-Buy.
+export function BuyerFooter() {
+  const { t, locale } = useLocale()
+  const sv = locale === 'sv'
+  return (
+    <footer className="relative z-10 mt-auto border-t border-line/80 bg-sheet/70 px-4 py-6 sm:px-6" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
+        <Link href="/?ref=buyer" className="nl-card flex items-center justify-between gap-3 rounded-xl px-4 py-3 no-underline">
+          <span>
+            <span className="block text-sm font-semibold text-ink">{sv ? 'Sälj dina egna filer' : 'Sell your own files'}</span>
+            <span className="block text-xs text-muted">{sv ? 'Skapa en köplänk på en minut. Ingen månadsavgift.' : 'Create a payment link in a minute. No monthly fee.'}</span>
+          </span>
+          <span aria-hidden="true" className="text-pine">→</span>
+        </Link>
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
+          <span>{sv ? 'Betalning via Stripe' : 'Payments by Stripe'}</span>
+          <Link href="/terms" className="text-muted no-underline hover:text-ink">{t.legalTerms}</Link>
+          <Link href="/refunds" className="text-muted no-underline hover:text-ink">{t.legalRefunds}</Link>
+          <Link href="/privacy" className="text-muted no-underline hover:text-ink">{t.legalPrivacy}</Link>
+          <a className="text-muted no-underline hover:text-ink" href={`mailto:${SUPPORT}`}>{t.mail}</a>
+        </nav>
+      </div>
+    </footer>
+  )
+}
+
+export function Frame({ children, variant }) {
+  const buyer = variant === 'buyer'
+  return <div className="relative min-h-dvh bg-paper text-ink"><div className="nl-grid" aria-hidden="true" /><div className="relative z-10 flex min-h-dvh flex-col"><SiteHeader buyer={buyer} /><div className="flex-1">{children}</div>{buyer ? <BuyerFooter /> : <SiteFooter />}</div></div>
 }
 

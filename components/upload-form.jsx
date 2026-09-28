@@ -6,6 +6,7 @@ import { MAX_FILES, MAX_MB, MAX_SALES_LIMIT, onboardingNotice } from '../lib/sit
 import { visibleError } from '../lib/http'
 import { FREE_MIN_USD, FREE_PRESETS, SUB_MIN_USD, SUB_PRESETS } from '../lib/entitlement'
 import { formatUsd } from '../lib/copy'
+import { IMAGE_TYPES, MAX_IMAGE_BYTES } from '../lib/public-image'
 import { useLocale } from './locale'
 
 const DRAFT_KEY = 'curl-to-buy:pending-listing'
@@ -52,6 +53,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   const [salesLimit, setSalesLimit] = useState('unlimited')
   const [downloadsPerFile, setDownloadsPerFile] = useState('3')
   const [description, setDescription] = useState('')
+  const [cover, setCover] = useState(null)
   const [timeLimitMinutes, setTimeLimitMinutes] = useState('none')
   const [accepted, setAccepted] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -108,6 +110,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           salesLimit: draft.salesLimit,
           downloadsPerFile: draft.downloadsPerFile,
           description: draft.description,
+          coverUrl: draft.coverUrl || null,
           timeLimitMinutes: draft.timeLimitMinutes,
         }),
       })
@@ -208,6 +211,9 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   const maxBytes = maxMB * 1024 * 1024
   const totalBytes = files.reduce((sum, file) => sum + file.size, 0)
 
+  const coverPreview = useMemo(() => (cover ? URL.createObjectURL(cover) : null), [cover])
+  useEffect(() => () => { if (coverPreview) URL.revokeObjectURL(coverPreview) }, [coverPreview])
+
   const shareUrl = useMemo(() => {
     if (!listing || typeof window === 'undefined') return ''
     return `${window.location.origin}/dl/${listing.id}`
@@ -239,6 +245,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     if (files.length > 1 && !blobReady) return setError(t.packageUnavailable)
 
     if (!blobReady) return setError(t.packageUnavailable)
+    if (cover && (!IMAGE_TYPES[cover.type] || cover.size > MAX_IMAGE_BYTES)) return setError(sv ? 'Omslagsbilden ska vara JPG, PNG eller WebP (max 8 MB).' : 'Use a JPG, PNG or WebP cover (max 8 MB).')
     setBusy(true)
     setProgress(2)
     try {
@@ -252,7 +259,14 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         })
         uploaded.push({ blobPathname: blob.pathname, name: file.name, size: file.size, type: file.type })
       }
-      const draft = { requestId: batch, accepted, uploaded, title, priceUsd: String(usd), salesLimit, downloadsPerFile, description, timeLimitMinutes }
+      let coverUrl = null
+      if (cover) {
+        const blob = await upload(`uploads/covers/${batch}/cover.${IMAGE_TYPES[cover.type]}`, cover, {
+          access: 'public', handleUploadUrl: '/api/upload-url', contentType: cover.type,
+        })
+        coverUrl = blob.url
+      }
+      const draft = { requestId: batch, accepted, uploaded, title, priceUsd: String(usd), salesLimit, downloadsPerFile, description, timeLimitMinutes, coverUrl }
       writeDraft(draft)
       if (connect.ready) await finalizeDraft(draft)
       else setShowConnect(true)
@@ -283,17 +297,39 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
 
   if (listing) {
     const label = listing.priceUsd != null ? formatUsd(listing.priceUsd) : `${listing.priceSek} SEK`
+    const pitch = sv ? `${listing.name}, ${label}. Betala med kort och ladda ner direkt:` : `${listing.name}, ${label}. Pay by card and download instantly:`
+    const channels = [
+      { label: 'X', href: `https://x.com/intent/post?text=${encodeURIComponent(pitch)}&url=${encodeURIComponent(shareUrl)}` },
+      { label: 'WhatsApp', href: `https://wa.me/?text=${encodeURIComponent(`${pitch} ${shareUrl}`)}` },
+      { label: 'LinkedIn', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}` },
+      { label: sv ? 'E-post' : 'Email', href: `mailto:?subject=${encodeURIComponent(listing.name)}&body=${encodeURIComponent(`${pitch}\n${shareUrl}`)}` },
+    ]
     return (
       <div className="space-y-5">
         <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.linkReady}</p>
-        <h3 className="font-display text-3xl font-black">{listing.name}</h3>
-        <p className="text-sm text-ink-soft">{label} · {listing.fileCount} {listing.fileCount === 1 ? t.oneFile : t.manyFiles}</p>
-        <div className="nl-card rounded-md p-4">
-          <p className="break-all font-mono text-xs text-muted">{shareUrl}</p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button type="button" onClick={copyLink} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-pine px-4 text-sm font-medium text-pine-fg">{copied ? t.copied : t.copy}</button>
-            <button type="button" onClick={shareLink} className="inline-flex min-h-11 items-center justify-center rounded-sm border border-cyan/40 px-4 text-sm font-medium text-cyan">{t.share}</button>
+        <div className="nl-card overflow-hidden rounded-md">
+          {listing.coverUrl ? <img src={listing.coverUrl} alt="" className="max-h-48 w-full bg-paper-tint object-cover" /> : null}
+          <div className="p-4">
+            <h3 className="font-display text-2xl font-black">{listing.name}</h3>
+            <p className="mt-1 text-sm text-ink-soft">{label} · {listing.fileCount} {listing.fileCount === 1 ? t.oneFile : t.manyFiles}</p>
+            <p className="mt-3 break-all font-mono text-xs text-muted">{shareUrl}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button type="button" onClick={copyLink} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-pine px-4 text-sm font-medium text-pine-fg">{copied ? t.copied : t.copy}</button>
+              <button type="button" onClick={shareLink} className="inline-flex min-h-11 items-center justify-center rounded-sm border border-cyan/40 px-4 text-sm font-medium text-cyan">{t.share}</button>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {channels.map((channel) => <a key={channel.label} href={channel.href} target="_blank" rel="noopener noreferrer" className="nl-chip inline-flex min-h-10 items-center justify-center rounded-sm px-3 text-xs font-medium text-ink no-underline">{channel.label}</a>)}
+            </div>
+            <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs text-pine">{sv ? 'Öppna köpsidan' : 'Open your page'} →</a>
           </div>
+        </div>
+        <div className="rounded-md border border-line p-4 text-sm text-ink-soft">
+          <p className="font-medium text-ink">{sv ? 'Så får du din första försäljning' : 'How to get your first sale'}</p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs leading-relaxed">
+            <li>{sv ? 'Lägg länken i din bio på Instagram, TikTok eller X.' : 'Put the link in your Instagram, TikTok or X bio.'}</li>
+            <li>{sv ? 'Posta en bild eller kort video av vad köparen får, med länken.' : 'Post a picture or short clip of what buyers get, with the link.'}</li>
+            <li>{sv ? 'Skicka den direkt till personer som redan frågat efter filen.' : 'Send it directly to people who already asked for the file.'}</li>
+          </ol>
         </div>
         <button
           type="button"
@@ -302,6 +338,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             setListing(null)
             setFiles([])
             setTitle('')
+            setCover(null)
             setProgress(0)
             if (inputRef.current) inputRef.current.value = ''
           }}
@@ -475,6 +512,15 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       <div className="space-y-2">
         <label htmlFor="title" className="text-sm font-medium">{t.title}</label>
         <input id="title" value={title} maxLength={100} onChange={(event) => setTitle(event.target.value)} className="h-12 w-full rounded-sm border border-line bg-paper-tint px-3 text-base text-ink outline-none placeholder:text-muted" placeholder={t.titleHint} />
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="cover" className="text-sm font-medium">{sv ? 'Omslagsbild (rekommenderas)' : 'Cover image (recommended)'}</label>
+        <label htmlFor="cover" className="flex cursor-pointer items-center gap-3 rounded-md border border-dashed border-line bg-sheet p-3 hover:border-pine/50">
+          {coverPreview ? <img src={coverPreview} alt="" className="h-16 w-16 shrink-0 rounded-sm object-cover" /> : <span aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-sm bg-paper-tint text-2xl text-muted">＋</span>}
+          <span className="min-w-0 text-xs leading-relaxed text-muted">{cover ? <span className="block truncate text-sm text-ink">{cover.name}</span> : null}{sv ? 'Visas på köpsidan, i Stripe-kassan och när länken delas i chattar och sociala medier. Länkar med bild får fler klick.' : 'Shown on your page, at Stripe checkout and when the link is shared in chats and social posts. Links with an image get more clicks.'}</span>
+        </label>
+        <input id="cover" type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { setError(null); setCover(e.target.files?.[0] || null) }} />
       </div>
 
       <div className="space-y-2">
