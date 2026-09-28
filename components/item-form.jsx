@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { upload } from '@vercel/blob/client'
 import { useLocale } from './locale'
+import UseAnywhere from './use-anywhere'
 import { FREE_MIN_SEK, SUB_MIN_SEK } from '../lib/entitlement'
 import { onboardingNotice } from '../lib/site'
 import { visibleError } from '../lib/http'
@@ -145,6 +146,7 @@ export default function ItemForm({ stripeReady, blobReady }) {
         try { await navigator.clipboard.writeText(shareUrl); setCopied(true) } catch { setError('Could not copy the link.') }
       }}>{copied ? (sv ? 'Kopierad!' : 'Copied!') : (sv ? 'Kopiera köplänken' : 'Copy payment link')}</button>
       <a className="inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-pine/60 px-4 text-sm font-semibold text-pine no-underline" href={ordersUrl}>{sv ? 'Se köpare och leveransuppgifter' : 'View buyer and shipping details'}</a>
+      <UseAnywhere id={listing.id} name={listing.name} priceLabel={`${listing.priceSek} kr`} className="border-t border-line pt-5" />
       <p className="text-xs leading-relaxed text-muted">{sv ? 'Spara orderlänken. Du måste använda samma säljarkonto eller återställa det via e-post på denna tjänst.' : 'Keep the order link. You must use the same seller account or recover it through email on this service.'}</p>
       <button type="button" className="text-sm text-muted underline" onClick={() => { setListing(null); setTitle(''); setDescription(''); setPhoto(null); setShippingIncluded(false) }}>{sv ? 'Sälj en till vara' : 'Sell another item'}</button>
     </div>

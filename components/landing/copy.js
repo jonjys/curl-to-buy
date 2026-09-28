@@ -7,7 +7,7 @@ const FEE = FREE_FEE_BPS / 100
 export const LANDING = {
   en: {
     skip: 'Skip to content',
-    nav: { how: 'How it works', pricing: 'Pricing', links: 'My links', create: 'Create your link', createShort: 'Create', home: 'Curl-to-Buy home', language: 'Language' },
+    nav: { how: 'How it works', pricing: 'Pricing', links: 'My products', create: 'Create your link', createShort: 'Create', home: 'Curl-to-Buy home', language: 'Language' },
     hero: {
       kicker: 'Payment links for files and things',
       title: ['Sell anything with one', 'link.'],
@@ -90,7 +90,7 @@ export const LANDING = {
       lead: 'Add your file or item, set the price and get your link. The first time, you connect Stripe so the money can reach you.',
       next: 'What happens next',
       steps: ['Connect Stripe once with your email.', 'Your link is ready to share right away.', 'Buyers pay by card. You get paid through Stripe.'],
-      links: 'Manage links you already made',
+      links: 'Manage your products',
       fee: `Free links: $${FREE_MIN_USD} minimum and ${FEE}% per sale. No monthly fee.`,
     },
     final: {
@@ -98,11 +98,11 @@ export const LANDING = {
       button: 'Create your link',
       sub: `Free to start. ${FEE}% per sale on free links, no monthly fee.`,
     },
-    footer: { tagline: 'Sell anything with one link.', subscriptions: 'Subscriptions', links: 'My links' },
+    footer: { tagline: 'Sell anything with one link.', subscriptions: 'Subscriptions', links: 'My products' },
   },
   sv: {
     skip: 'Hoppa till innehållet',
-    nav: { how: 'Så funkar det', pricing: 'Pris', links: 'Mina länkar', create: 'Skapa din länk', createShort: 'Skapa', home: 'Curl-to-Buy startsida', language: 'Språk' },
+    nav: { how: 'Så funkar det', pricing: 'Pris', links: 'Mina produkter', create: 'Skapa din länk', createShort: 'Skapa', home: 'Curl-to-Buy startsida', language: 'Språk' },
     hero: {
       kicker: 'Betallänkar för filer och saker',
       title: ['Sälj med en enda', 'länk.'],
@@ -185,7 +185,7 @@ export const LANDING = {
       lead: 'Lägg till filen eller varan, sätt priset och få din länk. Första gången ansluter du Stripe så att pengarna kan nå dig.',
       next: 'Så här går det till',
       steps: ['Anslut Stripe en gång med din e-post.', 'Din länk går att dela direkt.', 'Köparen betalar med kort. Du får betalt via Stripe.'],
-      links: 'Hantera länkar du redan har skapat',
+      links: 'Hantera dina produkter',
       fee: `Gratislänkar: minst $${FREE_MIN_USD} och ${FEE} % per försäljning. Ingen månadsavgift.`,
     },
     final: {
@@ -193,6 +193,6 @@ export const LANDING = {
       button: 'Skapa din länk',
       sub: `Gratis att börja. ${FEE} % per försäljning på gratislänkar, ingen månadsavgift.`,
     },
-    footer: { tagline: 'Sälj med en enda länk.', subscriptions: 'Abonnemang', links: 'Mina länkar' },
+    footer: { tagline: 'Sälj med en enda länk.', subscriptions: 'Abonnemang', links: 'Mina produkter' },
   },
 }

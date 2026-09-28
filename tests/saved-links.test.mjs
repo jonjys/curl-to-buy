@@ -68,3 +68,20 @@ test('saved links page cursor scans legacy listings without mixing sellers', asy
   assert.equal(second.links[0].id, 'second')
   assert.deepEqual(requested, [null, 'next_page'])
 })
+
+test('saved links expose only a public image URL, never a storage path', async () => {
+  const listings = {
+    fresh: { id: 'fresh', sellerId: 'owner', name: 'Guide', kind: 'digital', imagePath: 'listing-images/fresh/cover.jpg', currency: 'usd', priceCents: 900, createdAt: 3 },
+    legacy: { id: 'legacy', sellerId: 'owner', name: 'Lamp', kind: 'physical', photoUrl: 'https://abc123.public.blob.vercel-storage.com/uploads/items/lamp.jpg', currency: 'sek', priceCents: 30000, createdAt: 2 },
+    odd: { id: 'odd', sellerId: 'owner', name: 'Odd', kind: 'physical', photoUrl: 'https://evil.example/x.jpg', imagePath: 'files/secret.pdf', currency: 'sek', priceCents: 30000, createdAt: 1 },
+  }
+  const route = await loadRoute({
+    '@vercel/blob': { list: async () => ({ blobs: Object.keys(listings).map((id) => ({ pathname: `listings/${id}.json` })), hasMore: false }) },
+    '../../../lib/store': { getSalesCount: async () => 0, getListing: async (id) => listings[id], getSeller: async () => ({ id: 'owner' }), listSellerListingIds: async () => ({ ids: [], nextCursor: null, indexed: false }) },
+    '../../../lib/seller': { sellerIdFromRequest: () => 'owner' },
+  })
+  const body = await (await route.GET(new Request('https://example.test/api/my-links'))).json()
+  assert.deepEqual(body.links.map((link) => link.imageUrl), ['/dl/fresh/image', listings.legacy.photoUrl, null])
+  assert.equal(JSON.stringify(body).includes('listing-images/'), false)
+  assert.equal(JSON.stringify(body).includes('secret.pdf'), false)
+})
