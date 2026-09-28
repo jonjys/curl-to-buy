@@ -186,3 +186,212 @@ button.bg-pine,
   background: radial-gradient(circle at 40% 40%, color-mix(in srgb, var(--color-cyan) 22%, transparent), transparent 72%);
   filter: blur(18px);
 }
+
+/* ── Landing page ─────────────────────────────────────────────────────────
+   Warm light theme scoped to .ctb-landing. Everything inside, including the
+   existing create-link form, reads the same colour tokens, so it follows the
+   theme without any change to its markup or logic. Other pages are untouched. */
+html:has(.ctb-landing) {
+  background: #f6f0e6;
+  color-scheme: light;
+}
+
+.ctb-landing {
+  --color-paper: #f6f0e6;
+  --color-paper-tint: #fffdf9;
+  --color-sheet: #ffffff;
+  --color-ink: #16130f;
+  --color-ink-soft: #3b352e;
+  --color-muted: #665e54;
+  --color-line: #ddd2c2;
+  --color-pine: #16130f;
+  --color-pine-fg: #fffaf2;
+  --color-cyan: #a8330c;
+  --color-warn: #b42318;
+  --ctb-accent: #ff5b2e;
+  --ctb-peach: #ffe0d1;
+  --ctb-butter: #ffedb5;
+  --ctb-mint: #d4efdc;
+  --ctb-lilac: #e4dcff;
+  --ctb-sky: #d8e7ff;
+  --ctb-sand: #eee2cf;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.ctb-landing :focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--ctb-accent);
+  border-radius: 8px;
+}
+
+.ctb-landing ::selection {
+  background: var(--ctb-peach);
+  color: var(--color-ink);
+}
+
+.ctb-landing .nl-card,
+.ctb-landing .nl-card-glow {
+  background: #fff;
+  border: 1px solid var(--color-line);
+  box-shadow: 0 1px 0 rgba(22, 19, 15, 0.04), 0 18px 40px -22px rgba(22, 19, 15, 0.28);
+  backdrop-filter: none;
+}
+
+.ctb-landing .nl-chip {
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-tint);
+  color: var(--color-ink-soft);
+}
+
+.ctb-landing .nl-badge {
+  border-color: var(--color-line);
+  background: var(--ctb-peach);
+  color: var(--color-ink);
+}
+
+.ctb-card {
+  border-radius: 1.75rem;
+  border: 1px solid var(--color-line);
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(22, 19, 15, 0.04), 0 24px 48px -28px rgba(22, 19, 15, 0.35);
+}
+
+.ctb-shadow {
+  box-shadow: 0 1px 0 rgba(22, 19, 15, 0.05), 0 20px 40px -24px rgba(22, 19, 15, 0.45);
+}
+
+.ctb-display {
+  font-size: clamp(2.6rem, 11vw, 7.25rem);
+  line-height: 0.92;
+  letter-spacing: -0.055em;
+  font-weight: 800;
+}
+
+@media (min-width: 1024px) {
+  .ctb-display { font-size: min(6.1vw, 6.4rem); }
+}
+
+.ctb-h2 {
+  font-size: clamp(2rem, 7vw, 4.25rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+  font-weight: 800;
+}
+
+.ctb-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.ctb-mark {
+  position: relative;
+  white-space: nowrap;
+  padding-bottom: 0.08em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 24' preserveAspectRatio='none'%3E%3Cpath d='M3 15C45 7 108 5 197 9c-2 4-4 7-6 10C122 15 62 16 5 21z' fill='%23ff5b2e'/%3E%3C/svg%3E") no-repeat left bottom / 100% 0.26em;
+}
+
+.ctb-rail {
+  background-image: linear-gradient(90deg, var(--color-ink) 50%, transparent 50%);
+  background-size: 10px 2px;
+  background-repeat: repeat-x;
+  background-position: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.ctb-landing) { scroll-behavior: smooth; }
+  .ctb-rise { animation: ctb-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: var(--d, 0ms); }
+  .ctb-float { animation: ctb-float 7s ease-in-out infinite; animation-delay: var(--d, 0ms); }
+  .ctb-travel { animation: ctb-travel 2.6s ease-in-out infinite; }
+  .ctb-lift { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+  .ctb-lift:hover { transform: translateY(-4px); }
+  .ctb-swap { animation: ctb-swap 0.35s ease both; }
+}
+
+@keyframes ctb-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes ctb-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes ctb-travel { 0% { left: 0; opacity: 0; } 15%, 85% { opacity: 1; } 100% { left: calc(100% - 0.75rem); opacity: 0; } }
+@keyframes ctb-swap { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Layered product scene in the hero. Sizes follow the scene width (cqw), so
+   the same composition works from 320 px phones to wide desktops. */
+.ctb-scene { container-type: inline-size; }
+.ctb-scene-in { font-size: clamp(10px, 2.55cqw, 15px); }
+.ctb-layer {
+  border: 1px solid var(--color-line);
+  background: #fff;
+  border-radius: 1.4em;
+  box-shadow: 0 1px 0 rgba(22, 19, 15, 0.05), 0 14px 24px -18px rgba(22, 19, 15, 0.35), 0 34px 60px -34px rgba(22, 19, 15, 0.5);
+}
+.ctb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  border-radius: 999px;
+  background: #16130f;
+  color: #fffaf2;
+  padding: 0.3em 0.75em 0.3em 0.3em;
+  font-size: 0.82em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ctb-badge > b {
+  display: inline-flex;
+  width: 1.55em;
+  height: 1.55em;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--ctb-accent);
+  color: #16130f;
+  font-size: 0.9em;
+}
+
+/* Buttons: one system for hover, press and keyboard focus. In a layer so
+   Tailwind utilities (min-h-11, px-4, text-sm) can size individual buttons. */
+@layer components {
+  .ctb-btn {
+    display: inline-flex;
+    min-height: 3rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    padding: 0 1.5rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .ctb-btn-dark { background: #16130f; color: #fffaf2; box-shadow: 0 10px 22px -14px rgba(22, 19, 15, 0.7); }
+  .ctb-btn-dark:hover { box-shadow: 0 0 0 3px var(--ctb-accent), 0 16px 30px -16px rgba(22, 19, 15, 0.8); }
+  .ctb-btn-light { border: 2px solid #16130f; color: #16130f; background: transparent; }
+  .ctb-btn-light:hover { background: #fff; }
+  .ctb-btn:active { box-shadow: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ctb-btn, .ctb-arrow { transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease; }
+  .ctb-btn:hover { transform: translateY(-2px); }
+  .ctb-btn:active { transform: translateY(1px) scale(0.98); }
+  .ctb-btn:hover .ctb-arrow { transform: translateX(3px); }
+  .ctb-header-row { transition: height 0.2s ease; }
+  .ctb-step { animation: ctb-step 8s ease-in-out infinite; animation-delay: var(--d, 0s); }
+  .ctb-dash { animation: ctb-dash 1.6s linear infinite; }
+  .ctb-paid { animation: ctb-paid 8s ease-in-out infinite; }
+}
+
+/* Each step badge lights up in turn: add, price, share, get paid. */
+@keyframes ctb-step {
+  0%, 22%, 100% { transform: none; box-shadow: none; }
+  6%, 16% { transform: scale(1.08); box-shadow: 0 0 0 0.3em color-mix(in srgb, var(--ctb-accent) 45%, transparent); }
+}
+@keyframes ctb-dash { to { stroke-dashoffset: -16; } }
+@keyframes ctb-paid {
+  0%, 72%, 100% { transform: none; }
+  78% { transform: scale(1.07); }
+  84% { transform: none; }
+}
