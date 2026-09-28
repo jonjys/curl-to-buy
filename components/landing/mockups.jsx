@@ -133,7 +133,7 @@ export function BuyCard({ example, copy, className = '' }) {
 // Hero scene: add it -> price it -> share it -> get paid, in one layered
 // composition built from the same pieces as the rest of the page.
 export function HeroScene({ copy }) {
-  const [add, price, share, paid] = copy.flow
+  const [add, price, share] = copy.flow
   const badge = (n, text, delay) => <span className="ctb-badge ctb-step" style={{ '--d': delay }}><b>{n}</b>{text}</span>
   return (
     <figure className="ctb-scene relative isolate w-full" aria-label={copy.stage}>
@@ -177,7 +177,7 @@ export function HeroScene({ copy }) {
         <div className="ctb-paid absolute right-[3%] top-0 z-40">
           <span className="ctb-layer flex items-center gap-[0.6em] rounded-full py-[0.45em] pl-[0.45em] pr-[1em]">
             <b className="inline-flex h-[1.9em] w-[1.9em] items-center justify-center rounded-full bg-[var(--ctb-accent)] text-[0.9em] text-[#16130f]">4</b>
-            <span className="text-[0.95em] font-bold">{paid} $19</span><span className="text-[0.8em] text-[var(--color-muted)]">{copy.viaStripe}</span>
+            <span className="text-[0.95em] font-bold">{copy.sold} $19</span>
           </span>
         </div>
 
