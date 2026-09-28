@@ -6,6 +6,7 @@ import { useLocale } from './locale'
 import { FREE_MIN_SEK, SUB_MIN_SEK } from '../lib/entitlement'
 import { onboardingNotice } from '../lib/site'
 import { visibleError } from '../lib/http'
+import { cleanImage } from '../lib/clean-image'
 
 const ITEM_DRAFT = 'curl-to-buy:pending-item'
 const PHOTO_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
@@ -112,8 +113,10 @@ export default function ItemForm({ stripeReady, blobReady }) {
       const requestId = crypto.randomUUID()
       let photoUrl = null
       if (photo) {
-        const blob = await upload(`uploads/items/${requestId}/item.${PHOTO_TYPES[photo.type]}`, photo, {
-          access: 'public', handleUploadUrl: '/api/upload-url', contentType: photo.type,
+        // Public photo: strip EXIF (GPS, device, owner) before it leaves the browser.
+        const clean = await cleanImage(photo)
+        const blob = await upload(`uploads/items/${requestId}/item.${PHOTO_TYPES[clean.type]}`, clean, {
+          access: 'public', handleUploadUrl: '/api/upload-url', contentType: clean.type,
         })
         photoUrl = blob.url
       }

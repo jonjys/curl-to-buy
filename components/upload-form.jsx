@@ -7,6 +7,7 @@ import { visibleError } from '../lib/http'
 import { FREE_MIN_USD, FREE_PRESETS, SUB_MIN_USD, SUB_PRESETS } from '../lib/entitlement'
 import { formatUsd } from '../lib/copy'
 import { IMAGE_TYPES, MAX_IMAGE_BYTES } from '../lib/public-image'
+import { cleanImage } from '../lib/clean-image'
 import { useLocale } from './locale'
 
 const DRAFT_KEY = 'curl-to-buy:pending-listing'
@@ -245,11 +246,18 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     if (files.length > 1 && !blobReady) return setError(t.packageUnavailable)
 
     if (!blobReady) return setError(t.packageUnavailable)
-    if (cover && (!IMAGE_TYPES[cover.type] || cover.size > MAX_IMAGE_BYTES)) return setError(sv ? 'Omslagsbilden ska vara JPG, PNG eller WebP (max 8 MB).' : 'Use a JPG, PNG or WebP cover (max 8 MB).')
+    // The raw cover may be larger; it is scaled down and re-encoded before upload.
+    if (cover && (!IMAGE_TYPES[cover.type] || cover.size > 3 * MAX_IMAGE_BYTES)) return setError(sv ? 'Omslagsbilden ska vara JPG, PNG eller WebP (max 24 MB).' : 'Use a JPG, PNG or WebP cover (max 24 MB).')
+    // The cover is public. Never let it be one of the paid files.
+    if (cover && files.some((file) => file.size === cover.size && file.name === cover.name && file.lastModified === cover.lastModified)) {
+      return setError(sv ? 'Omslagsbilden är en av filerna du säljer och skulle bli gratis för alla. Välj en förhandsbild i stället.' : 'The cover is one of the files you sell and would be free for everyone. Choose a preview image instead.')
+    }
     setBusy(true)
     setProgress(2)
     try {
       const batch = crypto.randomUUID()
+      // Clean the public cover first so a bad image fails before any file upload.
+      const publicCover = cover ? await cleanImage(cover) : null
       const uploaded = []
       for (let index = 0; index < files.length; index++) {
         const file = files[index]
@@ -260,9 +268,9 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         uploaded.push({ blobPathname: blob.pathname, name: file.name, size: file.size, type: file.type })
       }
       let coverUrl = null
-      if (cover) {
-        const blob = await upload(`uploads/covers/${batch}/cover.${IMAGE_TYPES[cover.type]}`, cover, {
-          access: 'public', handleUploadUrl: '/api/upload-url', contentType: cover.type,
+      if (publicCover) {
+        const blob = await upload(`uploads/covers/${batch}/cover.${IMAGE_TYPES[publicCover.type]}`, publicCover, {
+          access: 'public', handleUploadUrl: '/api/upload-url', contentType: publicCover.type,
         })
         coverUrl = blob.url
       }
@@ -518,7 +526,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         <label htmlFor="cover" className="text-sm font-medium">{sv ? 'Omslagsbild (rekommenderas)' : 'Cover image (recommended)'}</label>
         <label htmlFor="cover" className="flex cursor-pointer items-center gap-3 rounded-md border border-dashed border-line bg-sheet p-3 hover:border-pine/50">
           {coverPreview ? <img src={coverPreview} alt="" className="h-16 w-16 shrink-0 rounded-sm object-cover" /> : <span aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-sm bg-paper-tint text-2xl text-muted">＋</span>}
-          <span className="min-w-0 text-xs leading-relaxed text-muted">{cover ? <span className="block truncate text-sm text-ink">{cover.name}</span> : null}{sv ? 'Visas på köpsidan, i Stripe-kassan och när länken delas i chattar och sociala medier. Länkar med bild får fler klick.' : 'Shown on your page, at Stripe checkout and when the link is shared in chats and social posts. Links with an image get more clicks.'}</span>
+          <span className="min-w-0 text-xs leading-relaxed text-muted">{cover ? <span className="block truncate text-sm text-ink">{cover.name}</span> : null}{sv ? 'Visas publikt på köpsidan, i Stripe-kassan och när länken delas. Använd en förhandsbild, inte filen du säljer. Platsdata och annan metadata tas bort.' : 'Shown publicly on your page, at Stripe checkout and when the link is shared. Use a preview, not the file you sell. Location and other metadata are removed.'}</span>
         </label>
         <input id="cover" type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { setError(null); setCover(e.target.files?.[0] || null) }} />
       </div>

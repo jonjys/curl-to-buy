@@ -24,6 +24,7 @@ export async function GET(_req, { params }) {
   const { listing, price } = view
   const physical = listing.kind === 'physical'
   const image = renderableImage(listing.imageUrl)
+  const unavailable = listing.paused ? 'Paused' : listing.soldOut ? (physical ? 'Sold' : 'Sold out') : listing.expired ? 'Offer ended' : null
   const detail = physical
     ? 'Shipping included · Pay by card'
     : [listing.files.count === 1 ? '1 file' : `${listing.files.count} files`, listing.files.types.join(', '), 'Instant download'].filter(Boolean).join(' · ')
@@ -44,7 +45,7 @@ export async function GET(_req, { params }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', fontSize: 96, fontWeight: 800 }}>{price.label}</div>
-            <div style={{ display: 'flex', padding: '18px 30px', borderRadius: 14, background: colors.pine, color: colors.pineFg, fontSize: 32, fontWeight: 700 }}>Buy now</div>
+            <div style={{ display: 'flex', padding: '18px 30px', borderRadius: 14, background: unavailable ? colors.line : colors.pine, color: unavailable ? colors.soft : colors.pineFg, fontSize: 32, fontWeight: 700 }}>{unavailable || 'Buy now'}</div>
           </div>
           <div style={{ display: 'flex', marginTop: 28, fontSize: 22, color: colors.muted }}>Secure card payment via Stripe · Curl-to-Buy</div>
         </div>
