@@ -130,76 +130,70 @@ export function BuyCard({ example, copy, className = '' }) {
   )
 }
 
-// Hero: create -> share -> buy, readable at a glance.
-export function HeroStage({ copy }) {
-  const example = { art: 'presets', name: copy.product, price: '$19' }
-  const label = (text, n) => <p className="ctb-kicker mb-3 flex items-center gap-2 text-[var(--color-ink)]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#16130f] text-[11px] text-[#fffaf2]">{n}</span>{text}</p>
+// Hero scene: add it -> price it -> share it -> get paid, in one layered
+// composition built from the same pieces as the rest of the page.
+export function HeroScene({ copy }) {
+  const [add, price, share, paid] = copy.flow
+  const badge = (n, text, delay) => <span className="ctb-badge ctb-step" style={{ '--d': delay }}><b>{n}</b>{text}</span>
   return (
-    <figure className="relative" aria-label={copy.stage}>
-      <div aria-hidden="true" className="relative grid gap-5 rounded-[2rem] bg-[var(--ctb-peach)] p-4 sm:p-6 md:grid-cols-3 md:items-center md:gap-6 lg:p-8">
-        <div className="pointer-events-none absolute inset-x-[16%] top-1/2 hidden h-0.5 md:block">
-          <div className="ctb-rail h-full w-full opacity-30" />
-          <span className="ctb-travel absolute -top-[5px] h-3 w-3 rounded-full bg-[var(--ctb-accent)] ring-4 ring-[var(--ctb-peach)]" />
-        </div>
-        <div className="ctb-rise relative" style={{ '--d': '120ms' }}>
-          {label(copy.create, 1)}
-          <div className="ctb-float rounded-[1.5rem] border border-[var(--color-line)] bg-white p-4 ctb-shadow">
-            <p className="text-sm font-bold">{copy.newLink}</p>
-            <div className="mt-3 flex items-center gap-3 rounded-xl border border-dashed border-[var(--color-line)] bg-[var(--color-paper-tint)] p-2.5">
-              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg"><Art name="presets" bare /></div>
-              <p className="min-w-0 truncate text-xs font-medium">{copy.file}</p>
+    <figure className="ctb-scene relative isolate w-full" aria-label={copy.stage}>
+      <div aria-hidden="true" className="ctb-scene-in relative aspect-[20/19] w-full">
+        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 95" preserveAspectRatio="none" focusable="false">
+          <path className="ctb-dash" d="M18 50 C 16 55, 16 58, 18 62 M58 77 C 66 77, 70 74, 72 68" fill="none" stroke="#16130f" strokeOpacity="0.45" strokeWidth="1.5" strokeDasharray="4 4" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        </svg>
+
+        <div className="ctb-rise absolute left-0 top-[7%] z-20 w-[47%]" style={{ '--d': '80ms' }}>
+          <div className="ctb-float" style={{ '--d': '0s' }}>
+            <div className="ctb-layer -rotate-[5deg] p-[1em]">
+              <p className="text-[1.1em] font-bold">{copy.newLink}</p>
+              <div className="relative mt-[0.8em] flex items-center gap-[0.7em] rounded-[0.9em] border border-dashed border-[var(--color-line)] bg-[var(--color-paper-tint)] p-[0.55em]">
+                <div className="h-[2.8em] w-[2.8em] shrink-0 overflow-hidden rounded-[0.6em]"><Art name="presets" bare /></div>
+                <p className="min-w-0 truncate text-[0.85em] font-medium">{copy.file}</p>
+              </div>
+              <div className="mt-[0.6em] flex items-center justify-between rounded-[0.9em] bg-[var(--color-paper)] px-[0.8em] py-[0.6em]">
+                <span className="text-[0.9em] text-[var(--color-muted)]">{copy.price}</span><span className="text-[1.5em] font-extrabold tracking-tight">$19</span>
+              </div>
+              <span className="mt-[0.7em] flex w-full items-center justify-center rounded-full bg-[#16130f] py-[0.6em] text-[0.9em] font-bold text-[#fffaf2]">{copy.makeLink}</span>
             </div>
-            <div className="mt-3 flex items-center justify-between rounded-xl bg-[var(--color-paper)] px-3 py-2.5 text-sm">
-              <span className="text-[var(--color-muted)]">{copy.price}</span><span className="font-extrabold">$19</span>
-            </div>
-            <Pill dark className="mt-3 w-full">{copy.makeLink}</Pill>
+            <div className="absolute -left-[0.4em] -top-[1.1em] flex flex-col items-start gap-[0.35em]">{badge(1, add, '0s')}</div>
+            <div className="absolute -left-[0.8em] top-[44%]">{badge(2, price, '2s')}</div>
           </div>
         </div>
-        <div className="ctb-rise relative" style={{ '--d': '260ms' }}>
-          {label(copy.share, 2)}
-          <div className="ctb-float rounded-[1.5rem] bg-[var(--color-paper)] p-3.5" style={{ '--d': '1.2s' }}>
-            <SharePreview example={example} chat={copy.chat} compact />
+
+        <div className="ctb-rise absolute right-0 top-[11%] z-10 w-[51%]" style={{ '--d': '200ms' }}>
+          <div className="ctb-float" style={{ '--d': '1.6s' }}>
+            <div className="ctb-layer rotate-[3deg] overflow-hidden">
+              <div className="aspect-[16/10]"><Art name="presets" /></div>
+              <div className="p-[1em]">
+                <p className="text-[1.3em] font-extrabold leading-tight tracking-tight">{copy.product}</p>
+                <p className="mt-[0.15em] text-[2.1em] font-extrabold leading-none tracking-tight">$19</p>
+                <span className="mt-[0.6em] flex w-full items-center justify-center rounded-full bg-[var(--ctb-accent)] py-[0.65em] text-[0.95em] font-bold text-[#16130f]">{copy.buyFor} $19</span>
+                <p className="mt-[0.6em] flex items-center gap-[0.5em] text-[0.8em] text-[var(--color-ink-soft)]"><Check />{copy.instant}</p>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="ctb-rise relative" style={{ '--d': '400ms' }}>
-          {label(copy.buy, 3)}
-          <div className="ctb-float overflow-hidden rounded-[1.5rem] border border-[var(--color-line)] bg-white ctb-shadow" style={{ '--d': '2.4s' }}>
-            <div className="aspect-[16/9]"><Art name="presets" /></div>
-            <div className="p-4">
-              <p className="text-lg font-extrabold leading-tight">{copy.product}</p>
-              <p className="mt-1 text-3xl font-extrabold tracking-tight">$19</p>
-              <Pill className="mt-3 w-full">{copy.buyFor} $19</Pill>
-              <p className="mt-2.5 flex items-center gap-2 text-xs text-[var(--color-ink-soft)]"><Check />{copy.instant}</p>
+
+        <div className="ctb-paid absolute right-[3%] top-0 z-40">
+          <span className="ctb-layer flex items-center gap-[0.6em] rounded-full py-[0.45em] pl-[0.45em] pr-[1em]">
+            <b className="inline-flex h-[1.9em] w-[1.9em] items-center justify-center rounded-full bg-[var(--ctb-accent)] text-[0.9em] text-[#16130f]">4</b>
+            <span className="text-[0.95em] font-bold">{paid} $19</span><span className="text-[0.8em] text-[var(--color-muted)]">{copy.viaStripe}</span>
+          </span>
+        </div>
+
+        <div className="ctb-rise absolute left-[2%] top-[66%] z-30 w-[58%]" style={{ '--d': '320ms' }}>
+          <div className="ctb-float" style={{ '--d': '3.2s' }}>
+            <div className="-rotate-[2deg] space-y-[0.5em]">
+              <div className="w-fit max-w-full rounded-[1.1em] rounded-bl-[0.3em] bg-[#16130f] px-[1em] py-[0.6em] text-[0.95em] text-[#fffaf2] shadow-lg">{copy.chat}</div>
+              <div className="ctb-layer flex items-center gap-[0.5em] rounded-full py-[0.4em] pl-[0.9em] pr-[0.4em]">
+                <span className="min-w-0 flex-1 truncate font-mono text-[0.8em]">{copy.link}</span>
+                <span className="rounded-full bg-[var(--ctb-accent)] px-[0.8em] py-[0.35em] text-[0.8em] font-bold text-[#16130f]">{copy.copied}</span>
+              </div>
             </div>
+            <div className="absolute -bottom-[1.4em] left-[1em]">{badge(3, share, '4s')}</div>
           </div>
         </div>
       </div>
     </figure>
-  )
-}
-
-export function StepMock({ index, copy }) {
-  const m = copy.mock
-  if (index === 0) return (
-    <div className="grid grid-cols-3 gap-2">
-      {['files', 'presets', 'photos'].map((art) => <div key={art} className="aspect-square overflow-hidden rounded-xl border border-[var(--color-line)]"><Art name={art} bare /></div>)}
-      <p className="col-span-3 mt-1 flex items-center justify-between text-xs font-semibold"><span>{m.files}</span><span className="flex items-center gap-1.5"><Check />{m.cover}</span></p>
-    </div>
-  )
-  if (index === 1) return (
-    <div className="space-y-2.5 text-sm">
-      <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5 ctb-shadow"><span className="text-[var(--color-muted)]">{m.price}</span><span className="text-2xl font-extrabold tracking-tight">$19</span></div>
-      <div className="flex flex-wrap gap-1.5">{['$10', '$15', '$19', '$29'].map((p) => <span key={p} className={`rounded-full px-3 py-1 text-xs font-bold ${p === '$19' ? 'bg-[#16130f] text-[#fffaf2]' : 'border border-[var(--color-line)] bg-white'}`}>{p}</span>)}</div>
-      <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-white px-3 py-2 text-xs"><span className="text-[var(--color-muted)]">{m.limit}</span><span className="font-semibold">{m.unlimited}</span></div>
-    </div>
-  )
-  return (
-    <div className="space-y-2.5">
-      <div className="flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-white py-1.5 pl-3 pr-1.5 text-xs">
-        <span className="min-w-0 flex-1 truncate font-mono">pay.nyttolabs.com/dl/…</span>
-        <Pill className="px-3 py-1 text-xs">{m.copied}</Pill>
-      </div>
-      <div className="flex items-center justify-between rounded-xl bg-[#16130f] px-3 py-2.5 text-sm text-[#fffaf2]"><span>Nordic Film Presets</span><span className="rounded-full bg-[var(--ctb-mint)] px-2 py-0.5 text-xs font-bold text-[#16130f]">{m.paid} $19</span></div>
-    </div>
   )
 }

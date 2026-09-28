@@ -1,15 +1,16 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { LocaleProvider, useLocale } from './locale'
 import SellMode from './sell-mode'
 import { SUPPORT } from '../lib/site'
 import { LANDING } from './landing/copy'
-import { Art, BuyCard, HeroStage, SharePreview, StepMock } from './landing/mockups'
+import { Art, BuyCard, HeroScene, SharePreview } from './landing/mockups'
 
-const btnDark = 'inline-flex min-h-12 items-center justify-center rounded-full bg-[#16130f] px-6 text-base font-bold text-[#fffaf2] no-underline transition-transform hover:-translate-y-0.5'
-const btnLight = 'inline-flex min-h-12 items-center justify-center rounded-full border-2 border-[#16130f] px-6 text-base font-bold text-[#16130f] no-underline transition-colors hover:bg-white'
+const btnDark = 'ctb-btn ctb-btn-dark text-base'
+const btnLight = 'ctb-btn ctb-btn-light text-base'
+const arrow = <span aria-hidden="true" className="ctb-arrow">→</span>
 const section = 'mx-auto w-full max-w-[90rem] px-4 sm:px-6 lg:px-10'
 
 function Logo({ label }) {
@@ -36,9 +37,16 @@ function LangSwitch({ label }) {
 }
 
 function Header({ c }) {
+  const [compact, setCompact] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setCompact(window.scrollY > 24)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--color-line)]/70 bg-[var(--color-paper)]/90 backdrop-blur">
-      <div className={`${section} flex h-16 items-center justify-between gap-2`}>
+    <header className={`sticky top-0 z-50 border-b bg-[var(--color-paper)]/90 backdrop-blur ${compact ? 'border-[var(--color-line)] shadow-[0_10px_30px_-24px_rgba(22,19,15,0.45)]' : 'border-transparent'}`}>
+      <div className={`${section} ctb-header-row flex items-center justify-between gap-2 ${compact ? 'h-14' : 'h-16 lg:h-20'}`}>
         <Logo label={c.nav.home} />
         <nav aria-label="Curl-to-Buy" className="hidden items-center gap-7 text-sm font-semibold md:flex">
           <a href="#how" className="no-underline hover:underline">{c.nav.how}</a>
@@ -47,7 +55,7 @@ function Header({ c }) {
         </nav>
         <div className="flex items-center gap-2">
           <LangSwitch label={c.nav.language} />
-          <a href="#post" className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full bg-[#16130f] px-4 text-sm font-bold text-[#fffaf2] no-underline">
+          <a href="#post" className="ctb-btn ctb-btn-dark min-h-11 px-4 text-sm">
             <span className="sm:hidden">{c.nav.createShort}</span><span className="hidden sm:inline">{c.nav.create}</span>
           </a>
         </div>
@@ -59,20 +67,33 @@ function Header({ c }) {
 function Hero({ c }) {
   const h = c.hero
   return (
-    <section className={`${section} pb-14 pt-10 sm:pt-16 lg:pb-24 lg:pt-20`}>
-      <div className="max-w-5xl">
-        <p className="ctb-kicker ctb-rise inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[var(--color-ink-soft)]"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-[var(--ctb-accent)]" />{h.kicker}</p>
-        <h1 className="ctb-display ctb-rise mt-5" style={{ '--d': '60ms' }}>{h.title[0]} <span className="ctb-underline">{h.title[1]}</span></h1>
-        <p className="ctb-rise mt-6 max-w-2xl text-lg leading-relaxed text-[var(--color-ink-soft)] sm:text-xl" style={{ '--d': '120ms' }}>{h.lead}</p>
-        <div className="ctb-rise mt-8 flex flex-col gap-3 sm:flex-row" style={{ '--d': '180ms' }}>
-          <a href="#post" className={btnDark}>{h.primary} <span aria-hidden="true" className="ml-2">→</span></a>
-          <a href="#how" className={btnLight}>{h.secondary}</a>
+    <section className={`${section} overflow-x-clip pb-16 pt-8 sm:pt-12 lg:pb-24 lg:pt-6`}>
+      {/* Mobile order: text, buttons, scene, then the steps. Desktop: text left, scene right. */}
+      <div className="grid gap-8 lg:min-h-[calc(100svh-6rem)] lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] lg:grid-rows-[1fr_1fr] lg:gap-x-12 lg:gap-y-0 xl:gap-x-16">
+        <div className="lg:self-end">
+          <p className="ctb-kicker ctb-rise inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[var(--color-ink-soft)]"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-[var(--ctb-accent)]" />{h.kicker}</p>
+          <h1 className="ctb-display ctb-rise mt-5" style={{ '--d': '60ms' }}>{h.title[0]} <span className="ctb-mark">{h.title[1]}</span></h1>
+          <p className="ctb-rise mt-6 max-w-xl text-lg leading-relaxed text-[var(--color-ink-soft)] sm:text-xl" style={{ '--d': '120ms' }}>{h.lead}</p>
+          <div className="ctb-rise mt-8 flex flex-col gap-3 sm:flex-row" style={{ '--d': '180ms' }}>
+            <a href="#post" className={btnDark}>{h.primary} {arrow}</a>
+            <a href="#how" className={btnLight}>{h.secondary}</a>
+          </div>
         </div>
-        <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-[var(--color-ink-soft)]">
-          {h.trust.map((line) => <li key={line} className="flex items-center gap-2"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[#16130f]" />{line}</li>)}
-        </ul>
+        <div className="mx-auto w-full max-w-[34rem] px-2 pt-2 sm:px-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:max-w-none lg:self-center lg:px-0 lg:pt-0"><HeroScene copy={h} /></div>
+        <div className="lg:col-start-1 lg:row-start-2 lg:self-start lg:pt-8">
+          <ol className="ctb-rise flex flex-wrap items-center gap-x-2 gap-y-2 text-sm font-bold" style={{ '--d': '240ms' }}>
+            {h.flow.map((step, i) => (
+              <li key={step} className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-white py-1 pl-1 pr-3"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#16130f] text-xs text-[#fffaf2]">{i + 1}</span>{step}</span>
+                {i < h.flow.length - 1 ? <span aria-hidden="true" className="text-[var(--color-muted)]">→</span> : null}
+              </li>
+            ))}
+          </ol>
+          <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-[var(--color-ink-soft)]">
+            {h.trust.map((line) => <li key={line} className="flex items-center gap-2"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--ctb-accent)]" />{line}</li>)}
+          </ul>
+        </div>
       </div>
-      <div className="mt-12 lg:mt-16"><HeroStage copy={h} /></div>
     </section>
   )
 }
@@ -129,46 +150,58 @@ function Demo({ c }) {
 
 function Steps({ c }) {
   const s = c.steps
-  const tints = ['var(--ctb-sky)', 'var(--ctb-butter)', 'var(--ctb-mint)']
   return (
-    <section id="how" className={`${section} scroll-mt-20 py-16 sm:py-24`}>
-      <p className="ctb-kicker text-[var(--color-muted)]">{s.kicker}</p>
-      <h2 className="ctb-h2 mt-4 max-w-3xl">{s.title}</h2>
-      <ol className="mt-12 grid gap-5 md:grid-cols-3">
-        {s.items.map((step, i) => (
-          <li key={step.name} className="ctb-card ctb-lift flex flex-col overflow-hidden">
-            <div className="p-5 sm:p-6" style={{ background: tints[i] }}><div aria-hidden="true"><StepMock index={i} copy={s} /></div></div>
-            <div className="flex flex-1 flex-col p-6">
-              <p className="font-mono text-sm font-medium text-[var(--color-muted)]">0{i + 1}</p>
-              <h3 className="mt-1 text-3xl font-extrabold tracking-tight">{step.name}</h3>
-              <p className="mt-3 leading-relaxed text-[var(--color-ink-soft)]">{step.body}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
+    <section id="how" className={`${section} scroll-mt-20 py-16 sm:py-20`}>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,2fr)] lg:gap-14">
+        <div>
+          <p className="ctb-kicker text-[var(--color-muted)]">{s.kicker}</p>
+          <h2 className="ctb-h2 mt-4">{s.title}</h2>
+        </div>
+        <ol className="grid gap-px overflow-hidden rounded-[1.75rem] border border-[var(--color-line)] bg-[var(--color-line)] md:grid-cols-3">
+          {s.items.map((step, i) => (
+            <li key={step.name} className="bg-white p-6 sm:p-7">
+              <p className="text-5xl font-extrabold leading-none tracking-tighter text-[var(--ctb-accent)]">{i + 1}</p>
+              <h3 className="mt-4 text-2xl font-extrabold tracking-tight">{step.name}</h3>
+              <p className="mt-2 leading-relaxed text-[var(--color-ink-soft)]">{step.body}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   )
 }
 
 function Categories({ c }) {
   const k = c.categories
+  const layout = [
+    'sm:col-span-2 lg:col-span-2 lg:row-span-2',
+    '',
+    '',
+    '',
+    '',
+    'sm:col-span-2 lg:col-span-4',
+  ]
   return (
     <section className={`${section} pb-16 sm:pb-24`}>
       <p className="ctb-kicker text-[var(--color-muted)]">{k.kicker}</p>
       <h2 className="ctb-h2 mt-4 max-w-4xl">{k.title}</h2>
-      <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {k.items.map((item) => (
-          <li key={item.name}>
-            <a href="#post" className="ctb-card ctb-lift group flex h-full flex-col overflow-hidden no-underline">
-              <div className="aspect-[16/10] overflow-hidden border-b border-[var(--color-line)]"><Art name={item.art} /></div>
-              <div className="flex flex-1 flex-col p-6">
-                <h3 className="text-2xl font-extrabold tracking-tight">{item.name}</h3>
-                <p className="mt-2 flex-1 leading-relaxed text-[var(--color-ink-soft)]">{item.body}</p>
-                <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold">{k.cta}<span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span></span>
-              </div>
-            </a>
-          </li>
-        ))}
+      <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+        {k.items.map((item, i) => {
+          const big = i === 0
+          const wide = i === k.items.length - 1
+          return (
+            <li key={item.name} className={layout[i]}>
+              <a href="#post" className={`ctb-card ctb-lift group flex h-full overflow-hidden no-underline ${wide ? 'flex-col sm:flex-row' : 'flex-col'}`}>
+                <div className={`overflow-hidden ${big ? 'aspect-[4/3] lg:aspect-auto lg:flex-1' : wide ? 'aspect-[16/10] sm:aspect-auto sm:w-[45%] lg:w-[38%]' : 'aspect-[16/10]'}`}><Art name={item.art} /></div>
+                <div className={`flex flex-1 flex-col ${big ? 'p-7' : 'p-5'} ${wide ? 'sm:justify-center sm:p-8' : ''}`}>
+                  <h3 className={`${big || wide ? 'text-3xl' : 'text-xl'} font-extrabold tracking-tight`}>{item.name}</h3>
+                  <p className="mt-2 flex-1 leading-relaxed text-[var(--color-ink-soft)]">{item.body}</p>
+                  <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold">{k.cta}<span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span></span>
+                </div>
+              </a>
+            </li>
+          )
+        })}
       </ul>
     </section>
   )
@@ -218,7 +251,7 @@ function Pricing({ c }) {
       <h2 className="ctb-h2 mt-4 max-w-3xl">{p.title}</h2>
       <div className="mt-12 grid gap-5 md:grid-cols-2">
         {card(p.free, false)}
-        {card(p.sub, true, <Link href="/plans" className="mt-8 inline-flex min-h-11 w-fit items-center rounded-full bg-[#fffaf2] px-5 text-sm font-bold text-[#16130f] no-underline">{p.sub.link} <span aria-hidden="true" className="ml-2">→</span></Link>)}
+        {card(p.sub, true, <Link href="/plans" className="ctb-btn mt-8 min-h-11 w-fit bg-[#fffaf2] px-5 text-sm text-[#16130f]">{p.sub.link} {arrow}</Link>)}
       </div>
       <p className="mt-6 max-w-3xl text-sm leading-relaxed text-[var(--color-ink-soft)]">{p.note}</p>
     </section>
@@ -264,12 +297,12 @@ function Create({ c, stripeReady, blobReady, maxMB }) {
 function Final({ c }) {
   const f = c.final
   return (
-    <section className={`${section} py-16 sm:py-24`}>
+    <section className={`${section} pb-10 pt-4 sm:pb-14`}>
       <div className="relative overflow-hidden rounded-[2rem] bg-[var(--ctb-accent)] px-6 py-14 text-[#16130f] sm:px-12 sm:py-20">
         <div aria-hidden="true" className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-[#16130f]/10 sm:h-72 sm:w-72" />
         <h2 className="ctb-h2 relative max-w-4xl">{f.title}</h2>
         <div className="relative mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
-          <a href="#post" className={btnDark}>{f.button} <span aria-hidden="true" className="ml-2">→</span></a>
+          <a href="#post" className={btnDark}>{f.button} {arrow}</a>
           <p className="max-w-md text-sm font-medium">{f.sub}</p>
         </div>
       </div>
@@ -315,8 +348,8 @@ function HomeInner({ stripeReady, blobReady, maxMB }) {
         <Categories c={c} />
         <Why c={c} />
         <Pricing c={c} />
-        <Create c={c} stripeReady={stripeReady} blobReady={blobReady} maxMB={maxMB} />
         <Final c={c} />
+        <Create c={c} stripeReady={stripeReady} blobReady={blobReady} maxMB={maxMB} />
       </main>
       <Footer c={c} />
     </div>

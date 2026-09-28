@@ -269,6 +269,10 @@ html:has(.ctb-landing) {
   font-weight: 800;
 }
 
+@media (min-width: 1024px) {
+  .ctb-display { font-size: min(6.1vw, 6.4rem); }
+}
+
 .ctb-h2 {
   font-size: clamp(2rem, 7vw, 4.25rem);
   line-height: 0.98;
@@ -284,13 +288,11 @@ html:has(.ctb-landing) {
   text-transform: uppercase;
 }
 
-.ctb-underline {
-  background-image: linear-gradient(var(--ctb-accent), var(--ctb-accent));
-  background-repeat: no-repeat;
-  background-size: 100% 0.1em;
-  background-position: 0 100%;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
+.ctb-mark {
+  position: relative;
+  white-space: nowrap;
+  padding-bottom: 0.08em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 24' preserveAspectRatio='none'%3E%3Cpath d='M3 15C45 7 108 5 197 9c-2 4-4 7-6 10C122 15 62 16 5 21z' fill='%23ff5b2e'/%3E%3C/svg%3E") no-repeat left bottom / 100% 0.26em;
 }
 
 .ctb-rail {
@@ -314,3 +316,82 @@ html:has(.ctb-landing) {
 @keyframes ctb-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 @keyframes ctb-travel { 0% { left: 0; opacity: 0; } 15%, 85% { opacity: 1; } 100% { left: calc(100% - 0.75rem); opacity: 0; } }
 @keyframes ctb-swap { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Layered product scene in the hero. Sizes follow the scene width (cqw), so
+   the same composition works from 320 px phones to wide desktops. */
+.ctb-scene { container-type: inline-size; }
+.ctb-scene-in { font-size: clamp(10px, 2.55cqw, 15px); }
+.ctb-layer {
+  border: 1px solid var(--color-line);
+  background: #fff;
+  border-radius: 1.4em;
+  box-shadow: 0 1px 0 rgba(22, 19, 15, 0.05), 0 14px 24px -18px rgba(22, 19, 15, 0.35), 0 34px 60px -34px rgba(22, 19, 15, 0.5);
+}
+.ctb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  border-radius: 999px;
+  background: #16130f;
+  color: #fffaf2;
+  padding: 0.3em 0.75em 0.3em 0.3em;
+  font-size: 0.82em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ctb-badge > b {
+  display: inline-flex;
+  width: 1.55em;
+  height: 1.55em;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--ctb-accent);
+  color: #16130f;
+  font-size: 0.9em;
+}
+
+/* Buttons: one system for hover, press and keyboard focus. In a layer so
+   Tailwind utilities (min-h-11, px-4, text-sm) can size individual buttons. */
+@layer components {
+  .ctb-btn {
+    display: inline-flex;
+    min-height: 3rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    padding: 0 1.5rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .ctb-btn-dark { background: #16130f; color: #fffaf2; box-shadow: 0 10px 22px -14px rgba(22, 19, 15, 0.7); }
+  .ctb-btn-dark:hover { box-shadow: 0 0 0 3px var(--ctb-accent), 0 16px 30px -16px rgba(22, 19, 15, 0.8); }
+  .ctb-btn-light { border: 2px solid #16130f; color: #16130f; background: transparent; }
+  .ctb-btn-light:hover { background: #fff; }
+  .ctb-btn:active { box-shadow: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ctb-btn, .ctb-arrow { transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease; }
+  .ctb-btn:hover { transform: translateY(-2px); }
+  .ctb-btn:active { transform: translateY(1px) scale(0.98); }
+  .ctb-btn:hover .ctb-arrow { transform: translateX(3px); }
+  .ctb-header-row { transition: height 0.2s ease; }
+  .ctb-step { animation: ctb-step 8s ease-in-out infinite; animation-delay: var(--d, 0s); }
+  .ctb-dash { animation: ctb-dash 1.6s linear infinite; }
+  .ctb-paid { animation: ctb-paid 8s ease-in-out infinite; }
+}
+
+/* Each step badge lights up in turn: add, price, share, get paid. */
+@keyframes ctb-step {
+  0%, 22%, 100% { transform: none; box-shadow: none; }
+  6%, 16% { transform: scale(1.08); box-shadow: 0 0 0 0.3em color-mix(in srgb, var(--ctb-accent) 45%, transparent); }
+}
+@keyframes ctb-dash { to { stroke-dashoffset: -16; } }
+@keyframes ctb-paid {
+  0%, 72%, 100% { transform: none; }
+  78% { transform: scale(1.07); }
+  84% { transform: none; }
+}
