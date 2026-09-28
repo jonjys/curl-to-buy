@@ -36,8 +36,8 @@ export default function OrdersBox({ id }) {
   useEffect(() => { refresh() }, [refresh])
   return (
     <div className="space-y-5">
-      <p className="font-mono text-xs font-semibold uppercase tracking-kicker text-pine">{sv ? 'Säljarkonto · beställningar' : 'Seller account · orders'}</p>
-      <h1 className="font-display text-3xl font-black">{state.result?.name || (sv ? 'Dina beställningar' : 'Your orders')}</h1>
+      <p className="ctb-kicker text-muted">{sv ? 'Säljarkonto · beställningar' : 'Seller account · orders'}</p>
+      <h1 className="ctb-title">{state.result?.name || (sv ? 'Dina beställningar' : 'Your orders')}</h1>
       <p className="text-sm leading-relaxed text-ink-soft">{sv ? 'Endast du som skapade länken kan se köparens kontakt- och leveransuppgifter. Du ansvarar för att skicka varan.' : 'Only the seller who created the link can view buyer contact and delivery details. You are responsible for shipping the item.'}</p>
       <button type="button" onClick={refresh} disabled={state.loading} className="min-h-11 rounded-lg border border-pine/50 px-4 text-sm font-semibold text-pine disabled:opacity-50">{state.loading ? (sv ? 'Uppdaterar…' : 'Refreshing…') : (sv ? 'Uppdatera beställningar' : 'Refresh orders')}</button>
       {state.error ? <div role="alert" className="nl-card rounded-xl p-4 text-sm text-warn"><p>{state.error}</p><p className="mt-2 text-xs text-ink-soft">{sv ? 'Om du har bytt enhet kan du återställa ditt säljarkonto med e-post under Digital fil-fliken.' : 'If you changed devices, recover your seller account by email from the Digital file tab.'}</p><Link href="/upload" className="mt-2 inline-block text-pine underline">{sv ? 'Tillbaka till säljaren' : 'Back to selling'}</Link></div> : null}
@@ -45,7 +45,7 @@ export default function OrdersBox({ id }) {
       {(state.result?.orders || []).map((order) => {
         const address = order.shippingAddress || {}
         return <article key={order.reference} className="nl-card space-y-2 rounded-xl p-5">
-          <p className="text-xs font-bold uppercase tracking-kicker text-pine">{sv ? 'Betald beställning' : 'Paid order'}</p>
+          <p className="ctb-kicker text-muted">{sv ? 'Betald beställning' : 'Paid order'}</p>
           <p className="text-sm text-muted">{new Date(order.created * 1000).toLocaleString(sv ? 'sv-SE' : 'en-GB')}</p>
           <p className="font-display text-xl font-bold">{order.amount != null ? `${(order.amount / 100).toFixed(2)} ${String(order.currency || 'sek').toUpperCase()}` : ''}</p>
           <p className="text-sm font-semibold">{sv ? 'Köpare' : 'Buyer'}</p>

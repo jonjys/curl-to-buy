@@ -137,7 +137,7 @@ export default function ItemForm({ stripeReady, blobReady }) {
 
   if (listing) return (
     <div className="space-y-4">
-      <p className="font-mono text-xs font-bold uppercase tracking-kicker text-pine">{sv ? 'Din köplänk är klar' : 'Your payment link is ready'}</p>
+      <p className="font-mono ctb-kicker text-muted">{sv ? 'Din köplänk är klar' : 'Your payment link is ready'}</p>
       <h3 className="font-display text-2xl font-black">{listing.name}</h3>
       <p className="text-sm text-ink-soft">{listing.priceSek} kr · {sv ? 'Frakt ingår' : 'Shipping included'}</p>
       <div className="nl-card rounded-xl p-4"><p className="break-all text-sm text-ink-soft">{shareUrl}</p></div>

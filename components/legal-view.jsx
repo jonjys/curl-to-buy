@@ -2,6 +2,7 @@
 
 import { useLocale } from './locale'
 import { SUPPORT } from '../lib/site'
+import { PageIntro } from './site-chrome'
 
 const PRIVACY_EMAIL = 'privacy@nyttolabs.com'
 const DOCS = {
@@ -39,6 +40,20 @@ const DOCS = {
 
 export default function LegalView({ slug }) {
   const { locale } = useLocale(); const doc = DOCS[slug][locale] || DOCS[slug].en
-  return <article className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6"><h1 className="font-display text-3xl font-black tracking-tight">{doc.title}</h1><p className="mt-3 text-base text-ink-soft">{doc.lead}</p><div className="mt-8 space-y-6">{doc.sections.map(([heading, body]) => <section key={heading}><h2 className="font-display text-lg font-bold">{heading}</h2><p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{body}</p></section>)}</div></article>
+  return (
+    <article className="ctb-gutter mx-auto w-full max-w-3xl py-12 sm:py-16">
+      <PageIntro kicker="Curl-to-Buy" title={doc.title} lead={doc.lead} />
+      <div className="ctb-card mt-10 divide-y divide-line">
+        {doc.sections.map(([heading, body], i) => (
+          <section key={heading} className="grid gap-2 p-6 sm:grid-cols-[3rem_1fr] sm:p-8">
+            <p aria-hidden="true" className="font-mono text-sm text-muted">{String(i + 1).padStart(2, '0')}</p>
+            <div>
+              <h2 className="text-xl font-extrabold tracking-tight">{heading}</h2>
+              <p className="mt-2 leading-relaxed text-ink-soft">{body}</p>
+            </div>
+          </section>
+        ))}
+      </div>
+    </article>
+  )
 }
-

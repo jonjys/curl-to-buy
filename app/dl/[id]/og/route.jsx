@@ -5,7 +5,7 @@ import { readListingImage } from '../../../../lib/listing-image'
 export const runtime = 'nodejs'
 
 const size = { width: 1200, height: 630 }
-const colors = { paper: '#0c1018', sheet: '#181e2a', ink: '#eef2f6', soft: '#b4bcc8', muted: '#8b95a5', line: '#2a3344', pine: '#1aa876', pineFg: '#06140f' }
+const colors = { paper: '#f6f0e6', sheet: '#ffffff', ink: '#16130f', soft: '#3b352e', muted: '#665e54', line: '#ddd2c2', pine: '#ff5b2e', pineFg: '#16130f' }
 
 function clip(text, max) {
   const value = String(text || '')
@@ -45,7 +45,7 @@ export async function GET(_req, { params }) {
         ) : null}
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1, padding: '64px 64px 56px' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', fontSize: 24, letterSpacing: 6, textTransform: 'uppercase', color: colors.pine }}>{physical ? 'Physical item' : 'Digital download'}</div>
+            <div style={{ display: 'flex', fontSize: 24, letterSpacing: 6, textTransform: 'uppercase', color: colors.soft }}>{physical ? 'Physical item' : 'Digital download'}</div>
             <div style={{ display: 'flex', marginTop: 24, fontSize: image ? 56 : 72, fontWeight: 800, lineHeight: 1.08 }}>{clip(listing.name, image ? 70 : 90)}</div>
             <div style={{ display: 'flex', marginTop: 20, fontSize: 28, color: colors.soft }}>{detail}</div>
           </div>

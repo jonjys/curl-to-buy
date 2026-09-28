@@ -9,7 +9,7 @@ export default function SuccessPage() {
   return (
     <LocaleProvider>
       <Frame variant="buyer">
-        <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-12 sm:px-6">
+        <main className="ctb-gutter mx-auto flex w-full max-w-xl flex-1 flex-col justify-center py-12 sm:py-16">
           <Suspense fallback={<p className="text-sm text-muted">Checking payment…</p>}>
             <SuccessBox />
           </Suspense>

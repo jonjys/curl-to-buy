@@ -1,18 +1,18 @@
 import Link from 'next/link'
+import { LocaleProvider } from '../components/locale'
+import { Frame } from '../components/shell'
 
 export default function NotFound() {
   return (
-    <div className="relative mx-auto flex min-h-dvh max-w-xl flex-col justify-center px-5">
-      <div className="nl-grid" aria-hidden="true" />
-      <div className="relative z-10">
-        <h1 className="font-display text-3xl font-black tracking-tight">This link is not for sale.</h1>
-        <Link
-          href="/"
-          className="mt-6 inline-flex min-h-11 w-fit items-center rounded-sm bg-pine px-4 text-sm font-medium text-pine-fg no-underline"
-        >
-          Back
-        </Link>
-      </div>
-    </div>
+    <LocaleProvider>
+      <Frame>
+        <main className="ctb-gutter mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center py-20">
+          <p className="ctb-kicker text-muted">404</p>
+          <h1 className="ctb-title mt-3">This link is not for sale.</h1>
+          <p lang="sv" className="mt-4 text-lg text-ink-soft">Den här länken finns inte eller är inte längre till salu.</p>
+          <Link href="/" className="ctb-btn ctb-btn-dark mt-8 w-fit">Curl-to-Buy</Link>
+        </main>
+      </Frame>
+    </LocaleProvider>
   )
 }

@@ -84,8 +84,8 @@ export default function SavedLinks() {
     <section className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-kicker text-pine">{sv ? 'Säljaröversikt' : 'Seller dashboard'}</p>
-          <h1 className="mt-2 font-display text-3xl font-black">{sv ? 'Dina sparade länkar' : 'Your saved links'}</h1>
+          <p className="ctb-kicker text-muted">{sv ? 'Säljaröversikt' : 'Seller dashboard'}</p>
+          <h1 className="mt-2 ctb-title">{sv ? 'Dina sparade länkar' : 'Your saved links'}</h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">{sv ? 'Länkarna sparas i Curl-to-Buy, inte bara i din mobil. Logga in med samma säljarkonto för att se dem igen.' : 'Your links are saved in Curl-to-Buy, not just on this device. Use the same seller account to see them again.'}</p>
         </div>
         <a href="/upload" className="inline-flex min-h-11 items-center rounded-lg bg-pine px-4 text-sm font-semibold text-pine-fg no-underline">{sv ? 'Skapa ny länk' : 'Create new link'}</a>
@@ -114,7 +114,7 @@ export default function SavedLinks() {
         <li key={item.id} className="nl-card rounded-xl p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="font-mono text-[10px] uppercase tracking-kicker text-pine">{item.kind === 'physical' ? (sv ? 'Fysisk vara' : 'Physical item') : (sv ? 'Digital fil' : 'Digital file')}</p>
+              <p className="ctb-kicker text-muted">{item.kind === 'physical' ? (sv ? 'Fysisk vara' : 'Physical item') : (sv ? 'Digital fil' : 'Digital file')}</p>
               <h2 className="mt-1 break-words text-lg font-bold">{item.name}</h2>
               <p className="mt-1 text-sm text-ink-soft">{priceLabel(item, locale)} · {item.salesCount || 0} {sv ? 'köp' : 'sales'} · {item.paused ? (sv ? 'Pausad' : 'Paused') : (sv ? 'Aktiv' : 'Active')}{item.expiresAt && Date.now() >= item.expiresAt ? ` · ${sv ? 'Utgången' : 'Expired'}` : ''}</p>
             </div>

@@ -6,5 +6,5 @@ export const dynamic = 'force-dynamic'
 
 export default async function ItemOrdersPage({ params }) {
   const { id } = await params
-  return <LocaleProvider><Frame><main className="mx-auto w-full max-w-xl flex-1 px-4 py-10 sm:px-6"><OrdersBox id={id} /></main></Frame></LocaleProvider>
+  return <LocaleProvider><Frame><main className="ctb-gutter mx-auto w-full max-w-2xl flex-1 py-10 sm:py-16"><OrdersBox id={id} /></main></Frame></LocaleProvider>
 }

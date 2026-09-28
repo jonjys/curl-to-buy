@@ -42,7 +42,7 @@ export default function SellerGuide() {
     <section aria-label={sv ? 'Kom igång-guide' : 'Getting started guide'} className="mb-5 rounded-xl border border-pine/35 bg-paper-tint p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-mono text-[10px] uppercase tracking-kicker text-pine">{sv ? 'Första gången?' : 'First time here?'}</p>
+          <p className="ctb-kicker text-muted">{sv ? 'Första gången?' : 'First time here?'}</p>
           <h3 className="mt-1 text-base font-semibold">{sv ? 'Kom igång i tre steg' : 'Start selling in three steps'}</h3>
         </div>
         <button type="button" className="min-h-11 shrink-0 rounded-lg border border-line px-3 text-xs font-semibold" aria-expanded={expanded} aria-controls="ctb-guide-steps" onClick={() => setExpanded((value) => !value)}>
