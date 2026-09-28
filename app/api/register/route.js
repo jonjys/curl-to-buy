@@ -7,6 +7,7 @@ import { MAX_DESCRIPTION_LENGTH, MAX_FILES, MAX_MB, MAX_SALES_LIMIT, TIME_LIMIT_
 import { storageErrorMessage } from '../../../lib/blob-error'
 import { loadReadySeller } from '../../../lib/stripe-connect'
 import { clientError } from '../../../lib/http'
+import { discardListingImage, finishListingImage, publishListingImage } from '../../../lib/listing-image'
 
 export const runtime = 'nodejs'
 
@@ -82,7 +83,11 @@ export async function POST(req) {
   if (!price) return Response.json({ error: priceError(terms, locale, body.priceSek != null && body.priceUsd == null ? 'sek' : 'usd') }, { status: 400 })
 
   let listing
+  let image = null
   try {
+    image = body.imageUpload
+      ? await publishListingImage(body.imageUpload, { sellerId: seller.id, requestId: body.requestId, paidPaths: files.map((file) => file.blobPathname) })
+      : null
     listing = {
       name: String(body.title || (files.length === 1 ? files[0].name : `${files.length}-file package`)).slice(0, 100),
       files,
@@ -94,18 +99,23 @@ export async function POST(req) {
       salesLimit: salesLimitOrNull(body.salesLimit),
       downloadsPerFile: numberOrNull(body.downloadsPerFile, DOWNLOAD_LIMITS),
       description: descriptionOrNull(body.description),
+      imagePath: image?.imagePath || null,
+      imageType: image?.imageType || null,
       expiresAt: expiresAtOrNull(body.timeLimitMinutes),
       sellerId: seller.id,
       createdAt: Date.now(),
     }
     listing = await publishListing(seller, body, listing)
   } catch (err) {
+    await discardListingImage(image)
     return Response.json({ error: err.status ? err.message : storageErrorMessage(err), needsPlan: Boolean(err.needsPlan), quotaExceeded: Boolean(err.quotaExceeded) }, { status: err.status || 500 })
   }
 
+  await finishListingImage(image)
   return Response.json({
     id: listing.id,
     name: listing.name,
+    imageUrl: listing.imagePath ? `/dl/${listing.id}/image` : null,
     fileCount: files.length,
     priceUsd: listing.priceUsd,
     priceSek: listing.priceSek,

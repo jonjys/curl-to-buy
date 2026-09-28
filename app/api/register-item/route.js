@@ -6,20 +6,11 @@ import { isSubscribed, priceError, saleTerms } from '../../../lib/entitlement'
 import { loadReadySeller } from '../../../lib/stripe-connect'
 import { storageErrorMessage } from '../../../lib/blob-error'
 import { clientError } from '../../../lib/http'
+import { discardListingImage, finishListingImage, publishListingImage } from '../../../lib/listing-image'
 
 export const runtime = 'nodejs'
 
 const CONDITIONS = new Set(['new', 'used_good', 'used_fair'])
-
-function allowedPhoto(url) {
-  if (!url) return null
-  try {
-    const value = new URL(url)
-    if (value.protocol !== 'https:' || !value.hostname.endsWith('.public.blob.vercel-storage.com')) return null
-    if (!value.pathname.startsWith('/uploads/items/')) return null
-    return value.href
-  } catch { return null }
-}
 
 export async function POST(req) {
   let seller
@@ -41,14 +32,14 @@ export async function POST(req) {
   const locale = body.locale === 'sv' ? 'sv' : 'en'
   const terms = saleTerms(isSubscribed(await billingState(seller).catch(() => ({ active: false }))))
   const price = parsePrice({ priceSek: body.priceSek }, { minSek: terms.minSek })
-  const photoUrl = allowedPhoto(body.photoUrl)
   if (title.length < 3 || title.length > 100 || description.length > 300 || !CONDITIONS.has(condition)) {
     return Response.json({ error: 'Enter a title, condition and description of at most 300 characters.' }, { status: 400 })
   }
   if (!price || price.currency !== 'sek') {
     return Response.json({ error: priceError(terms, locale, 'sek') }, { status: 400 })
   }
-  if (body.photoUrl && !photoUrl) return Response.json({ error: 'Invalid item photo.' }, { status: 400 })
+  // Photos are published only from a private staged upload, never from a URL.
+  if (body.photoUrl) return Response.json({ error: 'Refresh the page and add the photo again.' }, { status: 400 })
   if (body.shippingIncluded !== true) {
     return Response.json({ error: 'Confirm that shipping within Sweden is included in your price.' }, { status: 400 })
   }
@@ -66,6 +57,12 @@ export async function POST(req) {
       sourceUrl = url.href
     } catch { return Response.json({ error: 'Enter a valid HTTPS product URL without credentials.' }, { status: 400 }) }
   }
+  let image = null
+  try {
+    if (body.photoUpload) image = await publishListingImage(body.photoUpload, { sellerId: seller.id, requestId: body.requestId })
+  } catch (error) {
+    return Response.json({ error: error.status ? error.message : storageErrorMessage(error) }, { status: error.status || 500 })
+  }
   let listing = {
     kind: 'physical',
     sourceUrl,
@@ -73,7 +70,8 @@ export async function POST(req) {
     name: title,
     description: description || null,
     condition,
-    photoUrl,
+    imagePath: image?.imagePath || null,
+    imageType: image?.imageType || null,
     shippingIncluded: true,
     shippingCountries: countries,
     files: [],
@@ -94,8 +92,10 @@ export async function POST(req) {
   try {
     listing = await publishListing(seller, body, listing)
   } catch (error) {
+    await discardListingImage(image)
     return Response.json({ error: error.status ? error.message : storageErrorMessage(error), needsPlan: Boolean(error.needsPlan), quotaExceeded: Boolean(error.quotaExceeded) }, { status: error.status || 500 })
   }
+  await finishListingImage(image)
   return Response.json({ id: listing.id, name: listing.name, kind: 'physical', priceSek: listing.priceSek, currency: 'sek', salesLimit: listing.salesLimit })
 }
 

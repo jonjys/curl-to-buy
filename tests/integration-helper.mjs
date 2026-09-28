@@ -20,6 +20,9 @@ export function memoryBlob() {
       data.set(path, { text, etag })
       return { pathname: path, etag }
     },
+    async del(paths) {
+      for (const path of [].concat(paths)) data.delete(path)
+    },
     async list({ prefix, limit = 1000 }) {
       const paths = [...data.keys()].filter((p) => p.startsWith(prefix))
       return { blobs: paths.slice(0, limit).map((pathname) => ({ pathname })), hasMore: paths.length > limit }

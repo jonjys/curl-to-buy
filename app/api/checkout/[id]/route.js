@@ -78,6 +78,8 @@ export async function POST(req, { params }) {
 
   const origin = httpsOrigin(req)
   const fileCount = listingFiles(listing).length
+  // Stripe fetches this URL, so give it our own route (private image, metadata removed).
+  const image = listing.imagePath ? `${origin}/dl/${listing.id}/image` : (isPhysical && listing.photoUrl) || null
   const checkoutParams = {
     mode: 'payment',
     line_items: [{
@@ -90,7 +92,7 @@ export async function POST(req, { params }) {
           description: isPhysical
             ? 'Physical item · shipping included in price'
             : fileCount > 1 ? `${fileCount} digital files via Curl-to-Buy` : 'Digital file via Curl-to-Buy',
-          ...(isPhysical && listing.photoUrl ? { images: [listing.photoUrl] } : {}),
+          ...(image ? { images: [image] } : {}),
         },
       },
     }],

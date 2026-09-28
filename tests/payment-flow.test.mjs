@@ -179,3 +179,22 @@ test('Checkout refuses missing recipient and sold-out listing; paid session cann
     { params: Promise.resolve({ id: 'other-listing' }) })).status, 403)
 })
 
+test('Cover image reaches Stripe Checkout; legacy listing without one sends no images; paid flow unchanged', async () => {
+  const cover = 'https://example.test/dl/listing1/image'
+  const legacy = await setup()
+  await legacy.checkout.POST(new Request('https://example.test/api/checkout/listing1', { method: 'POST' }), { params: Promise.resolve({ id: 'listing1' }) })
+  assert.equal(legacy.state.checkoutArgs.line_items[0].price_data.product_data.images, undefined)
+
+  const { state, checkout, webhook, download } = await setup()
+  state.listing = { ...state.listing, imagePath: 'listing-images/seller1/0123456789abcdef.jpg', imageType: 'image/jpeg', coverUrl: 'https://abc.public.blob.vercel-storage.com/ignored.jpg' }
+  const created = await checkout.POST(new Request('https://example.test/api/checkout/listing1', { method: 'POST' }), { params: Promise.resolve({ id: 'listing1' }) })
+  assert.equal(created.status, 200)
+  assert.equal(JSON.stringify(state.checkoutArgs.line_items[0].price_data.product_data.images), JSON.stringify([cover]))
+  assert.equal(state.checkoutArgs.payment_intent_data.application_fee_amount, 500)
+  state.session.payment_status = 'paid' // Simulated Stripe success; NO real charge is made.
+  assert.equal((await webhook.POST(eventRequest('checkout.session.completed', state.session))).status, 200)
+  const file = await download.GET(new Request('https://example.test/api/download/listing1?session_id=cs_test_contract_1&file=0'), { params: Promise.resolve({ id: 'listing1' }) })
+  assert.equal(file.status, 200)
+  assert.equal(await file.text(), 'example file contents')
+})
+
