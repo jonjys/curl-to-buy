@@ -64,6 +64,7 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
   const dependencies = {
     'node:crypto': { randomUUID },
     'lib/billing-events': { reconcileBillingEvent: async () => false },
+    'lib/analytics-server': { trackPurchaseCompleted: async (event) => { (state.analytics ||= []).push(event) } },
     'lib/store': store,
     'lib/publish-listing': { publishListing: async (_, body, listing) => { state.listing = { ...listing, id: 'physical1' }; return state.listing } },
     'lib/billing': { billingState: async () => ({ active: false }) },
