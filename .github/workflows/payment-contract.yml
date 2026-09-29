@@ -6,6 +6,8 @@ on:
       - 'lib/**'
       - 'tests/**'
       - '.github/workflows/payment-contract.yml'
+      - 'package.json'
+      - 'package-lock.json'
   workflow_dispatch:
 jobs:
   payment-flow:
@@ -17,5 +19,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+      - name: Install dependencies from the lockfile
+        run: npm ci --no-audit --no-fund
       - name: Run secret-free payment, links and billing contract tests
         run: node --experimental-vm-modules --test tests/*.test.mjs
