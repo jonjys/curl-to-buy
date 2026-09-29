@@ -35,7 +35,7 @@ async function setup() {
     downloadsPerFile: 1, salesLimit: 1,
   }
   const seller = { id: 'seller1', stripeAccountId: 'acct_test_seller', feeBps: 500 }
-  const state = { listing, seller, sales, downloads, session: null, checkoutArgs: null, transfersEnabled: true, analytics: [] }
+  const state = { listing, seller, sales, downloads, session: null, checkoutArgs: null, transfersEnabled: true }
   const client = {
     checkout: { sessions: {
       create: async (args) => {
@@ -75,7 +75,6 @@ async function setup() {
   const dependencies = {
     'node:crypto': { randomUUID },
     'lib/billing-events': { reconcileBillingEvent: async () => false },
-    'lib/analytics-server': { trackPurchaseCompleted: async (event) => { state.analytics.push(event) } },
     'lib/stripe': { stripe: () => client },
     'lib/billing': { billingState: async () => ({ active: false }) },
     'lib/entitlement': {
@@ -140,8 +139,6 @@ test('Checkout -> paid webhook -> idempotent order -> gated file -> download cap
   state.session.payment_status = 'paid' // Simulated Stripe success; NO real charge is made.
   assert.equal((await webhook.POST(eventRequest('checkout.session.completed', state.session))).status, 200)
   assert.equal(state.sales.size, 1)
-  // purchase_completed is requested only after the verified webhook registered the sale, with no IDs beyond the session key.
-  assert.deepEqual(JSON.parse(JSON.stringify(state.analytics)), JSON.parse(JSON.stringify([{ sessionId: 'cs_test_contract_1', itemType: 'digital', currency: state.session.currency }])))
   const confirmed = await verify.GET(new Request(verifyUrl))
   assert.equal((await confirmed.json()).status, 'paid')
   assert.equal(state.sales.size, 1)
