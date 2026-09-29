@@ -314,7 +314,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     ]
     return (
       <div className="space-y-5">
-        <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.linkReady}</p>
+        <p className="ctb-kicker text-muted">{t.linkReady}</p>
         <div className="nl-card overflow-hidden rounded-md">
           {listing.imageUrl ? <img src={listing.imageUrl} alt="" className="max-h-48 w-full bg-paper-tint object-cover" /> : null}
           <div className="p-4">
@@ -361,7 +361,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     return (
       <div className="space-y-4">
         <div>
-          <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.connectKicker}</p>
+          <p className="ctb-kicker text-muted">{t.connectKicker}</p>
           <h3 className="mt-2 font-display text-2xl font-black">{t.connectTitle}</h3>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">{t.connectText}</p>
         </div>

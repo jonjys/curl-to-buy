@@ -33,7 +33,7 @@ export default function SuccessBox() {
   if (state.loading) return <p className="text-sm text-muted">{t.verifying}</p>
   if (state.error) return (
     <div className="nl-card rounded-2xl p-6">
-      <h1 className="font-display text-3xl font-black tracking-tight">{t.payFail}</h1>
+      <h1 className="ctb-title">{t.payFail}</h1>
       <p className="mt-3 text-sm text-ink-soft">{state.error}</p>
       <Link href="/" className="mt-6 inline-flex min-h-11 items-center rounded-sm bg-pine px-4 text-sm font-medium text-pine-fg no-underline">{t.back}</Link>
     </div>
@@ -41,8 +41,8 @@ export default function SuccessBox() {
 
   if (state.data.kind === 'physical') return (
     <div className="nl-card nl-card-glow rounded-2xl p-6 sm:p-8">
-      <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{sv ? 'Betalning bekräftad' : 'Payment confirmed'}</p>
-      <h1 className="mt-2 font-display text-3xl font-black tracking-tight">{sv ? 'Tack för ditt köp!' : 'Thanks for your purchase!'}</h1>
+      <p className="ctb-kicker text-muted">{sv ? 'Betalning bekräftad' : 'Payment confirmed'}</p>
+      <h1 className="mt-2 ctb-title">{sv ? 'Tack för ditt köp!' : 'Thanks for your purchase!'}</h1>
       <p className="mt-3 text-sm text-ink-soft">{state.data.title}</p>
       <p className="mt-4 text-sm leading-relaxed text-ink-soft">{sv ? 'Säljaren ansvarar för att skicka varan till adressen du angav i Stripe Checkout. Behåll orderreferensen om du behöver kontakta support.' : 'The seller is responsible for shipping to the address you entered at Stripe Checkout. Keep the order reference in case you need support.'}</p>
       <p className="mt-5 break-all rounded-lg border border-line bg-paper-tint p-3 font-mono text-xs text-muted">{state.data.order_reference}</p>
@@ -53,8 +53,8 @@ export default function SuccessBox() {
   const files = state.data.files || [{ index: 0, name: state.data.title || t.download }]
   return (
     <div className="nl-card nl-card-glow rounded-2xl p-6 sm:p-8">
-      <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.successKicker}</p>
-      <h1 className="mt-2 font-display text-3xl font-black tracking-tight">{t.success}</h1>
+      <p className="ctb-kicker text-muted">{t.successKicker}</p>
+      <h1 className="mt-2 ctb-title">{t.success}</h1>
       <p className="mt-3 text-sm text-ink-soft">{state.data.title}</p>
       <div className="mt-6 grid gap-2">
         {files.map((file) => (

@@ -10,7 +10,7 @@ export default function UploadPage() {
   return (
     <LocaleProvider>
       <Frame>
-        <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10 sm:px-6">
+        <main className="ctb-gutter mx-auto w-full max-w-[90rem] flex-1 py-10 sm:py-16">
           <UploadCopy
             stripeReady={stripeReady()}
             blobReady={Boolean(process.env.BLOB_READ_WRITE_TOKEN)}

@@ -78,7 +78,7 @@ export default function BuyBox({ listing, price }) {
     <article className="nl-card nl-card-glow overflow-hidden rounded-2xl">
       {listing.imageUrl ? <img src={listing.imageUrl} alt={listing.name} className="max-h-96 w-full bg-paper-tint object-contain" /> : null}
       <div className="p-6 sm:p-8">
-        <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{isPhysical ? (sv ? 'Fysisk vara' : 'Physical item') : (sv ? 'Digital nedladdning' : 'Digital download')}</p>
+        <p className="ctb-kicker text-muted">{isPhysical ? (sv ? 'Fysisk vara' : 'Physical item') : (sv ? 'Digital nedladdning' : 'Digital download')}</p>
         <h1 className="mt-2 break-words font-display text-3xl font-black tracking-tight sm:text-4xl">{listing.name}</h1>
         <p className="mt-2 text-sm text-muted">{summary.join(' · ')}</p>
         {listing.variant ? <p className="mt-2 text-sm text-ink-soft">{listing.variant}</p> : null}

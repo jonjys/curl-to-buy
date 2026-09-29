@@ -68,8 +68,8 @@ export default function SubscriptionPlans() {
   return (
     <section className="space-y-6">
       <div>
-        <p className="font-mono text-[10px] uppercase tracking-kicker text-pine">{sv ? 'Abonnemang' : 'Subscriptions'}</p>
-        <h1 className="mt-2 font-display text-3xl font-black">{sv ? 'Dina produkter. Dina länkar.' : 'Your products. Your links.'}</h1>
+        <p className="ctb-kicker text-muted">{sv ? 'Abonnemang' : 'Subscriptions'}</p>
+        <h1 className="mt-2 ctb-title">{sv ? 'Dina produkter. Dina länkar.' : 'Your products. Your links.'}</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">{sv ? 'Sälj fysiska produkter, ditt eget varumärke och digitala filer. Välj hur många nya köplänkar du behöver varje månad.' : 'Sell physical products, your own brand and digital files. Choose how many new payment links you need each month.'}</p>
         <p className="mt-3 text-sm text-muted">{sv ? 'Du betalar abonnemanget till Nytto Labs. Curl-to-Buy tar ingen procent på varje försäljning. Stripe drar sin kortavgift från beloppet som landar hos dig.' : 'You pay the subscription to Nytto Labs. Curl-to-Buy takes no percentage of each sale. Stripe deducts its card fee from the amount that reaches you.'}</p>
       </div>
@@ -87,8 +87,8 @@ export default function SubscriptionPlans() {
       {loading ? <p className="text-sm text-muted">{sv ? 'Hämtar abonnemang…' : 'Loading subscriptions…'}</p> : null}
       <div className="grid gap-4 md:grid-cols-3">
         {plans.map((plan) => <article key={plan.key} className={`nl-card rounded-xl p-5 ${chosen === plan.key ? 'border-pine' : ''}`}>
-          <p className="font-mono text-xs uppercase tracking-kicker text-pine">{plan.name}</p>
-          <h2 className="mt-3 font-display text-3xl font-black">{money(plan.amount, plan.currency.toUpperCase(), locale)}</h2>
+          <p className="ctb-kicker text-muted">{plan.name}</p>
+          <h2 className="mt-3 text-4xl font-extrabold tracking-tight">{money(plan.amount, plan.currency.toUpperCase(), locale)}</h2>
           <p className="mt-1 text-xs text-muted">{sv ? 'per månad, inklusive moms där tillämpligt' : 'per month, including applicable tax'}</p>
           <p className="mt-4 text-sm font-semibold">{plan.monthlyLinks === null ? (sv ? 'Obegränsat antal nya länkar' : 'Unlimited new links') : (sv ? `${plan.monthlyLinks} nya länkar per månad` : `${plan.monthlyLinks} new links per month`)}</p>
           <p className="mt-2 text-xs leading-relaxed text-muted">{sv ? 'En länk kan ta emot flera köp. Du bestämmer pris och lagerantal.' : 'A link can receive multiple purchases. You choose the price and stock quantity.'}</p>

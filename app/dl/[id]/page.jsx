@@ -33,5 +33,5 @@ export default async function DlPage({ params }) {
   const { id } = await params
   const view = await buyerListing(id)
   if (!view) notFound()
-  return <LocaleProvider><Frame variant="buyer"><main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-8 sm:px-6 sm:py-12"><BuyBox listing={view.listing} price={view.price} /></main></Frame></LocaleProvider>
+  return <LocaleProvider><Frame variant="buyer"><main className="ctb-gutter mx-auto flex w-full max-w-xl flex-1 flex-col justify-center py-8 sm:py-12"><BuyBox listing={view.listing} price={view.price} /></main></Frame></LocaleProvider>
 }

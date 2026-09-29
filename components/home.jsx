@@ -1,68 +1,17 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { LocaleProvider, useLocale } from './locale'
 import SellMode from './sell-mode'
-import { SUPPORT } from '../lib/site'
+import { Frame } from './site-chrome'
 import { LANDING } from './landing/copy'
 import { Art, BuyCard, HeroScene, SharePreview } from './landing/mockups'
 
 const btnDark = 'ctb-btn ctb-btn-dark text-base'
 const btnLight = 'ctb-btn ctb-btn-light text-base'
 const arrow = <span aria-hidden="true" className="ctb-arrow">→</span>
-const section = 'mx-auto w-full max-w-[90rem] px-4 sm:px-6 lg:px-10'
-
-function Logo({ label }) {
-  return (
-    <Link href="/" aria-label={label} className="flex min-h-11 shrink-0 items-center gap-2 no-underline">
-      <span aria-hidden="true" className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#16130f]">
-        <span className="h-3.5 w-3.5 rounded-full bg-[var(--ctb-accent)]" />
-      </span>
-      <span className="text-lg font-extrabold tracking-tight max-[359px]:sr-only">Curl-to-Buy</span>
-    </Link>
-  )
-}
-
-function LangSwitch({ label }) {
-  const { locale, setLang } = useLocale()
-  return (
-    <div role="group" aria-label={label} className="flex rounded-full border border-[var(--color-line)] bg-white p-0.5">
-      {['en', 'sv'].map((code) => (
-        <button key={code} type="button" lang={code} aria-pressed={locale === code} onClick={() => setLang(code)}
-          className={`min-h-10 min-w-10 rounded-full px-2 font-mono text-xs font-medium uppercase ${locale === code ? 'bg-[#16130f] text-[#fffaf2]' : 'text-[var(--color-ink-soft)]'}`}>{code}</button>
-      ))}
-    </div>
-  )
-}
-
-function Header({ c }) {
-  const [compact, setCompact] = useState(false)
-  useEffect(() => {
-    const onScroll = () => setCompact(window.scrollY > 24)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-  return (
-    <header className={`sticky top-0 z-50 border-b bg-[var(--color-paper)]/90 backdrop-blur ${compact ? 'border-[var(--color-line)] shadow-[0_10px_30px_-24px_rgba(22,19,15,0.45)]' : 'border-transparent'}`}>
-      <div className={`${section} ctb-header-row flex items-center justify-between gap-2 ${compact ? 'h-14' : 'h-16 lg:h-20'}`}>
-        <Logo label={c.nav.home} />
-        <nav aria-label="Curl-to-Buy" className="hidden items-center gap-7 text-sm font-semibold md:flex">
-          <a href="#how" className="no-underline hover:underline">{c.nav.how}</a>
-          <a href="#pricing" className="no-underline hover:underline">{c.nav.pricing}</a>
-          <Link href="/links" className="no-underline hover:underline">{c.nav.links}</Link>
-        </nav>
-        <div className="flex items-center gap-2">
-          <LangSwitch label={c.nav.language} />
-          <a href="#post" className="ctb-btn ctb-btn-dark min-h-11 px-4 text-sm">
-            <span className="sm:hidden">{c.nav.createShort}</span><span className="hidden sm:inline">{c.nav.create}</span>
-          </a>
-        </div>
-      </div>
-    </header>
-  )
-}
+const section = 'ctb-gutter mx-auto w-full max-w-[90rem]'
 
 function Hero({ c }) {
   const h = c.hero
@@ -310,38 +259,12 @@ function Final({ c }) {
   )
 }
 
-function Footer({ c }) {
-  const { t } = useLocale()
-  return (
-    <footer className="border-t border-[var(--color-line)] bg-[var(--color-paper)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <div className={`${section} grid gap-8 py-12 md:grid-cols-[1.2fr_1fr]`}>
-        <div>
-          <Logo label={c.nav.home} />
-          <p className="mt-3 text-lg font-bold">{c.footer.tagline}</p>
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-[var(--color-ink-soft)]">{t.footerFee}</p>
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-[var(--color-ink-soft)]">{t.legal} <a className="font-semibold underline underline-offset-4" href={`mailto:${SUPPORT}`}>{t.mail}</a></p>
-        </div>
-        <nav aria-label={c.footer.tagline} className="grid grid-cols-2 content-start gap-x-6 gap-y-1 text-sm font-semibold sm:grid-cols-3">
-          <Link href="/links" className="inline-flex min-h-11 items-center no-underline hover:underline">{c.footer.links}</Link>
-          <Link href="/plans" className="inline-flex min-h-11 items-center no-underline hover:underline">{c.footer.subscriptions}</Link>
-          <Link href="/terms" className="inline-flex min-h-11 items-center no-underline hover:underline">{t.legalTerms}</Link>
-          <Link href="/refunds" className="inline-flex min-h-11 items-center no-underline hover:underline">{t.legalRefunds}</Link>
-          <Link href="/privacy" className="inline-flex min-h-11 items-center no-underline hover:underline">{t.legalPrivacy}</Link>
-          <a href="https://www.nyttolabs.com" className="inline-flex min-h-11 items-center no-underline hover:underline">nyttolabs.com</a>
-        </nav>
-      </div>
-    </footer>
-  )
-}
-
 function HomeInner({ stripeReady, blobReady, maxMB }) {
   const { locale } = useLocale()
   const c = LANDING[locale] || LANDING.en
   return (
-    <div className="ctb-landing min-h-dvh">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-[#16130f] focus:px-4 focus:py-3 focus:text-[#fffaf2]">{c.skip}</a>
-      <Header c={c} />
-      <main id="main">
+    <Frame variant="home">
+      <main>
         <Hero c={c} />
         <Demo c={c} />
         <Steps c={c} />
@@ -351,8 +274,7 @@ function HomeInner({ stripeReady, blobReady, maxMB }) {
         <Final c={c} />
         <Create c={c} stripeReady={stripeReady} blobReady={blobReady} maxMB={maxMB} />
       </main>
-      <Footer c={c} />
-    </div>
+    </Frame>
   )
 }
 

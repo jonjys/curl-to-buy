@@ -2,7 +2,7 @@ import './globals.css'
 import { SITE } from '../lib/site'
 
 const OG = `${SITE}/og.jpg`
-const title = 'Curl-to-Buy — Sell a file. Get paid.'
+const title = 'Curl-to-Buy | Sell anything with one link'
 const description = 'Upload a template, preset, ebook or client delivery. Set a price and share one link. Buyers pay by card. The money goes to your Stripe. 5% fee, no monthly fee.'
 
 export const metadata = {
@@ -14,10 +14,10 @@ export const metadata = {
     title,
     description,
     url: SITE,
-    siteName: 'Curl-to-Buy — Nytto Labs',
+    siteName: 'Curl-to-Buy',
     locale: 'en_GB',
     type: 'website',
-    images: [{ url: OG, width: 1200, height: 630, alt: 'Curl-to-Buy — shareable payment links' }],
+    images: [{ url: OG, width: 1200, height: 630, alt: 'Curl-to-Buy, payment links for files and things' }],
   },
   twitter: {
     card: 'summary_large_image',
@@ -28,7 +28,7 @@ export const metadata = {
 }
 
 export const viewport = {
-  themeColor: '#0c1018',
+  themeColor: '#f6f0e6',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',

@@ -1,23 +1,26 @@
 'use client'
 
+import Link from 'next/link'
 import SellMode from '../../components/sell-mode'
 import { useLocale } from '../../components/locale'
+import { PageIntro } from '../../components/site-chrome'
 
 export default function UploadCopy(props) {
-  const { t, locale } = useLocale()
+  const { locale } = useLocale()
   const sv = locale === 'sv'
   return (
-    <>
-      <p className="font-mono text-[10px] font-medium uppercase tracking-kicker text-pine">{t.live}</p>
-      <h1 className="mt-2 font-display text-display font-black tracking-tight">{sv ? 'Ladda upp en fil' : 'Upload a file'}</h1>
-      <p className="mt-3 max-w-xl text-base leading-relaxed text-ink-soft">{sv ? 'En mall, preset, e-bok eller leverans. Sätt ett pris och dela en länk.' : 'A template, preset, ebook or delivery. Set a price and share one link.'}</p>
-      <nav className="mt-4 flex flex-wrap gap-2 text-sm font-semibold" aria-label={sv ? 'Säljverktyg' : 'Seller tools'}>
-        <a href="/links" className="inline-flex min-h-11 items-center rounded-lg border border-pine/50 px-4 text-pine no-underline">{sv ? 'Mina sparade länkar →' : 'My saved links →'}</a>
-      </nav>
-      <div className="nl-card mt-6 rounded-2xl p-5 sm:p-7">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-14">
+      <div className="lg:sticky lg:top-28 lg:self-start">
+        <PageIntro
+          kicker={sv ? 'Skapa din länk' : 'Create your link'}
+          title={sv ? 'Sälj med en enda länk.' : 'Sell anything with one link.'}
+          lead={sv ? 'Lägg till filen eller varan, sätt priset och få din checkout-länk. Första gången ansluter du Stripe så att pengarna kan nå dig.' : 'Add your file or item, set the price and get your checkout link. The first time, you connect Stripe so the money can reach you.'}
+        />
+        <Link href="/links" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold underline underline-offset-4">{sv ? 'Hantera länkar du redan har skapat' : 'Manage links you already made'}</Link>
+      </div>
+      <div className="ctb-card p-5 sm:p-8">
         <SellMode {...props} />
       </div>
-    </>
+    </div>
   )
 }
-
