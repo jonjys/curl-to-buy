@@ -7,6 +7,16 @@ export const dynamic = 'force-dynamic'
 
 const ID_FROM_PATH = /^listings\/([A-Za-z0-9_-]+)\.json$/
 
+// The product image the buyer sees, as a public URL. Never a storage path:
+// new images are served by /dl/[id]/image; older physical listings kept a
+// public Blob photo URL, accepted only in that exact shape.
+const LEGACY_PHOTO = /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\/uploads\/items\/[\w./-]+$/i
+function imageUrl(item) {
+  if (typeof item.imagePath === 'string' && item.imagePath.startsWith('listing-images/') && !item.imagePath.includes('..')) return `/dl/${item.id}/image`
+  if (item.kind === 'physical' && typeof item.photoUrl === 'string' && LEGACY_PHOTO.test(item.photoUrl) && !item.photoUrl.includes('..')) return item.photoUrl
+  return null
+}
+
 export async function GET(req) {
   const sellerId = sellerIdFromRequest(req)
   const seller = sellerId ? await getSeller(sellerId) : null
@@ -42,6 +52,7 @@ export async function GET(req) {
         expiresAt: item.expiresAt || null,
         salesLimit: item.salesLimit ?? null,
         paused: item.paused === true,
+        imageUrl: imageUrl(item),
         salesCount: await getSalesCount(item.id),
       })))
     links.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))

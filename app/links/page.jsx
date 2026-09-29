@@ -1,6 +1,6 @@
 import { LocaleProvider } from '../../components/locale'
 import { Frame } from '../../components/shell'
-import SavedLinks from '../../components/saved-links'
+import MyProducts from '../../components/my-products'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,8 +13,8 @@ export default function LinksPage() {
   return (
     <LocaleProvider>
       <Frame>
-        <main className="ctb-gutter mx-auto w-full max-w-3xl flex-1 py-10 sm:py-16">
-          <SavedLinks />
+        <main className="ctb-gutter mx-auto w-full max-w-5xl flex-1 py-10 sm:py-16">
+          <MyProducts />
         </main>
       </Frame>
     </LocaleProvider>

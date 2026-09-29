@@ -9,6 +9,7 @@ import { formatUsd } from '../lib/copy'
 import { IMAGE_TYPES, MAX_IMAGE_BYTES } from '../lib/public-image'
 import { cleanImage } from '../lib/clean-image'
 import { useLocale } from './locale'
+import UseAnywhere from './use-anywhere'
 
 const DRAFT_KEY = 'curl-to-buy:pending-listing'
 const QUANTITY_SLIDER_MAX = 1000
@@ -331,6 +332,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs text-pine">{sv ? 'Öppna köpsidan' : 'Open your page'} →</a>
           </div>
         </div>
+        <UseAnywhere id={listing.id} name={listing.name} priceLabel={label} />
         <div className="rounded-md border border-line p-4 text-sm text-ink-soft">
           <p className="font-medium text-ink">{sv ? 'Så får du din första försäljning' : 'How to get your first sale'}</p>
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs leading-relaxed">
