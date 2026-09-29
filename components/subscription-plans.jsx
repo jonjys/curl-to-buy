@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useLocale } from './locale'
+import { trackEvent } from './analytics'
 import { visibleError } from '../lib/http'
 
 function money(amount, currency, locale) {
@@ -53,6 +54,7 @@ export default function SubscriptionPlans() {
       })
       const data = await response.json().catch(() => ({}))
       if (!response.ok || !data.url || !/^https:\/\//.test(data.url)) throw Error(visibleError(data.error, 'Could not open Stripe.'))
+      if (path.includes('/connect')) trackEvent('stripe_connect_started', { location: 'plans' })
       window.location.assign(data.url)
     } catch (err) { setError(visibleError(err.message, sv ? 'Kunde inte öppna Stripe.' : 'Could not open Stripe.')); setBusy(false) }
   }
@@ -71,7 +73,7 @@ export default function SubscriptionPlans() {
         <p className="ctb-kicker text-muted">{sv ? 'Abonnemang' : 'Subscriptions'}</p>
         <h1 className="mt-2 ctb-title">{sv ? 'Dina produkter. Dina länkar.' : 'Your products. Your links.'}</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">{sv ? 'Sälj fysiska produkter, ditt eget varumärke och digitala filer. Välj hur många nya köplänkar du behöver varje månad.' : 'Sell physical products, your own brand and digital files. Choose how many new payment links you need each month.'}</p>
-        <p className="mt-3 text-sm text-muted">{sv ? 'Du betalar abonnemanget till Nytto Labs. Curl-to-Buy tar ingen procent på varje försäljning. Stripe drar sin kortavgift från beloppet som landar hos dig.' : 'You pay the subscription to Nytto Labs. Curl-to-Buy takes no percentage of each sale. Stripe deducts its card fee from the amount that reaches you.'}</p>
+        <p className="mt-3 text-sm text-muted">{sv ? 'Du betalar abonnemanget till Nytto Labs. Nytto Checkout tar ingen procent på varje försäljning. Stripe drar sin kortavgift från beloppet som landar hos dig.' : 'You pay the subscription to Nytto Labs. Nytto Checkout takes no percentage of each sale. Stripe deducts its card fee from the amount that reaches you.'}</p>
       </div>
       {current ? <div className="nl-card rounded-xl p-5 text-sm">
         <p className="font-semibold">{current.name || current.plan}</p>

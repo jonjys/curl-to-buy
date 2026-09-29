@@ -53,7 +53,7 @@ export async function GET(_req, { params }) {
             <div style={{ display: 'flex', fontSize: 96, fontWeight: 800 }}>{price.label}</div>
             <div style={{ display: 'flex', padding: '18px 30px', borderRadius: 14, background: unavailable ? colors.line : colors.pine, color: unavailable ? colors.soft : colors.pineFg, fontSize: 32, fontWeight: 700 }}>{unavailable || 'Buy now'}</div>
           </div>
-          <div style={{ display: 'flex', marginTop: 28, fontSize: 22, color: colors.muted }}>Secure card payment via Stripe · Curl-to-Buy</div>
+          <div style={{ display: 'flex', marginTop: 28, fontSize: 22, color: colors.muted }}>Secure card payment via Stripe · Nytto Checkout</div>
         </div>
       </div>
     ),

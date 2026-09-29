@@ -5,7 +5,7 @@ import MyProducts from '../../components/my-products'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'My products | Curl-to-Buy',
+  title: 'My products | Nytto Checkout',
   robots: { index: false, follow: false },
 }
 

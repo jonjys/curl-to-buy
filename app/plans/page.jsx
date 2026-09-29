@@ -4,7 +4,7 @@ import SubscriptionPlans from '../../components/subscription-plans'
 
 export const dynamic = 'force-dynamic'
 export const metadata = {
-  title: 'Subscriptions | Curl-to-Buy',
+  title: 'Subscriptions | Nytto Checkout',
   description: 'Monthly plans for physical products and digital files. Choose Start, Grow or Scale.',
 }
 

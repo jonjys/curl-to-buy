@@ -1,23 +1,25 @@
 import './globals.css'
 import { SITE } from '../lib/site'
+import { SiteAnalytics } from '../components/analytics'
 
 const OG = `${SITE}/og.jpg`
-const title = 'Curl-to-Buy | Sell anything with one link'
+const title = 'Nytto Checkout | One product. One checkout link.'
 const description = 'Upload a template, preset, ebook or client delivery. Set a price and share one link. Buyers pay by card. The money goes to your Stripe. 5% fee, no monthly fee.'
 
 export const metadata = {
   metadataBase: new URL(SITE),
   title,
   description,
-  applicationName: 'Curl-to-Buy',
+  applicationName: 'Nytto Checkout',
+  icons: { icon: '/favicon.svg' },
   openGraph: {
     title,
     description,
     url: SITE,
-    siteName: 'Curl-to-Buy',
+    siteName: 'Nytto Checkout',
     locale: 'en_GB',
     type: 'website',
-    images: [{ url: OG, width: 1200, height: 630, alt: 'Curl-to-Buy, payment links for files and things' }],
+    images: [{ url: OG, width: 1200, height: 630, alt: 'Nytto Checkout, payment links for files and things' }],
   },
   twitter: {
     card: 'summary_large_image',
@@ -45,7 +47,7 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700;800&display=swap"
         />
       </head>
-      <body className="min-h-full bg-paper text-ink">{children}</body>
+      <body className="min-h-full bg-paper text-ink">{children}<SiteAnalytics /></body>
     </html>
   )
 }

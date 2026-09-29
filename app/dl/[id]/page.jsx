@@ -16,7 +16,7 @@ function shareDescription(listing) {
 export async function generateMetadata({ params }) {
   const { id } = await params
   const view = await buyerListing(id).catch(() => null)
-  if (!view) return { title: 'Link not found | Curl-to-Buy', robots: { index: false } }
+  if (!view) return { title: 'Link not found | Nytto Checkout', robots: { index: false } }
   const { listing, price } = view
   const title = `${listing.name} | ${price.label}`
   const description = shareDescription(listing)
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description,
-    openGraph: { title, description, url: `/dl/${listing.id}`, siteName: 'Curl-to-Buy', type: 'website', images: [image] },
+    openGraph: { title, description, url: `/dl/${listing.id}`, siteName: 'Nytto Checkout', type: 'website', images: [image] },
     twitter: { card: 'summary_large_image', title, description, images: [image.url] },
   }
 }

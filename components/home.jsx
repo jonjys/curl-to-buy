@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { LocaleProvider, useLocale } from './locale'
 import SellMode from './sell-mode'
 import { Frame } from './site-chrome'
+import { rememberSource, trackEvent } from './analytics'
 import { LANDING } from './landing/copy'
 import { Art, BuyCard, HeroScene, SharePreview } from './landing/mockups'
 
@@ -21,10 +22,10 @@ function Hero({ c }) {
       <div className="grid gap-8 lg:min-h-[calc(100svh-6rem)] lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] lg:grid-rows-[1fr_1fr] lg:gap-x-12 lg:gap-y-0 xl:gap-x-16">
         <div className="lg:self-end">
           <p className="ctb-kicker ctb-rise inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[var(--color-ink-soft)]"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-[var(--ctb-accent)]" />{h.kicker}</p>
-          <h1 className="ctb-display ctb-rise mt-5" style={{ '--d': '60ms' }}>{h.title[0]} <span className="ctb-mark">{h.title[1]}</span></h1>
+          <h1 className="ctb-display ctb-rise mt-5 whitespace-pre-line" style={{ '--d': '60ms' }}>{h.title[0]}{h.title[0].endsWith('-') ? '' : ' '}<span className="ctb-mark">{h.title[1]}</span></h1>
           <p className="ctb-rise mt-6 max-w-xl text-lg leading-relaxed text-[var(--color-ink-soft)] sm:text-xl" style={{ '--d': '120ms' }}>{h.lead}</p>
           <div className="ctb-rise mt-8 flex flex-col gap-3 sm:flex-row" style={{ '--d': '180ms' }}>
-            <a href="#post" className={btnDark}>{h.primary} {arrow}</a>
+            <a href="#post" data-cta="hero" className={btnDark}>{h.primary} {arrow}</a>
             <a href="#how" className={btnLight}>{h.secondary}</a>
           </div>
         </div>
@@ -140,7 +141,7 @@ function Categories({ c }) {
           const wide = i === k.items.length - 1
           return (
             <li key={item.name} className={layout[i]}>
-              <a href="#post" className={`ctb-card ctb-lift group flex h-full overflow-hidden no-underline ${wide ? 'flex-col sm:flex-row' : 'flex-col'}`}>
+              <a href="#post" data-cta="examples" className={`ctb-card ctb-lift group flex h-full overflow-hidden no-underline ${wide ? 'flex-col sm:flex-row' : 'flex-col'}`}>
                 <div className={`overflow-hidden ${big ? 'aspect-[4/3] lg:aspect-auto lg:flex-1' : wide ? 'aspect-[16/10] sm:aspect-auto sm:w-[45%] lg:w-[38%]' : 'aspect-[16/10]'}`}><Art name={item.art} /></div>
                 <div className={`flex flex-1 flex-col ${big ? 'p-7' : 'p-5'} ${wide ? 'sm:justify-center sm:p-8' : ''}`}>
                   <h3 className={`${big || wide ? 'text-3xl' : 'text-xl'} font-extrabold tracking-tight`}>{item.name}</h3>
@@ -251,7 +252,7 @@ function Final({ c }) {
         <div aria-hidden="true" className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-[#16130f]/10 sm:h-72 sm:w-72" />
         <h2 className="ctb-h2 relative max-w-4xl">{f.title}</h2>
         <div className="relative mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
-          <a href="#post" className={btnDark}>{f.button} {arrow}</a>
+          <a href="#post" data-cta="final_cta" className={btnDark}>{f.button} {arrow}</a>
           <p className="max-w-md text-sm font-medium">{f.sub}</p>
         </div>
       </div>
@@ -259,12 +260,21 @@ function Final({ c }) {
   )
 }
 
-function HomeInner({ stripeReady, blobReady, maxMB }) {
+function HomeInner({ stripeReady, blobReady, maxMB, campaign }) {
   const { locale } = useLocale()
   const c = LANDING[locale] || LANDING.en
+  useEffect(() => {
+    // A campaign path, or an allowlisted utm_source on the home page.
+    const source = rememberSource(campaign) || rememberSource(new URLSearchParams(window.location.search).get('utm_source'))
+    if (source) trackEvent('campaign_landing', { source })
+  }, [campaign])
+  function onCta(event) {
+    const location = event.target.closest?.('[data-cta]')?.getAttribute('data-cta')
+    if (location) trackEvent('create_link_clicked', { location })
+  }
   return (
     <Frame variant="home">
-      <main>
+      <main onClickCapture={onCta}>
         <Hero c={c} />
         <Demo c={c} />
         <Steps c={c} />

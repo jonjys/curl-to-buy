@@ -13,7 +13,7 @@ export default function UploadCopy(props) {
       <div className="lg:sticky lg:top-28 lg:self-start">
         <PageIntro
           kicker={sv ? 'Skapa din länk' : 'Create your link'}
-          title={sv ? 'Sälj med en enda länk.' : 'Sell anything with one link.'}
+          title={sv ? 'En produkt. En checkout-länk.' : 'One product. One checkout link.'}
           lead={sv ? 'Lägg till filen eller varan, sätt priset och få din checkout-länk. Första gången ansluter du Stripe så att pengarna kan nå dig.' : 'Add your file or item, set the price and get your checkout link. The first time, you connect Stripe so the money can reach you.'}
         />
         <Link href="/links" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold underline underline-offset-4">{sv ? 'Hantera dina produkter' : 'Manage your products'}</Link>

@@ -94,7 +94,7 @@ function Pill({ children, dark = false, className = '' }) {
   return <span className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-bold ${dark ? 'bg-[#16130f] text-[#fffaf2]' : 'bg-[var(--ctb-accent)] text-[#16130f]'} ${className}`}>{children}</span>
 }
 
-// The link preview a chat app shows for a shared Curl-to-Buy link.
+// The link preview a chat app shows for a shared Nytto Checkout link.
 export function SharePreview({ example, chat, compact = false, onDark = false }) {
   return (
     <div className="w-full">

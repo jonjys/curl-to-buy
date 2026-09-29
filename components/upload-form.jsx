@@ -9,6 +9,7 @@ import { formatUsd } from '../lib/copy'
 import { IMAGE_TYPES, MAX_IMAGE_BYTES } from '../lib/public-image'
 import { cleanImage } from '../lib/clean-image'
 import { useLocale } from './locale'
+import { trackEvent } from './analytics'
 import UseAnywhere from './use-anywhere'
 
 const DRAFT_KEY = 'curl-to-buy:pending-listing'
@@ -123,6 +124,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       clearDraft()
       setShowConnect(false)
       setListing(json)
+      trackEvent('product_created', { item_type: 'digital', currency: json.priceUsd != null ? 'usd' : 'sek' })
     } catch (err) {
       setError(err.message || 'Could not create the link.')
     } finally {
@@ -159,6 +161,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
       })
       const json = await readJson(response)
       if (!response.ok || !json.url || !/^https:\/\//.test(json.url)) throw new Error(visibleError(json.error, t.connectError))
+      trackEvent('stripe_connect_started')
       window.location.href = json.url
     } catch (err) {
       const message = err.message || t.connectError

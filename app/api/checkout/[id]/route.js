@@ -91,7 +91,7 @@ export async function POST(req, { params }) {
           name: listing.name,
           description: isPhysical
             ? 'Physical item · shipping included in price'
-            : fileCount > 1 ? `${fileCount} digital files via Curl-to-Buy` : 'Digital file via Curl-to-Buy',
+            : fileCount > 1 ? `${fileCount} digital files via Nytto Checkout` : 'Digital file via Nytto Checkout',
           ...(image ? { images: [image] } : {}),
         },
       },

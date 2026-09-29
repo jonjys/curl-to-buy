@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { trackEvent } from './analytics'
 import { useLocale } from './locale'
 import { SUPPORT } from '../lib/site'
 import { LANDING } from './landing/copy'
 
-// One header, footer and page frame for every Curl-to-Buy page.
+// One header, footer and page frame for every Nytto Checkout page.
 // variant: 'home' (in-page anchors), 'app' (seller and info pages), 'buyer'
 // (checkout and receipt pages: no seller tools, a quiet footer).
 
@@ -22,7 +23,7 @@ export function Logo({ label }) {
       <span aria-hidden="true" className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl bg-ink">
         <span className="h-3.5 w-3.5 rounded-full bg-accent" />
       </span>
-      <span className="text-lg font-extrabold tracking-tight max-[359px]:sr-only">Curl-to-Buy</span>
+      <span className="flex flex-col text-sm font-extrabold leading-[1.05] tracking-tight max-[359px]:sr-only min-[400px]:flex-row min-[400px]:gap-[0.3em] min-[400px]:text-lg min-[400px]:leading-normal"><span>Nytto</span><span>Checkout</span></span>
     </Link>
   )
 }
@@ -66,7 +67,7 @@ export function SiteHeader({ variant = 'app' }) {
       <div className={`ctb-gutter ctb-header-row mx-auto flex w-full max-w-[90rem] items-center justify-between gap-2 ${compact ? 'h-14' : 'h-16 lg:h-20'}`}>
         <Logo label={c.nav.home} />
         {buyer ? null : (
-          <nav aria-label="Curl-to-Buy" className="hidden items-center gap-7 text-sm font-semibold md:flex">
+          <nav aria-label="Nytto Checkout" className="hidden items-center gap-7 text-sm font-semibold md:flex">
             {nav.map((item) => {
               const current = item.href === path
               return item.href.startsWith('/') && !item.href.startsWith('/#')
@@ -78,7 +79,7 @@ export function SiteHeader({ variant = 'app' }) {
         <div className="flex items-center gap-2">
           <LangSwitch label={c.nav.language} />
           {buyer ? null : (
-            <a href={home ? '#post' : '/upload'} className="ctb-btn ctb-btn-dark min-h-11 px-4 text-sm">
+            <a href={home ? '#post' : '/upload'} onClick={() => trackEvent('create_link_clicked', { location: 'header' })} className="ctb-btn ctb-btn-dark min-h-11 px-4 text-sm">
               <span className="sm:hidden">{c.nav.createShort}</span><span className="hidden sm:inline">{c.nav.create}</span>
             </a>
           )}
@@ -114,7 +115,7 @@ export function SiteFooter() {
 }
 
 // Buyers never see seller pricing or tools. The footer invites them to sell
-// their own files, so every shared link also markets Curl-to-Buy.
+// their own files, so every shared link also markets Nytto Checkout.
 export function BuyerFooter() {
   const { t, locale } = useLocale()
   const sv = locale === 'sv'

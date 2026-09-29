@@ -7,11 +7,11 @@ const FEE = FREE_FEE_BPS / 100
 export const LANDING = {
   en: {
     skip: 'Skip to content',
-    nav: { how: 'How it works', pricing: 'Pricing', links: 'My products', create: 'Create your link', createShort: 'Create', home: 'Curl-to-Buy home', language: 'Language' },
+    nav: { how: 'How it works', pricing: 'Pricing', links: 'My products', create: 'Create your link', createShort: 'Create', home: 'Nytto Checkout home', language: 'Language' },
     hero: {
       kicker: 'Payment links for files and things',
-      title: ['Sell anything with one', 'link.'],
-      lead: 'Upload a file or add an item, set a price and send the link. Your buyer pays right away and needs no Curl-to-Buy account.',
+      title: ['One product.\nOne checkout', 'link.'],
+      lead: 'Upload a file or add an item, set a price and send the link. Your buyer pays right away and needs no Nytto Checkout account.',
       primary: 'Create your link',
       secondary: 'See how it works',
       trust: ['Card payments by Stripe', 'Instant download', 'No monthly fee on free links'],
@@ -64,7 +64,7 @@ export const LANDING = {
       ],
     },
     why: {
-      kicker: 'Why Curl-to-Buy',
+      kicker: 'Why Nytto Checkout',
       title: 'Everything a sale needs. Nothing it doesn’t.',
       items: [
         { name: 'No web shop needed', body: 'One link replaces the store, the cart and the checkout page.' },
@@ -75,12 +75,12 @@ export const LANDING = {
         { name: 'Payments by Stripe', body: 'Card payments go through Stripe, straight to your connected Stripe account.' },
         { name: 'You stay in control', body: 'Pause a link, cap the number of sales or set a time limit.' },
       ],
-      seller: 'No Curl-to-Buy account for you either. You connect Stripe once with your email, and Stripe collects the details it needs.',
+      seller: 'No Nytto Checkout account for you either. You connect Stripe once with your email, and Stripe collects the details it needs.',
     },
     pricing: {
       kicker: 'Pricing',
       title: 'Simple pricing. No surprises.',
-      free: { name: 'Free link', value: `${FEE}%`, unit: 'per sale to Curl-to-Buy', lines: [`Minimum price $${FREE_MIN_USD}`, 'No monthly fee', 'Digital files and physical items'] },
+      free: { name: 'Free link', value: `${FEE}%`, unit: 'per sale to Nytto Checkout', lines: [`Minimum price $${FREE_MIN_USD}`, 'No monthly fee', 'Digital files and physical items'] },
       sub: { name: 'Subscription', value: '0%', unit: 'platform fee', lines: [`Minimum price $${SUB_MIN_USD}`, 'Monthly plan'], link: 'See plans' },
       note: `Stripe’s card fee applies to every sale. Physical items are priced in SEK: at least ${FREE_MIN_SEK} SEK on free links and ${SUB_MIN_SEK} SEK for subscribers.`,
     },
@@ -98,15 +98,15 @@ export const LANDING = {
       button: 'Create your link',
       sub: `Free to start. ${FEE}% per sale on free links, no monthly fee.`,
     },
-    footer: { tagline: 'Sell anything with one link.', subscriptions: 'Subscriptions', links: 'My products' },
+    footer: { tagline: 'One product. One checkout link.', subscriptions: 'Subscriptions', links: 'My products' },
   },
   sv: {
     skip: 'Hoppa till innehållet',
-    nav: { how: 'Så funkar det', pricing: 'Pris', links: 'Mina produkter', create: 'Skapa din länk', createShort: 'Skapa', home: 'Curl-to-Buy startsida', language: 'Språk' },
+    nav: { how: 'Så funkar det', pricing: 'Pris', links: 'Mina produkter', create: 'Skapa din länk', createShort: 'Skapa', home: 'Nytto Checkout startsida', language: 'Språk' },
     hero: {
       kicker: 'Betallänkar för filer och saker',
-      title: ['Sälj med en enda', 'länk.'],
-      lead: 'Ladda upp filen eller lägg till varan, sätt priset och skicka länken. Köparen betalar direkt och behöver inget Curl-to-Buy-konto.',
+      title: ['En produkt.\nEn checkout-', 'länk.'],
+      lead: 'Ladda upp filen eller lägg till varan, sätt priset och skicka länken. Köparen betalar direkt och behöver inget Nytto Checkout-konto.',
       primary: 'Skapa din länk',
       secondary: 'Se hur det fungerar',
       trust: ['Kortbetalning via Stripe', 'Direkt nedladdning', 'Ingen månadsavgift för gratislänkar'],
@@ -159,7 +159,7 @@ export const LANDING = {
       ],
     },
     why: {
-      kicker: 'Varför Curl-to-Buy',
+      kicker: 'Varför Nytto Checkout',
       title: 'Allt en försäljning behöver. Inget mer.',
       items: [
         { name: 'Ingen webbshop behövs', body: 'En länk ersätter butiken, varukorgen och kassan.' },
@@ -170,12 +170,12 @@ export const LANDING = {
         { name: 'Betalning via Stripe', body: 'Kortbetalningar går via Stripe direkt till ditt anslutna Stripe-konto.' },
         { name: 'Du har kontrollen', body: 'Pausa en länk, begränsa antalet köp eller sätt en tidsgräns.' },
       ],
-      seller: 'Inget Curl-to-Buy-konto för dig heller. Du ansluter Stripe en gång med din e-post, och Stripe samlar in de uppgifter som behövs.',
+      seller: 'Inget Nytto Checkout-konto för dig heller. Du ansluter Stripe en gång med din e-post, och Stripe samlar in de uppgifter som behövs.',
     },
     pricing: {
       kicker: 'Pris',
       title: 'Enkelt pris. Inga överraskningar.',
-      free: { name: 'Gratislänk', value: `${FEE} %`, unit: 'per försäljning till Curl-to-Buy', lines: [`Lägsta pris $${FREE_MIN_USD}`, 'Ingen månadsavgift', 'Digitala filer och fysiska varor'] },
+      free: { name: 'Gratislänk', value: `${FEE} %`, unit: 'per försäljning till Nytto Checkout', lines: [`Lägsta pris $${FREE_MIN_USD}`, 'Ingen månadsavgift', 'Digitala filer och fysiska varor'] },
       sub: { name: 'Abonnemang', value: '0 %', unit: 'plattformsavgift', lines: [`Lägsta pris $${SUB_MIN_USD}`, 'Månadsplan'], link: 'Se abonnemang' },
       note: `Stripes kortavgift tillkommer vid varje köp. Fysiska varor prissätts i kronor: minst ${FREE_MIN_SEK} kr för gratislänkar och ${SUB_MIN_SEK} kr för abonnenter.`,
     },
@@ -193,6 +193,6 @@ export const LANDING = {
       button: 'Skapa din länk',
       sub: `Gratis att börja. ${FEE} % per försäljning på gratislänkar, ingen månadsavgift.`,
     },
-    footer: { tagline: 'Sälj med en enda länk.', subscriptions: 'Abonnemang', links: 'Mina produkter' },
+    footer: { tagline: 'En produkt. En checkout-länk.', subscriptions: 'Abonnemang', links: 'Mina produkter' },
   },
 }
