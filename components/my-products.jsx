@@ -190,7 +190,7 @@ export default function MyProducts() {
         </div>
       ) : null}
 
-      {!unauthorized && !loading && items.length === 0 && !cursor ? (
+      {!unauthorized && !loading && !error && items.length === 0 && !cursor ? (
         <div className="ctb-card p-6 text-center sm:p-10">
           <h2 className="text-2xl font-extrabold tracking-tight">{c.emptyTitle}</h2>
           <p className="mx-auto mt-2 max-w-md leading-relaxed text-ink-soft">{c.emptyLead}</p>
