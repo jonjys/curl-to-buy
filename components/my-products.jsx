@@ -18,7 +18,7 @@ const COPY = {
     pauseNote: 'Pausing stops new checkouts. Checkouts already open and paid downloads keep working.',
     loading: 'Loading your products…', more: 'Load more products', noMatch: 'No match among the products loaded so far.',
     emptyTitle: 'No products yet', emptyLead: 'Create your first product and you get a checkout link you can put anywhere.',
-    recoverTitle: 'Find your products', recoverLead: 'Curl-to-Buy has no passwords. Your products belong to the seller identity on the device you used. On a new device, use the same email address you used when you connected Stripe and we send you a code.',
+    recoverTitle: 'Find your products', recoverLead: 'Nytto Checkout has no passwords. Your products belong to the seller identity on the device you used. On a new device, use the same email address you used when you connected Stripe and we send you a code.',
     failed: 'Could not update the product.', copyFailed: 'Could not copy the link.',
   },
   sv: {
@@ -31,7 +31,7 @@ const COPY = {
     pauseNote: 'Pausning stoppar nya köp. Redan öppnade kassor och betalda nedladdningar fungerar som vanligt.',
     loading: 'Hämtar dina produkter…', more: 'Visa fler produkter', noMatch: 'Ingen träff bland de produkter som hämtats hittills.',
     emptyTitle: 'Inga produkter ännu', emptyLead: 'Skapa din första produkt så får du en checkout-länk som du kan lägga var som helst.',
-    recoverTitle: 'Hitta dina produkter', recoverLead: 'Curl-to-Buy har inga lösenord. Dina produkter hör till säljaridentiteten på enheten du använde. På en ny enhet använder du samma e-postadress som när du anslöt Stripe, så skickar vi en kod.',
+    recoverTitle: 'Hitta dina produkter', recoverLead: 'Nytto Checkout har inga lösenord. Dina produkter hör till säljaridentiteten på enheten du använde. På en ny enhet använder du samma e-postadress som när du anslöt Stripe, så skickar vi en kod.',
     failed: 'Kunde inte uppdatera produkten.', copyFailed: 'Kunde inte kopiera länken.',
   },
 }
@@ -110,7 +110,7 @@ function ProductCard({ item, c, locale, onToggle, changing }) {
           {error ? <p role="alert" className="mt-2 text-sm text-warn">{error}</p> : null}
         </div>
       </div>
-      {open ? <div className="border-t border-line bg-paper-tint p-5 sm:p-6"><UseAnywhere id={item.id} name={item.name} priceLabel={price} /></div> : null}
+      {open ? <div className="border-t border-line bg-paper-tint p-5 sm:p-6"><UseAnywhere id={item.id} name={item.name} priceLabel={price} location="product_card" /></div> : null}
     </li>
   )
 }

@@ -30,11 +30,11 @@ export default function SellerGuide() {
 
   const steps = sv ? [
     ['Anslut Stripe', 'Ange din e-post. Stripe samlar in de juridiska uppgifterna. Det görs en gång.'],
-    ['Ladda upp och sätt pris', 'Lägg till filen och sätt ett pris. Curl-to-Buy tar 5 %. Ingen månadsavgift.'],
+    ['Ladda upp och sätt pris', 'Lägg till filen och sätt ett pris. Nytto Checkout tar 5 %. Ingen månadsavgift.'],
     ['Dela länken', 'Köparen betalar med kort och laddar ner filen. Pengarna går till ditt Stripe.'],
   ] : [
     ['Connect Stripe', 'Enter your email. Stripe collects the legal details. You only do this once.'],
-    ['Upload and set a price', 'Add your file and set a price. Curl-to-Buy takes 5%. No monthly fee.'],
+    ['Upload and set a price', 'Add your file and set a price. Nytto Checkout takes 5%. No monthly fee.'],
     ['Share the link', 'The buyer pays by card and downloads the file. The money goes to your Stripe.'],
   ]
 

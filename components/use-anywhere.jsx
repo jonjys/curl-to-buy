@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale } from './locale'
+import { trackEvent } from './analytics'
 import { buyButtonHtml, checkoutUrl, qrFileName, shortUrl } from '../lib/share-kit'
 
 const COPY = {
@@ -13,7 +14,7 @@ const COPY = {
     png: 'Download PNG', svg: 'Download SVG', qrAlt: (name) => `QR code for ${name}`,
     button: 'Buy button for your website', buttonLead: 'Plain HTML. No script, works in any HTML or code block.',
     buyNow: 'Buy now', copyCode: 'Copy code', codeLabel: 'Buy button HTML',
-    platforms: 'How to add it', noSync: 'Checkout, payment and stock are handled by Curl-to-Buy. Orders and stock do not sync back to Shopify, WooCommerce, Wix or Squarespace, so keep your store’s own stock in mind.',
+    platforms: 'How to add it', noSync: 'Checkout, payment and stock are handled by Nytto Checkout. Orders and stock do not sync back to Shopify, WooCommerce, Wix or Squarespace, so keep your store’s own stock in mind.',
     steps: [
       ['Shopify', 'In the theme editor, add a Custom Liquid section to the product page and paste the button code. Or paste it into a page or product description using the Show HTML button.'],
       ['WooCommerce', 'Edit the product or page and add a Custom HTML block with the button code. For a simple listing you can also create an External/Affiliate product and use the checkout link as the Product URL.'],
@@ -31,7 +32,7 @@ const COPY = {
     png: 'Ladda ner PNG', svg: 'Ladda ner SVG', qrAlt: (name) => `QR-kod för ${name}`,
     button: 'Köpknapp till din webbplats', buttonLead: 'Vanlig HTML. Inget skript, fungerar i alla HTML- eller kodblock.',
     buyNow: 'Köp nu', copyCode: 'Kopiera kod', codeLabel: 'HTML för köpknapp',
-    platforms: 'Så lägger du in den', noSync: 'Checkout, betalning och lager hanteras av Curl-to-Buy. Ordrar och lager synkas inte tillbaka till Shopify, WooCommerce, Wix eller Squarespace, så håll koll på butikens eget lager.',
+    platforms: 'Så lägger du in den', noSync: 'Checkout, betalning och lager hanteras av Nytto Checkout. Ordrar och lager synkas inte tillbaka till Shopify, WooCommerce, Wix eller Squarespace, så håll koll på butikens eget lager.',
     steps: [
       ['Shopify', 'Lägg till en Custom Liquid-sektion på produktsidan i temaredigeraren och klistra in knappkoden. Eller klistra in den i en sida eller produktbeskrivning via knappen Visa HTML.'],
       ['WooCommerce', 'Redigera produkten eller sidan och lägg till ett Anpassad HTML-block med knappkoden. För en enkel produkt kan du också skapa en Extern/Affiliate-produkt och använda checkout-länken som produkt-URL.'],
@@ -56,7 +57,7 @@ function download(href, name) {
   a.remove()
 }
 
-export default function UseAnywhere({ id, name, priceLabel, className = '' }) {
+export default function UseAnywhere({ id, name, priceLabel, className = '', location = 'success' }) {
   const { locale } = useLocale()
   const c = COPY[locale] || COPY.en
   const [origin, setOrigin] = useState('')
@@ -115,8 +116,8 @@ export default function UseAnywhere({ id, name, priceLabel, className = '' }) {
           <p className="font-bold">{c.qr}</p>
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">{c.qrLead}</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" disabled={!qr.png} className={chip} onClick={() => download(qr.png, qrFileName(name, 'png'))}>{c.png}</button>
-            <button type="button" disabled={!qr.svg} className={chip} onClick={() => download(qr.svg, qrFileName(name, 'svg'))}>{c.svg}</button>
+            <button type="button" disabled={!qr.png} className={chip} onClick={() => { download(qr.png, qrFileName(name, 'png')); trackEvent('qr_downloaded', { location, format: 'png' }) }}>{c.png}</button>
+            <button type="button" disabled={!qr.svg} className={chip} onClick={() => { download(qr.svg, qrFileName(name, 'svg')); trackEvent('qr_downloaded', { location, format: 'svg' }) }}>{c.svg}</button>
           </div>
         </div>
       </div>
@@ -130,7 +131,7 @@ export default function UseAnywhere({ id, name, priceLabel, className = '' }) {
         </div>
         <label className="mt-4 block text-xs font-semibold text-muted" htmlFor={`embed-${id}`}>{c.codeLabel}</label>
         <textarea id={`embed-${id}`} readOnly value={html} rows={4} onFocus={(e) => e.target.select()} className="mt-1 w-full resize-none rounded-xl border border-line bg-paper-tint p-3 font-mono text-xs text-ink" />
-        <button type="button" className={`${chip} mt-2`} onClick={() => run('code', () => copyText(html))}>{done === 'code' ? c.copied : c.copyCode}</button>
+        <button type="button" className={`${chip} mt-2`} onClick={() => run('code', async () => { await copyText(html); trackEvent('embed_copied', { location }) })}>{done === 'code' ? c.copied : c.copyCode}</button>
       </div>
 
       <details className="group rounded-2xl border border-line bg-white p-4">

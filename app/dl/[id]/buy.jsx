@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useLocale } from '../../../components/locale'
 import { visibleError } from '../../../lib/http'
+import { trackEvent } from '../../../components/analytics'
 
 function formatCountdown(ms) {
   const total = Math.max(0, Math.floor(ms / 1000))
@@ -35,6 +36,8 @@ export default function BuyBox({ listing, price }) {
   const timedOut = listing.expiresAt ? msLeft <= 0 : false
   const expired = listing.expired || timedOut
   const remaining = listing.salesLimit ? Math.max(0, listing.salesLimit - listing.sold) : null
+  const eventProps = { item_type: isPhysical ? 'physical' : 'digital', currency: price?.currency, location: 'buy_page' }
+  useEffect(() => { trackEvent('checkout_viewed', eventProps) }, [listing.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function pay() {
     setError(null); setBusy(true)
@@ -45,6 +48,7 @@ export default function BuyBox({ listing, price }) {
       const res = await fetch(`/api/checkout/${listing.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ attemptId }) })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json.url || !/^https:\/\//.test(json.url)) throw new Error(visibleError(json.error, 'Could not start checkout.'))
+      trackEvent('checkout_started', eventProps)
       window.location.href = json.url
     } catch (err) { setError(visibleError(err.message, 'Could not start checkout.')); setBusy(false) }
   }
@@ -101,7 +105,7 @@ export default function BuyBox({ listing, price }) {
             {listing.brand ? <p>{listing.brand}</p> : null}
             {listing.returnPolicy ? <details><summary className="cursor-pointer">{sv ? 'Returinformation' : 'Return information'}</summary><p className="mt-2 whitespace-pre-wrap">{listing.returnPolicy}</p></details> : null}
             {listing.sellerContact ? <a href={`mailto:${listing.sellerContact}`} className="text-pine">{sv ? 'Kontakta säljaren' : 'Contact seller'}</a> : null}
-            <p className="text-xs leading-relaxed text-muted">{sv ? 'Säljaren ansvarar för att skicka varan. Curl-to-Buy erbjuder inte köparskydd eller egen frakt.' : 'The seller is responsible for shipping. Curl-to-Buy does not provide buyer protection or shipping.'}</p>
+            <p className="text-xs leading-relaxed text-muted">{sv ? 'Säljaren ansvarar för att skicka varan. Nytto Checkout erbjuder inte köparskydd eller egen frakt.' : 'The seller is responsible for shipping. Nytto Checkout does not provide buyer protection or shipping.'}</p>
           </div>
         ) : null}
       </div>

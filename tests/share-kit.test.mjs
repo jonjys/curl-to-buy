@@ -27,9 +27,9 @@ test('buy button HTML is a plain link to the checkout with escaped text and no s
 })
 
 test('QR file name carries the product name and the QR payload is exactly the checkout URL', () => {
-  assert.equal(qrFileName('Sommar Lampa: Mässing!', 'png'), 'curl-to-buy-sommar-lampa-massing-qr.png')
-  assert.equal(qrFileName('', 'svg'), 'curl-to-buy-product-qr.svg')
-  assert.equal(qrFileName('../../etc', 'exe'), 'curl-to-buy-etc-qr.png')
+  assert.equal(qrFileName('Sommar Lampa: Mässing!', 'png'), 'nytto-checkout-sommar-lampa-massing-qr.png')
+  assert.equal(qrFileName('', 'svg'), 'nytto-checkout-product-qr.svg')
+  assert.equal(qrFileName('../../etc', 'exe'), 'nytto-checkout-etc-qr.png')
   const url = checkoutUrl('https://curltobuy.com', 'abc')
   const qr = QRCode.create(url, { errorCorrectionLevel: 'M' })
   assert.equal(qr.segments.map((segment) => Buffer.from(segment.data).toString('utf8')).join(''), url)

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { upload } from '@vercel/blob/client'
 import { useLocale } from './locale'
+import { trackEvent } from './analytics'
 import UseAnywhere from './use-anywhere'
 import { FREE_MIN_SEK, SUB_MIN_SEK } from '../lib/entitlement'
 import { onboardingNotice } from '../lib/site'
@@ -69,6 +70,7 @@ export default function ItemForm({ stripeReady, blobReady }) {
       const response = await fetch(connect.hasSeller ? '/api/billing/connect' : '/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, returnTo: 'sell' }) })
       const json = await readJson(response)
       if (!response.ok || !json.url || !/^https:\/\//.test(json.url)) throw new Error(visibleError(json.error, 'Stripe setup failed.'))
+      trackEvent('stripe_connect_started')
       window.location.assign(json.url)
     } catch (err) { setError(err.message || 'Stripe setup failed.'); setBusy(false) }
   }
@@ -87,6 +89,7 @@ export default function ItemForm({ stripeReady, blobReady }) {
       if (!response.ok || !json.id) throw Error(json.error || 'Could not publish item.')
       window.localStorage.removeItem(ITEM_DRAFT)
       setListing(json)
+      trackEvent('product_created', { item_type: 'physical', currency: 'sek' })
     } catch (err) { setError(err.message) }
     finally { finalizing.current = false; setBusy(false) }
   }
@@ -179,8 +182,8 @@ export default function ItemForm({ stripeReady, blobReady }) {
       <div className="flex gap-2">{[connect.minSek, 300, 1000].map((amount) => <button key={amount} type="button" onClick={() => setPrice(String(amount))} className="min-h-11 rounded-lg border border-line px-4 text-sm">{amount} kr</button>)}</div>
       <p className="text-sm text-ink-soft">{sv ? 'Köparen betalar' : 'Buyer pays'}: {Number(price.replace(',', '.')).toFixed(2)} SEK · {sv ? 'frakt ingår' : 'shipping included'}</p>
       <p className="text-xs leading-relaxed text-muted">{connect.subscribed
-        ? (sv ? 'Med abonnemang: minst 50 kr. Curl-to-Buy tar ingen procent på försäljningen. Stripe drar sin kortavgift från beloppet. Köparen anger leveransadressen i Stripe Checkout.' : 'With a subscription: 50 SEK minimum. Curl-to-Buy takes no percentage of the sale. Stripe deducts its card fee from the amount. The buyer enters the shipping address in Stripe Checkout.')
-        : (sv ? 'Utan abonnemang: minst 100 kr. Curl-to-Buy tar 5%. Stripe drar också sin kortavgift. Köparen anger leveransadressen i Stripe Checkout.' : 'Without a subscription: 100 SEK minimum. Curl-to-Buy takes 5%. Stripe also deducts its card fee. The buyer enters the shipping address in Stripe Checkout.')}</p>
+        ? (sv ? 'Med abonnemang: minst 50 kr. Nytto Checkout tar ingen procent på försäljningen. Stripe drar sin kortavgift från beloppet. Köparen anger leveransadressen i Stripe Checkout.' : 'With a subscription: 50 SEK minimum. Nytto Checkout takes no percentage of the sale. Stripe deducts its card fee from the amount. The buyer enters the shipping address in Stripe Checkout.')
+        : (sv ? 'Utan abonnemang: minst 100 kr. Nytto Checkout tar 5%. Stripe drar också sin kortavgift. Köparen anger leveransadressen i Stripe Checkout.' : 'Without a subscription: 100 SEK minimum. Nytto Checkout takes 5%. Stripe also deducts its card fee. The buyer enters the shipping address in Stripe Checkout.')}</p>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Antal att sälja' : 'Quantity available'}<select className={field} value={stock === 'unlimited' ? 'unlimited' : 'limited'} onChange={(e) => setStock(e.target.value === 'unlimited' ? 'unlimited' : '1')}><option value="limited">{sv ? 'Begränsat lager' : 'Limited stock'}</option><option value="unlimited">{sv ? 'Ingen köpgräns' : 'No purchase limit'}</option></select>{stock !== 'unlimited' ? <input className={field} type="number" min={1} max={100000} value={stock} onChange={(e) => setStock(e.target.value)} /> : null}</label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Leveransländer' : 'Delivery countries'}<select className={`${field} h-32`} multiple value={shippingCountries} onChange={(e) => setShippingCountries(Array.from(e.target.selectedOptions, (o) => o.value))}>{[['SE','Sverige'],['DK','Danmark'],['FI','Finland'],['NO','Norge'],['DE','Deutschland'],['FR','France'],['NL','Nederland'],['BE','België'],['AT','Österreich'],['IE','Ireland'],['IT','Italia'],['ES','España'],['PT','Portugal'],['PL','Polska']].map(([code,name]) => <option key={code} value={code}>{name}</option>)}</select></label>
       <details className="rounded-xl border border-line p-4">

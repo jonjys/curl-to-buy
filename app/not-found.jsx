@@ -10,7 +10,7 @@ export default function NotFound() {
           <p className="ctb-kicker text-muted">404</p>
           <h1 className="ctb-title mt-3">This link is not for sale.</h1>
           <p lang="sv" className="mt-4 text-lg text-ink-soft">Den här länken finns inte eller är inte längre till salu.</p>
-          <Link href="/" className="ctb-btn ctb-btn-dark mt-8 w-fit">Curl-to-Buy</Link>
+          <Link href="/" className="ctb-btn ctb-btn-dark mt-8 w-fit">Nytto Checkout</Link>
         </main>
       </Frame>
     </LocaleProvider>

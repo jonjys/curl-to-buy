@@ -1,14 +1,77 @@
-# Curl-to-Buy
+# Nytto Checkout
 
-https://pay.nyttolabs.com — Post an item. Get paid.
+https://pay.nyttolabs.com · One product. One checkout link.
 
-Create a payment link for a physical product or digital file. Buyers pay by **card** through Stripe. Sellers pay a monthly subscription (Start €5 / Grow €19 / Scale €49). Stripe deducts its processing fee from each sale. No Curl-to-Buy percentage on subscription links.
+Create a product, get one checkout link and put it anywhere: a bio, a post, a
+QR code on a price tag or a buy button on your own website. Buyers pay by
+**card** through Stripe, which processes every payment; Nytto Labs is not a
+payment institution. Without a subscription each sale has a 5% platform fee.
+Subscriptions (Start €5 / Grow €19 / Scale €49 a month) remove it. Stripe
+deducts its processing fee from each sale.
 
-Env (already on the Vercel project):
+Env (already on the Vercel project): see `.env.example`.
 
-- `STRIPE_SECRET_KEY`
-- `BLOB_READ_WRITE_TOKEN`
-- `NEXT_PUBLIC_SITE_URL` (optional, defaults to https://pay.nyttolabs.com)
+## Names
+
+The public name is **Nytto Checkout** (earlier: Curl-to-Buy, and briefly
+GetPaidLink). Only visible text changed. Internal names stay as they are so
+nothing breaks: `CTB_*` and `STRIPE_CTB_*` variables, Stripe metadata
+(`app: curl_to_buy`), lookup keys (`ctb_*_monthly_v1`), webhooks, API routes,
+`/dl/[id]` links, Blob paths, browser storage keys and existing orders.
+
+## Campaign links
+
+Each link shows the same landing page. Every path is counted separately in
+Web Analytics, points search engines at `https://pay.nyttolabs.com/` and is
+`noindex, follow`. Any other path is a normal 404.
+
+| Channel   | Link                               | `source` |
+|-----------|------------------------------------|----------|
+| Threads   | https://pay.nyttolabs.com/threads   | threads   |
+| Instagram | https://pay.nyttolabs.com/instagram | instagram |
+| X         | https://pay.nyttolabs.com/x         | x         |
+| TikTok    | https://pay.nyttolabs.com/tiktok    | tiktok    |
+
+UTM tags also work on any page, for example
+`https://pay.nyttolabs.com/instagram?utm_source=instagram&utm_medium=social&utm_campaign=launch&utm_content=story-1`.
+Only `utm_source`, `utm_medium`, `utm_campaign`, `utm_content` and `utm_term`
+are kept; every other query parameter is removed before anything is sent.
+
+## Analytics
+
+Vercel Web Analytics (`@vercel/analytics`) is the only analytics. It is off
+until you enable it: Vercel Dashboard → project **curl-to-buy2.0** →
+**Analytics** tab → **Enable**. Data is collected from the next production
+deployment on.
+
+Where to look (Vercel Dashboard → project → **Analytics**, Production):
+
+- **Pageviews per channel:** the **Pages** panel. `/threads`, `/instagram`,
+  `/x` and `/tiktok` are separate rows. Product pages show as `/dl/[id]`.
+- **Referrers:** the **Referrers** panel (for example `l.instagram.com`,
+  `t.co`, `threads.net`).
+- **UTM:** the **UTM Parameters** panel, if your plan includes it.
+- **Events:** the **Events** panel. Click an event to break it down by its
+  properties. Custom events need a plan that includes them (Pro or higher);
+  on other plans the calls are simply ignored.
+
+| Event                    | When                                                  | Properties |
+|--------------------------|-------------------------------------------------------|------------|
+| `campaign_landing`       | A campaign path or allowlisted `utm_source` is opened | source |
+| `create_link_clicked`    | A "Create" button on the landing page or header       | source, location |
+| `stripe_connect_started` | The seller is sent to Stripe to connect               | source, location |
+| `product_created`        | A product was saved and its checkout link is ready    | source, item_type, currency |
+| `checkout_viewed`        | A buyer opens a checkout page                         | source, item_type, currency, location |
+| `checkout_started`       | A buyer is sent to Stripe Checkout                    | source, item_type, currency, location |
+| `qr_downloaded`          | A QR code was downloaded                              | source, location, format |
+| `embed_copied`           | The buy button HTML was copied                        | source, location |
+
+`source` is only ever `threads`, `instagram`, `x` or `tiktok`. No event or page
+URL carries an email, a name or address, a product or file name, a full
+checkout URL, a seller, order, session or Stripe ID, or a storage path.
+Analytics never blocks creating a product, checkout, webhooks or delivery.
+No purchase event is sent. A server-side `purchase_completed` from the verified
+Stripe webhook is prepared in a separate pull request and is not live.
 
 ## Name restoration — 21 September 2026
 
