@@ -143,3 +143,28 @@ test('expired attempt gets a new idempotency key while a pending attempt is reus
   assert.notEqual(next.id, first.id)
   assert.equal(keys.length, 2)
 })
+
+test('a failed subscription checkout does not lock the seller out with the same idempotency key', async () => {
+  const keys = []
+  let fail = true
+  const client = { prices: { list: async () => ({ data: catalog() }) }, subscriptions: { list: async () => ({ data: [] }) },
+    checkout: { sessions: {
+      list: async () => ({ data: [] }),
+      create: async (args, opts) => {
+        keys.push(opts.idempotencyKey)
+        if (fail) { fail = false; throw Object.assign(Error('rejected'), { type: 'StripeInvalidRequestError' }) }
+        return { ...args, id: 'cs_test_retry', status: 'open', url: 'https://checkout.stripe.com/retry' }
+      },
+    } },
+  }
+  const app = runtime({ client, env, mocks: { 'lib/stripe-connect.js': { readySubscriptionMerchant: async () => ({ id: 'acct_owner' }) } } })
+  const store = await app.load('lib/store.js')
+  await store.saveSeller({ id: 'owner', paymentAccountId: 'acct_owner' })
+  const auth = await app.load('lib/seller.js')
+  const route = await app.load('app/api/billing/checkout/route.js')
+  const req = () => new Request('https://app.test/api/billing/checkout', { method: 'POST', headers: { cookie: auth.sellerCookie('owner').split(';')[0] }, body: '{"plan":"start"}' })
+  assert.equal((await route.POST(req())).status, 503)
+  assert.equal((await route.POST(req())).status, 200)
+  assert.equal(keys.length, 2)
+  assert.notEqual(keys[0], keys[1])
+})
