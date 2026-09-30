@@ -32,7 +32,12 @@ export async function handleWebhook(req, connected = false) {
   if (!connected) {
     try {
       if (await reconcileBillingEvent(client, event)) return Response.json({ received: true })
-    } catch {
+    } catch (error) {
+      console.error('Subscription reconciliation failed.', {
+        eventId: event.id,
+        type: error?.name || 'Error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      })
       return Response.json({ error: 'Subscription reconciliation pending.' }, { status: 503 })
     }
   }

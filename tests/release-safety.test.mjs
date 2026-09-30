@@ -168,3 +168,85 @@ test('a failed subscription checkout does not lock the seller out with the same 
   assert.equal(keys.length, 2)
   assert.notEqual(keys[0], keys[1])
 })
+
+test('concurrent subscription events all succeed once, without 503, and store the final state', async () => {
+  const subscription = { id: 'sub_test', status: 'incomplete', livemode: false, customer_account: 'acct_owner', metadata: { app: 'curl_to_buy', seller_id: 'owner' } }
+  let retrieves = 0
+  const client = {
+    subscriptions: { retrieve: async () => {
+      // Stripe answers slowly and the subscription settles while the events are in flight.
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      if (++retrieves === 2) subscription.status = 'active'
+      return { ...subscription }
+    } },
+    webhooks: { constructEvent: (raw) => JSON.parse(raw) },
+  }
+  const app = runtime({ client, env })
+  const markers = []
+  const put = app.blob.put
+  app.blob.put = async (path, text, opts) => { const result = await put(path, text, opts); if (path.startsWith('billing-events/')) markers.push(path); return result }
+  const store = await app.load('lib/store.js')
+  await store.saveSeller({ id: 'owner', billingIdentity: { customer_account: 'acct_owner' } })
+  const hook = await app.load('app/api/stripe/webhook/route.js')
+  const events = [
+    { id: 'evt_created', type: 'customer.subscription.created', data: { object: { id: 'sub_test' } } },
+    { id: 'evt_updated', type: 'customer.subscription.updated', data: { object: { id: 'sub_test' } } },
+    { id: 'evt_paid', type: 'invoice.paid', data: { object: { parent: { subscription_details: { subscription: 'sub_test' } } } } },
+    { id: 'evt_checkout', type: 'checkout.session.completed', data: { object: { mode: 'subscription', subscription: 'sub_test' } } },
+  ].map((event) => ({ ...event, livemode: false }))
+  const send = (event) => hook.POST(new Request('https://app.test/api/stripe/webhook', { method: 'POST', headers: { 'stripe-signature': 'valid' }, body: JSON.stringify(event) }))
+  // Four distinct events plus a duplicate delivery of one of them, all at once.
+  const statuses = await Promise.all([...events, events[1]].map((event) => send(event).then((r) => r.status)))
+  assert.deepEqual(statuses, [200, 200, 200, 200, 200])
+  assert.equal(markers.length, 4)
+  assert.equal(new Set(markers).size, 4)
+  assert.equal((await store.getSeller('owner')).billingSnapshot.status, 'active')
+  // A later resend of every event changes nothing.
+  const before = (await store.getSeller('owner')).billingSnapshot.checkedAt
+  assert.deepEqual(await Promise.all(events.map((event) => send(event).then((r) => r.status))), [200, 200, 200, 200])
+  assert.equal(markers.length, 4)
+  assert.equal((await store.getSeller('owner')).billingSnapshot.checkedAt, before)
+})
+
+test('billing lock waits for a busy lease, then fails retriably if it is never released', async () => {
+  const app = runtime()
+  const { withBillingLock } = await app.load('lib/commerce-store.js')
+  let release
+  const held = withBillingLock('seller', () => new Promise((resolve) => { release = resolve }))
+  await new Promise((resolve) => setTimeout(resolve, 10))
+  await assert.rejects(withBillingLock('seller', async () => 'late'), /in progress/)
+  await assert.rejects(withBillingLock('seller', async () => 'late', { waitMs: 300 }), /in progress/)
+  const waiting = withBillingLock('seller', async () => 'after release', { waitMs: 5000 })
+  setTimeout(() => release('first'), 200)
+  assert.equal(await held, 'first')
+  assert.equal(await waiting, 'after release')
+})
+
+test('Blob "conflicting operation" errors on the lease count as a race, not a failure', async () => {
+  const subscription = { id: 'sub_test', status: 'active', livemode: false, customer_account: 'acct_owner', metadata: { app: 'curl_to_buy', seller_id: 'owner' } }
+  const client = { subscriptions: { retrieve: async () => ({ ...subscription }) }, webhooks: { constructEvent: (raw) => JSON.parse(raw) } }
+  const app = runtime({ client, env })
+  // Real Vercel Blob rejects simultaneous conditional writes to one pathname with this error, for each writer.
+  const conflict = () => Error('Vercel Blob: The conditional request cannot succeed due to a conflicting operation against this resource.')
+  let acquireConflicts = 3, releaseConflicts = 1
+  const put = app.blob.put
+  app.blob.put = async (path, text, opts) => {
+    if (path.startsWith('commerce-locks/')) {
+      const releasing = JSON.parse(text).until === 0
+      if (!releasing && acquireConflicts > 0) { acquireConflicts--; throw conflict() }
+      if (releasing && releaseConflicts > 0) { releaseConflicts--; throw conflict() }
+    }
+    return put(path, text, opts)
+  }
+  const store = await app.load('lib/store.js')
+  await store.saveSeller({ id: 'owner', billingIdentity: { customer_account: 'acct_owner' } })
+  const hook = await app.load('app/api/stripe/webhook/route.js')
+  const send = (id) => hook.POST(new Request('https://app.test/api/stripe/webhook', { method: 'POST', headers: { 'stripe-signature': 'valid' },
+    body: JSON.stringify({ id, livemode: false, type: 'customer.subscription.updated', data: { object: { id: 'sub_test' } } }) }))
+  assert.deepEqual(await Promise.all(['evt_a', 'evt_b'].map((id) => send(id).then((r) => r.status))), [200, 200])
+  assert.equal(acquireConflicts, 0)
+  assert.equal(releaseConflicts, 0)
+  // The lease was released despite the conflicting release write: the next caller gets it at once.
+  const { withBillingLock } = await app.load('lib/commerce-store.js')
+  assert.equal(await withBillingLock('billing-event:owner', async () => 'free'), 'free')
+})
