@@ -62,7 +62,8 @@ test('subscription checkout uses account identity, scoped portal, reuses session
   const req = () => new Request('https://app.test/api/billing/checkout', { method: 'POST', headers: { cookie: auth.sellerCookie('owner').split(';')[0] }, body: '{"plan":"start"}' })
   assert.equal((await route.POST(req())).status, 200)
   assert.equal(sessions[0].customer_account, 'acct_owner')
-  assert.equal(sessions[0].customer_update, undefined)
+  // Stripe rejects tax_id_collection with customer_account unless the name/address may be updated.
+  assert.equal(JSON.stringify(sessions[0].customer_update), JSON.stringify({ address: 'auto', name: 'auto' }))
   assert.equal(sessions[0].subscription_data.metadata.seller_id, 'owner')
   assert.equal((await route.POST(req())).status, 200)
   assert.equal(sessions.length, 1)

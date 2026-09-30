@@ -46,7 +46,9 @@ export async function POST(req) {
       line_items: [{ price: plan.priceId, quantity: 1 }],
       billing_address_collection: 'required', tax_id_collection: { enabled: true },
       automatic_tax: { enabled: true },
-      ...(identity.customer ? { customer_update: { address: 'auto', name: 'auto' } } : {}),
+      // Required for tax ID collection and automatic tax, for both v1 customers and
+      // customer_account (Accounts v2). Verified against Stripe test mode.
+      customer_update: { address: 'auto', name: 'auto' },
       metadata, subscription_data: { metadata },
       success_url: `${attempt.origin}/upload?billing=success`, cancel_url: `${attempt.origin}/plans?billing=canceled`,
       expires_at: attempt.expiresAt,
