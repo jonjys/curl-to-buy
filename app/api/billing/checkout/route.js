@@ -36,7 +36,10 @@ export async function POST(req) {
     if (reusable) return privateJson({ url: reusable.url })
     for (const session of open.data.filter((s) => s.mode === 'subscription' && s.metadata?.app === 'curl_to_buy' && s.metadata?.seller_id === seller.id)) await client.checkout.sessions.expire(session.id)
     let attempt = freshSeller.billingCheckout
-    if (!attempt || attempt.plan !== plan.key || attempt.expiresAt <= Math.floor(Date.now() / 1000) || (attempt.sessionId && (await client.checkout.sessions.retrieve(attempt.sessionId)).status !== 'open')) {
+    // A new nonce when the previous attempt never produced a session (Stripe keeps the
+    // failed request under that idempotency key, so retrying with it can never succeed).
+    // An open session is reused above, so this cannot start a second subscription.
+    if (!attempt || !attempt.sessionId || attempt.plan !== plan.key || attempt.expiresAt <= Math.floor(Date.now() / 1000) || (await client.checkout.sessions.retrieve(attempt.sessionId)).status !== 'open') {
       attempt = { plan: plan.key, nonce: randomUUID(), expiresAt: Math.floor(Date.now() / 1000) + 3600, origin }
       await updateSeller(seller.id, { billingCheckout: attempt })
     }
