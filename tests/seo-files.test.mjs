@@ -17,3 +17,11 @@ test('sitemap lists only public pages on the canonical site', async () => {
   assert.ok(urls.includes('https://pay.nyttolabs.com/plans'))
   assert.ok(urls.every((url) => url.startsWith('https://pay.nyttolabs.com') && !/\/(api|dl|orders|upload|links)/.test(url)))
 })
+
+test('sitemap leaves out the noindex campaign tracking paths', async () => {
+  const app = runtime()
+  const urls = (await app.load('app/sitemap.js')).default().map((entry) => entry.url)
+  for (const path of ['/threads', '/instagram', '/x', '/tiktok']) {
+    assert.ok(!urls.includes(`https://pay.nyttolabs.com${path}`), `${path} must not be in the sitemap`)
+  }
+})
