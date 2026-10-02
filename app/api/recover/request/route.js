@@ -1,4 +1,4 @@
-import { getSeller, saveVerificationCode, getSellerIdByEmail } from '../../../../lib/store'
+import { getSeller, saveVerificationCode, getSellerIdByEmail, findSellerIdByStoredEmail, saveSellerEmailIndex } from '../../../../lib/store'
 import { emailKey, validSellerEmail, verificationCode, verificationCodeHash } from '../../../../lib/seller'
 import { emailReady, sendVerificationCode } from '../../../../lib/mailer'
 
@@ -27,7 +27,12 @@ export async function POST(req) {
   const hash = emailKey(email)
   if (limited(hash)) return Response.json({ error: 'Too many attempts. Try again later.' }, { status: 429 })
 
-  const sellerId = await getSellerIdByEmail(hash)
+  let sellerId = await getSellerIdByEmail(hash)
+  if (!sellerId) {
+    // Older sellers have no email index yet. Look them up once and add it.
+    sellerId = await findSellerIdByStoredEmail(email)
+    if (sellerId) await saveSellerEmailIndex(hash, sellerId).catch(() => {})
+  }
   if (sellerId) {
     const seller = await getSeller(sellerId)
     if (seller?.stripeAccountId) {
