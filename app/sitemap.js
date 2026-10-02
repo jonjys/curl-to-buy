@@ -1,12 +1,10 @@
 import { SITE } from '../lib/site'
 
+// Campaign paths (/threads, /instagram, /x, /tiktok) are tracking links with
+// noindex and a canonical to the home page, so they are not listed here.
 const PAGES = [
   { path: '', priority: 1 },
   { path: '/plans', priority: 0.8 },
-  { path: '/threads', priority: 0.6 },
-  { path: '/instagram', priority: 0.6 },
-  { path: '/x', priority: 0.6 },
-  { path: '/tiktok', priority: 0.6 },
   { path: '/terms', priority: 0.3 },
   { path: '/privacy', priority: 0.3 },
   { path: '/refunds', priority: 0.3 },
