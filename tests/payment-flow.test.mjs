@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import { randomUUID } from 'node:crypto'
+import { campaignSource } from '../lib/analytics.js'
 
 const root = new URL('../', import.meta.url)
 
@@ -35,7 +36,7 @@ async function setup() {
     downloadsPerFile: 1, salesLimit: 1,
   }
   const seller = { id: 'seller1', stripeAccountId: 'acct_test_seller', feeBps: 500 }
-  const state = { listing, seller, sales, downloads, session: null, checkoutArgs: null, transfersEnabled: true, analytics: [] }
+  const state = { listing, seller, sales, downloads, session: null, checkoutArgs: null, transfersEnabled: true }
   const client = {
     checkout: { sessions: {
       create: async (args) => {
@@ -75,7 +76,6 @@ async function setup() {
   const dependencies = {
     'node:crypto': { randomUUID },
     'lib/billing-events': { reconcileBillingEvent: async () => false },
-    'lib/analytics-server': { trackPurchaseCompleted: async (event) => { state.analytics.push(event) } },
     'lib/stripe': { stripe: () => client },
     'lib/billing': { billingState: async () => ({ active: false }) },
     'lib/entitlement': {
@@ -92,6 +92,7 @@ async function setup() {
     'lib/price': { displayPrice: () => ({ currency: 'sek', amount: 10000 }) },
     'lib/site': { originFrom: () => 'https://example.test', httpsOrigin: () => 'https://example.test' },
     'lib/http': { clientError: (error, fallback, status = 503) => ({ error: error?.message || fallback, status: error?.status || status }) },
+    'lib/analytics': { campaignSource },
     'lib/fees': { applicationFeeCents: (amount, bps) => Math.round(amount * bps / 10000) },
     'lib/stripe-connect': {
       readySubscriptionMerchant: async () => null,
@@ -140,8 +141,6 @@ test('Checkout -> paid webhook -> idempotent order -> gated file -> download cap
   state.session.payment_status = 'paid' // Simulated Stripe success; NO real charge is made.
   assert.equal((await webhook.POST(eventRequest('checkout.session.completed', state.session))).status, 200)
   assert.equal(state.sales.size, 1)
-  // purchase_completed is requested only after the verified webhook registered the sale, with no IDs beyond the session key.
-  assert.deepEqual(JSON.parse(JSON.stringify(state.analytics)), JSON.parse(JSON.stringify([{ sessionId: 'cs_test_contract_1', itemType: 'digital', currency: state.session.currency }])))
   const confirmed = await verify.GET(new Request(verifyUrl))
   assert.equal((await confirmed.json()).status, 'paid')
   assert.equal(state.sales.size, 1)
@@ -201,3 +200,20 @@ test('Cover image reaches Stripe Checkout; legacy listing without one sends no i
   assert.equal(await file.text(), 'example file contents')
 })
 
+
+test('Campaign source on the listing reaches Stripe metadata; unknown values are dropped', async () => {
+  const tagged = await setup()
+  tagged.state.listing = { ...tagged.state.listing, source: 'threads' }
+  await tagged.checkout.POST(new Request('https://example.test/api/checkout/listing1', { method: 'POST' }), { params: Promise.resolve({ id: 'listing1' }) })
+  assert.equal(tagged.state.checkoutArgs.metadata.source, 'threads')
+  assert.equal(tagged.state.checkoutArgs.payment_intent_data.metadata.source, 'threads')
+  assert.equal(tagged.state.checkoutArgs.metadata.file_id, 'listing1')
+
+  for (const source of [undefined, 'evil.example', 'Threads <script>']) {
+    const { state, checkout } = await setup()
+    state.listing = { ...state.listing, ...(source === undefined ? {} : { source }) }
+    await checkout.POST(new Request('https://example.test/api/checkout/listing1', { method: 'POST' }), { params: Promise.resolve({ id: 'listing1' }) })
+    assert.equal('source' in state.checkoutArgs.metadata, false)
+    assert.equal('source' in state.checkoutArgs.payment_intent_data.metadata, false)
+  }
+})

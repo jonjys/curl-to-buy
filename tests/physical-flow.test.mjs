@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import { randomUUID } from 'node:crypto'
+import { campaignSource } from '../lib/analytics.js'
 
 const root = new URL('../', import.meta.url)
 
@@ -64,7 +65,6 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
   const dependencies = {
     'node:crypto': { randomUUID },
     'lib/billing-events': { reconcileBillingEvent: async () => false },
-    'lib/analytics-server': { trackPurchaseCompleted: async (event) => { (state.analytics ||= []).push(event) } },
     'lib/store': store,
     'lib/publish-listing': { publishListing: async (_, body, listing) => { state.listing = { ...listing, id: 'physical1' }; return state.listing } },
     'lib/billing': { billingState: async () => ({ active: false }) },
@@ -97,6 +97,7 @@ test('Physical item -> Connect Checkout with shipping -> paid seller order -> so
     'lib/site': { originFrom: () => 'https://example.test', httpsOrigin: () => 'https://example.test' },
     'lib/listing-image': { publishListingImage: async () => { throw Object.assign(Error('no image in this test'), { status: 400 }) }, finishListingImage: async () => {}, discardListingImage: async () => {} },
     'lib/http': { clientError: (error, fallback, status = 503) => ({ error: error?.message || fallback, status: error?.status || status }) },
+    'lib/analytics': { campaignSource },
     'lib/fees': { applicationFeeCents: (amount, bps) => Math.round(amount * bps / 10000) },
     'lib/seller': { sellerIdFromRequest: () => state.sellerCookie ? 'seller1' : null },
     '@vercel/blob': {

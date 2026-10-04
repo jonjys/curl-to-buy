@@ -1,4 +1,3 @@
-import { trackPurchaseCompleted } from '../../../../lib/analytics-server'
 import { reconcileBillingEvent } from '../../../../lib/billing-events'
 import { checkoutContext, paymentCanFulfill, retrieveCheckout } from '../../../../lib/payment-context'
 import { stripe } from '../../../../lib/stripe'
@@ -81,8 +80,6 @@ export async function handleWebhook(req, connected = false) {
     // Uses the same listingId/sessionId key as /api/verify-session, so webhook
     // retries and a buyer visiting the success page cannot count twice.
     await recordPurchase(listingId, session.id)
-    // After the sale is registered; never throws and counts each session once.
-    await trackPurchaseCompleted({ sessionId: session.id, itemType: listing.kind === 'physical' ? 'physical' : 'digital', currency: session.currency })
     return Response.json({ received: true })
   } catch (error) {
     console.error('Stripe Checkout purchase registration failed.', {

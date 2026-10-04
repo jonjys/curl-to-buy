@@ -9,6 +9,7 @@ import { billingState } from '../../../../lib/billing'
 import { checkoutFeeBps, isSubscribed, saleTerms, usesDirectCharge } from '../../../../lib/entitlement'
 import { saveCheckoutContext } from '../../../../lib/payment-context'
 import { createReservedCheckout } from '../../../../lib/checkout-reservations'
+import { campaignSource } from '../../../../lib/analytics'
 import { recipientStatus, retrieveConnectedRecipient, readySubscriptionMerchant } from '../../../../lib/stripe-connect'
 
 export const runtime = 'nodejs'
@@ -80,6 +81,9 @@ export async function POST(req, { params }) {
   const fileCount = listingFiles(listing).length
   // Stripe fetches this URL, so give it our own route (private image, metadata removed).
   const image = listing.imagePath ? `${origin}/dl/${listing.id}/image` : (isPhysical && listing.photoUrl) || null
+  // Which campaign brought the seller; Stripe reports sales per channel from it.
+  const source = campaignSource(listing.source)
+  const sourceTag = source ? { source } : {}
   const checkoutParams = {
     mode: 'payment',
     line_items: [{
@@ -104,7 +108,7 @@ export async function POST(req, { params }) {
     payment_intent_data: {
       application_fee_amount: applicationFeeCents(price.amount, feeBps),
       ...(!direct ? { transfer_data: { destination } } : {}),
-      metadata: { file_id: listing.id, seller_id: seller.id, billing_mode: listing.billingMode || (direct ? 'subscription' : 'legacy') },
+      metadata: { file_id: listing.id, seller_id: seller.id, billing_mode: listing.billingMode || (direct ? 'subscription' : 'legacy'), ...sourceTag },
     },
     success_url: `${origin}/success?listing_id=${listing.id}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/dl/${listing.id}`,
@@ -115,6 +119,7 @@ export async function POST(req, { params }) {
       payout: 'connect',
       fee_bps: String(feeBps),
       billing_mode: listing.billingMode || (direct ? 'subscription' : 'legacy'),
+      ...sourceTag,
     },
   }
   const body = await req.json().catch(() => ({}))
