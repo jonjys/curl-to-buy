@@ -283,3 +283,8 @@ button.bg-pine,
   78% { transform: scale(1.07); }
   84% { transform: none; }
 }
+
+/* FAQ: native details/summary with our own +/× icon. */
+.ctb-faq summary::-webkit-details-marker { display: none; }
+.ctb-faq summary:focus-visible { outline: 2px solid var(--ctb-accent); outline-offset: 4px; border-radius: 0.5rem; }
+@media (prefers-reduced-motion: reduce) { .ctb-faq-icon { transition: none; } }
