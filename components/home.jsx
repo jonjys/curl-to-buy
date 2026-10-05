@@ -8,6 +8,7 @@ import { Frame } from './site-chrome'
 import { rememberSource, trackEvent } from './analytics'
 import { LANDING } from './landing/copy'
 import { Art, BuyCard, HeroScene, SharePreview } from './landing/mockups'
+import FeeCalculator from './landing/fee-calculator'
 
 const btnDark = 'ctb-btn ctb-btn-dark text-base'
 const btnLight = 'ctb-btn ctb-btn-light text-base'
@@ -124,28 +125,28 @@ function Steps({ c }) {
 function Categories({ c }) {
   const k = c.categories
   const layout = [
-    'sm:col-span-2 lg:col-span-2 lg:row-span-2',
+    'col-span-2 lg:col-span-2 lg:row-span-2',
     '',
     '',
     '',
     '',
-    'sm:col-span-2 lg:col-span-4',
+    'col-span-2 lg:col-span-4',
   ]
   return (
     <section className={`${section} pb-16 sm:pb-24`}>
       <p className="ctb-kicker text-[var(--color-muted)]">{k.kicker}</p>
       <h2 className="ctb-h2 mt-4 max-w-4xl">{k.title}</h2>
-      <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+      <ul className="mt-12 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
         {k.items.map((item, i) => {
           const big = i === 0
           const wide = i === k.items.length - 1
           return (
             <li key={item.name} className={layout[i]}>
               <a href="#post" data-cta="examples" className={`ctb-card ctb-lift group flex h-full overflow-hidden no-underline ${wide ? 'flex-col sm:flex-row' : 'flex-col'}`}>
-                <div className={`overflow-hidden ${big ? 'aspect-[4/3] lg:aspect-auto lg:flex-1' : wide ? 'aspect-[16/10] sm:aspect-auto sm:w-[45%] lg:w-[38%]' : 'aspect-[16/10]'}`}><Art name={item.art} /></div>
-                <div className={`flex flex-1 flex-col ${big ? 'p-7' : 'p-5'} ${wide ? 'sm:justify-center sm:p-8' : ''}`}>
-                  <h3 className={`${big || wide ? 'text-3xl' : 'text-xl'} font-extrabold tracking-tight`}>{item.name}</h3>
-                  <p className="mt-2 flex-1 leading-relaxed text-[var(--color-ink-soft)]">{item.body}</p>
+                <div className={`overflow-hidden ${big ? 'aspect-[16/9] sm:aspect-[4/3] lg:aspect-auto lg:flex-1' : wide ? 'aspect-[16/9] sm:aspect-auto sm:w-[45%] lg:w-[38%]' : 'aspect-[16/10]'}`}><Art name={item.art} /></div>
+                <div className={`flex flex-1 flex-col ${big ? 'p-6 sm:p-7' : 'p-4 sm:p-5'} ${wide ? 'sm:justify-center sm:p-8' : ''}`}>
+                  <h3 className={`${big || wide ? 'text-2xl sm:text-3xl' : 'text-base sm:text-xl'} font-extrabold leading-tight tracking-tight`}>{item.name}</h3>
+                  <p className={`mt-2 flex-1 leading-relaxed text-[var(--color-ink-soft)] ${big || wide ? '' : 'text-sm sm:text-base'}`}>{item.body}</p>
                   <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold">{k.cta}<span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span></span>
                 </div>
               </a>
@@ -183,7 +184,7 @@ function Why({ c }) {
   )
 }
 
-function Pricing({ c }) {
+function Pricing({ c, locale }) {
   const p = c.pricing
   const card = (plan, dark, extra) => (
     <div className={`flex flex-col rounded-[1.75rem] p-7 sm:p-9 ${dark ? 'bg-[#16130f] text-[#fffaf2]' : 'ctb-card'}`}>
@@ -203,7 +204,42 @@ function Pricing({ c }) {
         {card(p.free, false)}
         {card(p.sub, true, <Link href="/plans" className="ctb-btn mt-8 min-h-11 w-fit bg-[#fffaf2] px-5 text-sm text-[#16130f]">{p.sub.link} {arrow}</Link>)}
       </div>
+      <FeeCalculator copy={p.calc} locale={locale} />
       <p className="mt-6 max-w-3xl text-sm leading-relaxed text-[var(--color-ink-soft)]">{p.note}</p>
+    </section>
+  )
+}
+
+function Faq({ c }) {
+  const f = c.faq
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: f.items.map((item) => ({ '@type': 'Question', name: item.q, acceptedAnswer: { '@type': 'Answer', text: item.a } })),
+  }
+  return (
+    <section id="faq" className="scroll-mt-20 bg-white py-16 sm:py-24">
+      <div className={section}>
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
+          <div>
+            <p className="ctb-kicker text-[var(--color-muted)]">{f.kicker}</p>
+            <h2 className="ctb-h2 mt-4">{f.title}</h2>
+          </div>
+          <div className="border-t-2 border-[#16130f]">
+            {f.items.map((item) => (
+              <details key={item.q} className="ctb-faq group border-b border-[var(--color-line)]">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-6 py-4 text-lg font-extrabold tracking-tight">
+                  {item.q}
+                  <span aria-hidden="true" className="ctb-faq-icon inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] text-xl leading-none transition-transform group-open:rotate-45">+</span>
+                </summary>
+                <p className="max-w-2xl pb-5 leading-relaxed text-[var(--color-ink-soft)]">{item.a}</p>
+              </details>
+            ))}
+            <Link href="/refunds" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold underline underline-offset-4">{f.refunds}</Link>
+          </div>
+        </div>
+      </div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, '\\u003c') }} />
     </section>
   )
 }
@@ -280,7 +316,8 @@ function HomeInner({ stripeReady, blobReady, maxMB, campaign }) {
         <Steps c={c} />
         <Categories c={c} />
         <Why c={c} />
-        <Pricing c={c} />
+        <Pricing c={c} locale={locale} />
+        <Faq c={c} />
         <Final c={c} />
         <Create c={c} stripeReady={stripeReady} blobReady={blobReady} maxMB={maxMB} />
       </main>
