@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import { randomUUID } from 'node:crypto'
+import { campaignSource } from '../lib/analytics.js'
 
 const root = new URL('../', import.meta.url)
 
@@ -91,6 +92,7 @@ async function setup() {
     'lib/price': { displayPrice: () => ({ currency: 'sek', amount: 10000 }) },
     'lib/site': { originFrom: () => 'https://example.test', httpsOrigin: () => 'https://example.test' },
     'lib/http': { clientError: (error, fallback, status = 503) => ({ error: error?.message || fallback, status: error?.status || status }) },
+    'lib/analytics': { campaignSource },
     'lib/fees': { applicationFeeCents: (amount, bps) => Math.round(amount * bps / 10000) },
     'lib/stripe-connect': {
       readySubscriptionMerchant: async () => null,
@@ -198,3 +200,20 @@ test('Cover image reaches Stripe Checkout; legacy listing without one sends no i
   assert.equal(await file.text(), 'example file contents')
 })
 
+
+test('Campaign source on the listing reaches Stripe metadata; unknown values are dropped', async () => {
+  const tagged = await setup()
+  tagged.state.listing = { ...tagged.state.listing, source: 'threads' }
+  await tagged.checkout.POST(new Request('https://example.test/api/checkout/listing1', { method: 'POST' }), { params: Promise.resolve({ id: 'listing1' }) })
+  assert.equal(tagged.state.checkoutArgs.metadata.source, 'threads')
+  assert.equal(tagged.state.checkoutArgs.payment_intent_data.metadata.source, 'threads')
+  assert.equal(tagged.state.checkoutArgs.metadata.file_id, 'listing1')
+
+  for (const source of [undefined, 'evil.example', 'Threads <script>']) {
+    const { state, checkout } = await setup()
+    state.listing = { ...state.listing, ...(source === undefined ? {} : { source }) }
+    await checkout.POST(new Request('https://example.test/api/checkout/listing1', { method: 'POST' }), { params: Promise.resolve({ id: 'listing1' }) })
+    assert.equal('source' in state.checkoutArgs.metadata, false)
+    assert.equal('source' in state.checkoutArgs.payment_intent_data.metadata, false)
+  }
+})

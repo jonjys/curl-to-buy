@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { upload } from '@vercel/blob/client'
 import { useLocale } from './locale'
-import { trackEvent } from './analytics'
+import { storedSource, trackEvent } from './analytics'
 import UseAnywhere from './use-anywhere'
 import { FREE_MIN_SEK, SUB_MIN_SEK } from '../lib/entitlement'
 import { onboardingNotice } from '../lib/site'
@@ -81,7 +81,7 @@ export default function ItemForm({ stripeReady, blobReady }) {
     setBusy(true)
     try {
       const response = await fetch('/api/register-item', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...draft, source: storedSource() }),
       })
       const json = await readJson(response)
       if (response.status === 402 && json.quotaExceeded) throw Error(json.error || (sv ? 'Du har använt alla nya länkar för den här månaden.' : 'You have used all new links for this billing month.'))

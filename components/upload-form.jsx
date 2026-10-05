@@ -9,7 +9,7 @@ import { formatUsd } from '../lib/copy'
 import { IMAGE_TYPES, MAX_IMAGE_BYTES } from '../lib/public-image'
 import { cleanImage } from '../lib/clean-image'
 import { useLocale } from './locale'
-import { trackEvent } from './analytics'
+import { storedSource, trackEvent } from './analytics'
 import UseAnywhere from './use-anywhere'
 
 const DRAFT_KEY = 'curl-to-buy:pending-listing'
@@ -115,6 +115,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           description: draft.description,
           imageUpload: draft.imageUpload || null,
           timeLimitMinutes: draft.timeLimitMinutes,
+          source: storedSource(),
         }),
       })
       const json = await readJson(res)

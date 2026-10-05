@@ -70,8 +70,15 @@ Where to look (Vercel Dashboard → project → **Analytics**, Production):
 URL carries an email, a name or address, a product or file name, a full
 checkout URL, a seller, order, session or Stripe ID, or a storage path.
 Analytics never blocks creating a product, checkout, webhooks or delivery.
-No purchase event is sent. A server-side `purchase_completed` from the verified
-Stripe webhook is prepared in a separate pull request and is not live.
+No purchase event is sent to Vercel.
+
+**Sales per channel come from Stripe, not from Vercel.** When a seller creates
+a product in a tab that arrived via a campaign path or allowlisted `utm_source`,
+the listing stores that `source`. Every Checkout Session for the product, and
+its PaymentIntent, then carries `metadata.source`. In the Stripe Dashboard,
+filter payments by metadata `source` (`threads`, `instagram`, `x`, `tiktok`).
+Products without a campaign source carry no `source` key. This works on every
+Vercel plan and counts each payment exactly once, because Stripe is the record.
 
 ## Name restoration — 21 September 2026
 

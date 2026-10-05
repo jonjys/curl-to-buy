@@ -18,7 +18,9 @@ export function rememberSource(value) {
   return source
 }
 
-function storedSource() {
+// Exported so a new product can carry the seller's campaign source, which the
+// checkout then copies into Stripe metadata. Returns null when there is none.
+export function storedSource() {
   try {
     return campaignSource(sessionStorage.getItem(SOURCE_KEY))
       || rememberSource(new URLSearchParams(window.location.search).get('utm_source'))
