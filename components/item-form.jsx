@@ -9,9 +9,11 @@ import { FREE_MIN_SEK, SUB_MIN_SEK } from '../lib/entitlement'
 import { onboardingNotice } from '../lib/site'
 import { visibleError } from '../lib/http'
 import { cleanImage } from '../lib/clean-image'
+import { formatMoney, saleSplit } from '../lib/fee-math'
 
 const ITEM_DRAFT = 'curl-to-buy:pending-item'
 const PHOTO_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+const COUNTRIES = [['SE', 'Sverige'], ['DK', 'Danmark'], ['FI', 'Finland'], ['NO', 'Norge'], ['DE', 'Deutschland'], ['FR', 'France'], ['NL', 'Nederland'], ['BE', 'België'], ['AT', 'Österreich'], ['IE', 'Ireland'], ['IT', 'Italia'], ['ES', 'España'], ['PT', 'Portugal'], ['PL', 'Polska']]
 
 export default function ItemForm({ stripeReady, blobReady }) {
   const { locale } = useLocale()
@@ -137,6 +139,10 @@ export default function ItemForm({ stripeReady, blobReady }) {
 
   const shareUrl = listing && typeof window !== 'undefined' ? `${window.location.origin}/dl/${listing.id}` : ''
   const ordersUrl = listing && typeof window !== 'undefined' ? `${window.location.origin}/orders/${listing.id}` : ''
+  const priceNumber = Number(String(price).replace(',', '.'))
+  const priceOk = Number.isFinite(priceNumber) && priceNumber >= connect.minSek
+  const itemSplit = saleSplit(priceOk ? priceNumber : connect.minSek, connect.feeBps)
+  const kr = (value) => formatMoney(value, 'sek', locale)
   const field = 'h-12 w-full rounded-sm border border-line bg-paper-tint px-3 text-base text-ink outline-none placeholder:text-muted'
 
   if (listing) return (
@@ -157,35 +163,35 @@ export default function ItemForm({ stripeReady, blobReady }) {
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-ink-soft">{sv ? 'Sälj ditt eget varumärke, kläder eller andra fysiska produkter. Dela länken på sociala medier eller lägg den på din produktsida. Köparen anger sin adress i kassan; du eller din leverantör skickar varan.' : 'Sell your own brand, clothing or other physical products. Share the link on social media or add it to your product page. Buyers enter their address at checkout; you or your supplier ships the order.'}</p>
-      {!connect.loading && !connect.ready ? (
-        <div className="space-y-3 rounded-xl border border-pine/40 bg-paper-tint p-4">
-          <h3 className="text-base font-semibold">{sv ? 'Anslut Stripe för att få betalt' : 'Connect Stripe to receive payments'}</h3>
-          <p className="text-xs text-ink-soft">{sv ? 'Bara din e-post behövs här. Stripe samlar in de juridiska uppgifterna. Har du redan sålt på en annan enhet kan du återställa säljarkontot via fliken Digital fil.' : 'Only your email is needed here. Stripe collects the legal details. If you sold on another device, recover your seller account from the Digital file tab.'}</p>
-          {!connect.hasSeller ? <input className={field} type="email" autoComplete="email" placeholder={sv ? 'Din e-postadress' : 'Your email'} value={email} onChange={(e) => setEmail(e.target.value)} /> : null}
-          {error ? <p role="alert" className="text-sm text-warn">{error}</p> : null}
-          <button type="button" onClick={startConnect} disabled={busy || (!connect.hasSeller && !email)} className="min-h-12 w-full rounded-lg bg-pine text-sm font-semibold text-pine-fg disabled:opacity-50">{busy ? '…' : (sv ? 'Fortsätt till Stripe' : 'Continue to Stripe')}</button>
-        </div>
-      ) : null}
       <details className="rounded-xl border border-line p-4">
         <summary className="cursor-pointer text-sm font-semibold">{sv ? 'Har du redan en produkt i en webbutik?' : 'Already have a product in a web store?'}</summary>
         <label className="mt-3 block space-y-2 text-sm">{sv ? 'Produktens URL (valfri)' : 'Product URL (optional)'}<input type="url" className={field} value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://…" /></label>
         <label className="mt-3 block space-y-2 text-sm">{sv ? 'Variant, storlek eller färg' : 'Variant, size or colour'}<input className={field} maxLength={120} value={variant} onChange={(e) => setVariant(e.target.value)} /></label>
         <p className="mt-3 text-xs text-muted">{sv ? 'Kopiera titel, bild och pris till formuläret och kontrollera leveransvillkoren. Länken sparas som referens; inga produkter hämtas och inga lager eller ordrar synkas.' : 'Copy the title, photo and price into the form and confirm delivery terms. The URL is saved as a reference; products are not fetched and inventory or orders are not synced.'}</p>
       </details>
-      <label className="block space-y-2 text-sm font-semibold">{sv ? 'Vad säljer du?' : 'What are you selling?'}<input className={field} maxLength={100} placeholder={sv ? 'T.ex. Hoodie, storlek M' : 'e.g. Hoodie, size M'} value={title} onChange={(e) => setTitle(e.target.value)} /></label>
-      <label className="block space-y-2 text-sm font-semibold">{sv ? 'Bild (valfri)' : 'Photo (optional)'}<input className="block w-full text-sm font-normal" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setPhoto(e.target.files?.[0] || null)} />{photo ? <span className="block text-xs font-normal text-muted">{photo.name}</span> : null}</label>
+      <label className="block space-y-2 text-sm font-semibold">{sv ? 'Namn på varan' : 'Item name'}<input className={field} maxLength={100} placeholder={sv ? 'T.ex. Hoodie, storlek M' : 'e.g. Hoodie, size M'} value={title} onChange={(e) => setTitle(e.target.value)} /></label>
+      <label className="flex cursor-pointer items-center gap-3 rounded-md border border-dashed border-line bg-sheet p-3 hover:border-pine/50">
+        <span aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-sm bg-paper-tint text-2xl text-muted">{photo ? '✓' : '＋'}</span>
+        <span className="min-w-0 text-xs text-muted"><span className="block truncate text-sm font-medium text-ink">{photo ? photo.name : (sv ? 'Bild på varan (valfri)' : 'Photo of the item (optional)')}</span>{sv ? 'Visas på köpsidan och när länken delas.' : 'Shown on your page and when the link is shared.'}</span>
+        <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setPhoto(e.target.files?.[0] || null)} />
+      </label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Skick' : 'Condition'}<select className={field} value={condition} onChange={(e) => setCondition(e.target.value)}><option value="new">{sv ? 'Ny' : 'New'}</option><option value="used_good">{sv ? 'Begagnad – bra skick' : 'Used – good condition'}</option><option value="used_fair">{sv ? 'Begagnad – bruksskick' : 'Used – fair condition'}</option></select></label>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Beskrivning (valfri)' : 'Description (optional)'}<textarea className={`${field} min-h-24 py-3`} maxLength={300} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={sv ? 'Storlek, mått, eventuella skador…' : 'Size, dimensions, any flaws…'} /></label>
-      <label className="block space-y-2 text-sm font-semibold">{sv ? 'Sätt priset på din vara/länk, kr' : 'Set your item/link price, SEK'}<input className={field} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.,]/g, ''))} /></label>
-      <input type="range" aria-label={sv ? 'Justera varans pris' : 'Adjust item price'} min={connect.minSek} max={5000} step={1} value={Math.max(connect.minSek, Math.min(5000, Number(price.replace(',', '.')) || connect.minSek))} onChange={(e) => setPrice(e.target.value)} className="w-full accent-pine" />
-      <div className="flex gap-2">{[connect.minSek, 300, 1000].map((amount) => <button key={amount} type="button" onClick={() => setPrice(String(amount))} className="min-h-11 rounded-lg border border-line px-4 text-sm">{amount} kr</button>)}</div>
-      <p className="text-sm text-ink-soft">{sv ? 'Köparen betalar' : 'Buyer pays'}: {Number(price.replace(',', '.')).toFixed(2)} SEK · {sv ? 'frakt ingår' : 'shipping included'}</p>
-      <p className="text-xs leading-relaxed text-muted">{connect.subscribed
-        ? (sv ? 'Med abonnemang: minst 50 kr. Nytto Checkout tar ingen procent på försäljningen. Stripe drar sin kortavgift från beloppet. Köparen anger leveransadressen i Stripe Checkout.' : 'With a subscription: 50 SEK minimum. Nytto Checkout takes no percentage of the sale. Stripe deducts its card fee from the amount. The buyer enters the shipping address in Stripe Checkout.')
-        : (sv ? 'Utan abonnemang: minst 100 kr. Nytto Checkout tar 5%. Stripe drar också sin kortavgift. Köparen anger leveransadressen i Stripe Checkout.' : 'Without a subscription: 100 SEK minimum. Nytto Checkout takes 5%. Stripe also deducts its card fee. The buyer enters the shipping address in Stripe Checkout.')}</p>
+      <label className="block space-y-2 text-sm font-semibold">{sv ? 'Pris inklusive frakt, kr' : 'Price including shipping, SEK'}<input className={field} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.,]/g, ''))} /></label>
+      <div className="flex gap-2">{[connect.minSek, 300, 1000].map((amount) => <button key={amount} type="button" aria-pressed={priceNumber === amount} onClick={() => setPrice(String(amount))} className={`min-h-11 rounded-lg px-4 text-sm ${priceNumber === amount ? 'bg-pine text-pine-fg' : 'border border-line'}`}>{formatMoney(amount, 'sek', locale)}</button>)}</div>
+      <p className={`text-sm ${priceOk ? 'text-ink-soft' : 'text-warn'}`}>{priceOk
+        ? (connect.feeBps
+          ? (sv ? `Du får ${kr(itemSplit.keep)} per köp. Nytto Checkout tar ${kr(itemSplit.fee)} (${connect.feeBps / 100} %), Stripe drar sin kortavgift.` : `You get ${kr(itemSplit.keep)} per sale. Nytto Checkout takes ${kr(itemSplit.fee)} (${connect.feeBps / 100}%), Stripe deducts its card fee.`)
+          : (sv ? `Du får ${kr(itemSplit.keep)} per köp, minus Stripes kortavgift.` : `You get ${kr(itemSplit.keep)} per sale, minus Stripe's card fee.`))
+        : (sv ? `Lägsta pris är ${kr(connect.minSek)}.` : `The minimum price is ${kr(connect.minSek)}.`)}</p>
       <label className="block space-y-2 text-sm font-semibold">{sv ? 'Antal att sälja' : 'Quantity available'}<select className={field} value={stock === 'unlimited' ? 'unlimited' : 'limited'} onChange={(e) => setStock(e.target.value === 'unlimited' ? 'unlimited' : '1')}><option value="limited">{sv ? 'Begränsat lager' : 'Limited stock'}</option><option value="unlimited">{sv ? 'Ingen köpgräns' : 'No purchase limit'}</option></select>{stock !== 'unlimited' ? <input className={field} type="number" min={1} max={100000} value={stock} onChange={(e) => setStock(e.target.value)} /> : null}</label>
-      <label className="block space-y-2 text-sm font-semibold">{sv ? 'Leveransländer' : 'Delivery countries'}<select className={`${field} h-32`} multiple value={shippingCountries} onChange={(e) => setShippingCountries(Array.from(e.target.selectedOptions, (o) => o.value))}>{[['SE','Sverige'],['DK','Danmark'],['FI','Finland'],['NO','Norge'],['DE','Deutschland'],['FR','France'],['NL','Nederland'],['BE','België'],['AT','Österreich'],['IE','Ireland'],['IT','Italia'],['ES','España'],['PT','Portugal'],['PL','Polska']].map(([code,name]) => <option key={code} value={code}>{name}</option>)}</select></label>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-semibold">{sv ? 'Du skickar till' : 'You ship to'}</legend>
+        <div className="flex flex-wrap gap-2 pt-2">{COUNTRIES.map(([code, name]) => {
+          const on = shippingCountries.includes(code)
+          return <button key={code} type="button" aria-pressed={on} onClick={() => setShippingCountries((list) => on ? list.filter((c) => c !== code) : [...list, code])} className={`min-h-10 rounded-full px-3.5 text-sm ${on ? 'bg-pine text-pine-fg' : 'border border-line text-ink'}`}>{name}</button>
+        })}</div>
+      </fieldset>
       <details className="rounded-xl border border-line p-4">
         <summary className="cursor-pointer text-sm font-semibold">{sv ? 'Valfria uppgifter' : 'Optional details'}</summary>
         <div className="mt-4 space-y-4">
@@ -198,8 +204,15 @@ export default function ItemForm({ stripeReady, blobReady }) {
       </details>
       <label className="flex items-start gap-3 text-xs leading-relaxed text-ink-soft"><input type="checkbox" checked={shippingIncluded} onChange={(e) => setShippingIncluded(e.target.checked)} className="mt-1" />{sv ? 'Jag ansvarar för att skicka varan till valda länder. Frakten ingår i priset och köparens adress hämtas säkert i Stripe Checkout.' : 'I am responsible for shipping to the selected countries. Shipping is included and the buyer enters their address in Stripe Checkout.'}</label>
       <label className="flex items-start gap-3 text-xs leading-relaxed text-ink-soft"><input type="checkbox" checked={adult} onChange={(e) => setAdult(e.target.checked)} className="mt-1" />{sv ? 'Jag är minst 18 år och har rätt att sälja och skicka varan.' : 'I am at least 18 and have the right to sell and ship this item.'}</label>
+      {!connect.loading && !connect.ready ? (
+        <div className="space-y-3 rounded-xl border border-pine/40 bg-paper-tint p-4">
+          <h3 className="text-base font-semibold">{sv ? 'Sista steget: få betalt' : 'Last step: get paid'}</h3>
+          <p className="text-xs leading-relaxed text-ink-soft">{sv ? 'Stripe tar emot betalningen och betalar ut till ditt bankkonto. Ange din e-post så fortsätter du hos Stripe. Det görs en gång.' : 'Stripe takes the payment and pays out to your bank account. Enter your email and continue at Stripe. You do this once.'}</p>
+          {!connect.hasSeller ? <input className={field} type="email" autoComplete="email" placeholder={sv ? 'Din e-postadress' : 'Your email'} value={email} onChange={(e) => setEmail(e.target.value)} /> : null}
+        </div>
+      ) : null}
       {error ? <p role="alert" className="text-sm text-warn">{error}</p> : null}
-      <button type="button" disabled={busy || connect.loading || !stripeReady} onClick={publish} className="min-h-12 w-full rounded-lg bg-pine px-4 font-semibold text-pine-fg disabled:opacity-50">{busy ? (sv ? 'Skapar länk…' : 'Creating link…') : (sv ? 'Skapa köplänk för varan' : 'Create item payment link')}</button>
+      <button type="button" disabled={busy || connect.loading || !stripeReady} onClick={publish} className="min-h-12 w-full rounded-lg bg-pine px-4 font-semibold text-pine-fg disabled:opacity-50">{busy ? (sv ? 'Skapar länk…' : 'Creating link…') : connect.loading || connect.ready ? (sv ? 'Skapa köplänk för varan' : 'Create item payment link') : (sv ? 'Fortsätt till Stripe →' : 'Continue to Stripe →')}</button>
       <p className="text-xs text-muted">{sv ? 'Köparen behöver inget konto. Lager och beställningar synkas inte automatiskt med Shopify eller din leverantör.' : 'The buyer needs no account. Stock and orders do not automatically sync with Shopify or your supplier.'}</p>
     </div>
   )

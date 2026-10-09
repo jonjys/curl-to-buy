@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { upload } from '@vercel/blob/client'
 import { MAX_FILES, MAX_MB, MAX_SALES_LIMIT, onboardingNotice } from '../lib/site'
 import { visibleError } from '../lib/http'
-import { FREE_MIN_USD, FREE_PRESETS, SUB_MIN_USD, SUB_PRESETS } from '../lib/entitlement'
-import { formatUsd } from '../lib/copy'
+import { FREE_MIN_SEK, FREE_MIN_USD, FREE_PRESETS, SUB_MIN_SEK, SUB_MIN_USD, SUB_PRESETS } from '../lib/entitlement'
+import { formatMoney, saleSplit } from '../lib/fee-math'
 import { IMAGE_TYPES, MAX_IMAGE_BYTES } from '../lib/public-image'
 import { cleanImage } from '../lib/clean-image'
 import { useLocale } from './locale'
@@ -13,6 +13,9 @@ import { storedSource, trackEvent } from './analytics'
 import UseAnywhere from './use-anywhere'
 
 const DRAFT_KEY = 'curl-to-buy:pending-listing'
+// Kronor presets mirror the dollar ones: the free plan starts at 100 kr, a subscription at 50 kr.
+const SEK_PRESETS = Object.freeze([100, 150, 299])
+const SEK_PRESETS_SUB = Object.freeze([50, 99, 299])
 const QUANTITY_SLIDER_MAX = 1000
 
 function sliderToQuantity(pos) {
@@ -52,7 +55,9 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   const inputRef = useRef(null)
   const [files, setFiles] = useState([])
   const [title, setTitle] = useState('')
+  const [currency, setCurrency] = useState('usd')
   const [price, setPrice] = useState(String(FREE_MIN_USD))
+  const currencyChosen = useRef(false)
   const [salesLimit, setSalesLimit] = useState('unlimited')
   const [downloadsPerFile, setDownloadsPerFile] = useState('3')
   const [description, setDescription] = useState('')
@@ -110,6 +115,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           files: draft.uploaded,
           title: draft.title,
           priceUsd: draft.priceUsd,
+          priceSek: draft.priceSek,
           salesLimit: draft.salesLimit,
           downloadsPerFile: draft.downloadsPerFile,
           description: draft.description,
@@ -147,8 +153,26 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   }, [connect.loading, connect.ready, finalizeDraft])
 
   useEffect(() => {
-    if (connect.subscribed && price === String(FREE_MIN_USD)) setPrice(String(SUB_MIN_USD))
+    if (!connect.subscribed) return
+    if (price === String(FREE_MIN_USD)) setPrice(String(SUB_MIN_USD))
+    if (price === String(FREE_MIN_SEK)) setPrice(String(SUB_MIN_SEK))
   }, [connect.subscribed])
+
+  // Swedish sellers price in kronor by default. The locale is only known after
+  // hydration, so follow it until the seller picks a currency themselves.
+  useEffect(() => {
+    if (!currencyChosen.current) applyCurrency(locale === 'sv' ? 'sek' : 'usd')
+  }, [locale])
+
+  function chooseCurrency(next) {
+    currencyChosen.current = true
+    applyCurrency(next)
+  }
+
+  function applyCurrency(next) {
+    setCurrency(next)
+    setPrice(String(next === 'sek' ? (connect.subscribed ? SUB_MIN_SEK : FREE_MIN_SEK) : (connect.subscribed ? SUB_MIN_USD : FREE_MIN_USD)))
+  }
 
   async function startConnect() {
     setError(null)
@@ -210,10 +234,16 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     }
   }
 
-  const minUsd = connect.subscribed ? SUB_MIN_USD : FREE_MIN_USD
-  const presets = connect.subscribed ? SUB_PRESETS : FREE_PRESETS
-  const usd = Number.parseFloat(price)
-  const validUsd = Number.isFinite(usd) && usd >= minUsd
+  const minPrice = currency === 'sek'
+    ? (connect.subscribed ? SUB_MIN_SEK : FREE_MIN_SEK)
+    : (connect.subscribed ? SUB_MIN_USD : FREE_MIN_USD)
+  const presets = currency === 'sek'
+    ? (connect.subscribed ? SEK_PRESETS_SUB : SEK_PRESETS)
+    : (connect.subscribed ? SUB_PRESETS : FREE_PRESETS)
+  const amount = Number.parseFloat(price)
+  const validPrice = Number.isFinite(amount) && amount >= minPrice
+  const money = (value) => formatMoney(value, currency, locale)
+  const split = saleSplit(validPrice ? amount : minPrice, connect.feeBps)
   const maxBytes = maxMB * 1024 * 1024
   const totalBytes = files.reduce((sum, file) => sum + file.size, 0)
 
@@ -245,7 +275,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   async function submit() {
     setError(null)
     if (!files.length) return setError(t.fileErr)
-    if (!validUsd) return setError(connect.subscribed ? t.minErrSub : t.minErr)
+    if (!validPrice) return setError(sv ? `Priset måste vara minst ${money(minPrice)}.` : `Price must be at least ${money(minPrice)}.`)
     if (!accepted) return setError(t.confirmErr)
     if (!stripeReady) return setError(t.stripeDown)
     if (files.length > 1 && !blobReady) return setError(t.packageUnavailable)
@@ -280,7 +310,11 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         })
         imageUpload = blob.pathname
       }
-      const draft = { requestId: batch, accepted, uploaded, title, priceUsd: String(usd), salesLimit, downloadsPerFile, description, timeLimitMinutes, imageUpload }
+      const draft = {
+        requestId: batch, accepted, uploaded, title,
+        ...(currency === 'sek' ? { priceSek: String(amount) } : { priceUsd: String(amount) }),
+        salesLimit, downloadsPerFile, description, timeLimitMinutes, imageUpload,
+      }
       writeDraft(draft)
       if (connect.ready) await finalizeDraft(draft)
       else setShowConnect(true)
@@ -299,7 +333,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
 
   async function shareLink() {
     if (!listing || !shareUrl) return
-    const label = listing.priceUsd != null ? formatUsd(listing.priceUsd) : `${listing.priceSek} SEK`
+    const label = listing.priceUsd != null ? formatMoney(listing.priceUsd, 'usd', locale) : formatMoney(listing.priceSek, 'sek', locale)
     if (navigator.share) {
       try {
         await navigator.share({ title: listing.name, text: `Buy “${listing.name}” for ${label}`, url: shareUrl })
@@ -310,7 +344,7 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
   }
 
   if (listing) {
-    const label = listing.priceUsd != null ? formatUsd(listing.priceUsd) : `${listing.priceSek} SEK`
+    const label = listing.priceUsd != null ? formatMoney(listing.priceUsd, 'usd', locale) : formatMoney(listing.priceSek, 'sek', locale)
     const pitch = sv ? `${listing.name}, ${label}. Betala med kort och ladda ner direkt:` : `${listing.name}, ${label}. Pay by card and download instantly:`
     const channels = [
       { label: 'X', href: `https://x.com/intent/post?text=${encodeURIComponent(pitch)}&url=${encodeURIComponent(shareUrl)}` },
@@ -363,13 +397,91 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
     )
   }
 
+  const recovery = !connect.hasSeller && recover.mode !== 'idle' ? (
+    <div className="space-y-2.5 rounded-sm border border-line bg-paper-tint p-3.5">
+      <p className="text-xs font-medium text-ink">{t.recoverTitle}</p>
+      {recover.mode === 'email' ? (
+        <>
+          <input
+            type="email"
+            value={recover.email}
+            onChange={(event) => setRecover((current) => ({ ...current, email: event.target.value }))}
+            placeholder={t.email}
+            autoComplete="email"
+            className="h-11 w-full rounded-sm border border-line bg-paper px-3 text-base text-ink outline-none placeholder:text-muted"
+          />
+          <button
+            type="button"
+            onClick={requestRecoveryCode}
+            disabled={recover.busy || !recover.email}
+            className="inline-flex h-11 w-full items-center justify-center rounded-sm border border-pine/50 text-sm font-medium text-pine disabled:opacity-50"
+          >
+            {recover.busy ? t.recoverSending : t.recoverSendCode}
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-muted">{t.recoverSent}</p>
+          <input
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={recover.code}
+            onChange={(event) => setRecover((current) => ({ ...current, code: event.target.value.replace(/\D/g, '') }))}
+            placeholder="000000"
+            className="h-11 w-full rounded-sm border border-line bg-paper px-3 text-center text-lg tracking-[0.3em] text-ink outline-none"
+          />
+          <button
+            type="button"
+            onClick={verifyRecoveryCode}
+            disabled={recover.busy || recover.code.length !== 6}
+            className="inline-flex h-11 w-full items-center justify-center rounded-sm bg-pine text-sm font-medium text-pine-fg disabled:opacity-50"
+          >
+            {recover.busy ? t.recoverVerifying : t.recoverVerify}
+          </button>
+        </>
+      )}
+      {recover.error ? <p className="text-xs text-warn">{recover.error}</p> : null}
+      <button
+        type="button"
+        onClick={() => setRecover({ mode: 'idle', email: '', code: '', busy: false, error: null })}
+        className="text-xs text-muted underline underline-offset-4"
+      >
+        {t.recoverCancel}
+      </button>
+    </div>
+  ) : null
+
+  const recoverButton = !connect.hasSeller && recover.mode === 'idle' ? (
+    <button
+      type="button"
+      onClick={() => setRecover({ mode: 'email', email: '', code: '', busy: false, error: null })}
+      className="min-h-11 text-left text-xs text-muted underline underline-offset-4"
+    >
+      {sv ? 'Har du sålt här förut? Hämta ditt konto med e-post' : 'Sold here before? Get your account back by email'}
+    </button>
+  ) : null
+
   if (showConnect) {
+    const draft = readDraft()
+    const draftPrice = draft?.priceSek ? formatMoney(Number(draft.priceSek), 'sek', locale) : draft?.priceUsd ? formatMoney(Number(draft.priceUsd), 'usd', locale) : null
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
+        <Steps current={3} sv={sv} />
+        {draft ? (
+          <div className="flex items-center gap-3 rounded-md border border-line bg-paper-tint p-3.5">
+            <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pine text-sm text-pine-fg">✓</span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{draft.title || (sv ? 'Din produkt' : 'Your product')}{draftPrice ? ` · ${draftPrice}` : ''}</p>
+              <p className="text-xs text-muted">{sv ? 'Sparad. Länken blir aktiv när Stripe är anslutet.' : 'Saved. The link goes live once Stripe is connected.'}</p>
+            </div>
+          </div>
+        ) : null}
         <div>
-          <p className="ctb-kicker text-muted">{t.connectKicker}</p>
-          <h3 className="mt-2 font-display text-2xl font-black">{t.connectTitle}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-ink-soft">{t.connectText}</p>
+          <h3 className="font-display text-2xl font-black">{sv ? 'Sista steget: få betalt' : 'Last step: get paid'}</h3>
+          <p className="mt-2 text-sm leading-relaxed text-ink-soft">{sv
+            ? 'Stripe tar emot kortbetalningarna och betalar ut till ditt bankkonto. Du anger e-post här och resten hos Stripe. Det görs en gång och tar några minuter.'
+            : 'Stripe takes the card payments and pays out to your bank account. Enter your email here and the rest at Stripe. You do this once and it takes a few minutes.'}</p>
         </div>
         {!connect.hasSeller ? (
           <input
@@ -377,10 +489,11 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder={t.email}
+            autoComplete="email"
             className="h-12 w-full rounded-sm border border-line bg-paper-tint px-3 text-base text-ink outline-none placeholder:text-muted"
           />
         ) : null}
-        {error ? <p className="text-sm text-warn">{error}</p> : null}
+        {error ? <p role="alert" className="text-sm text-warn">{error}</p> : null}
         <button
           type="button"
           onClick={startConnect}
@@ -389,188 +502,131 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
         >
           {connecting ? t.openingStripe : connect.hasSeller ? t.continueStripe : t.connectButton}
         </button>
-        <p className="text-xs leading-relaxed text-muted">{t.connectFine}</p>
-
-        {!connect.hasSeller && recover.mode === 'idle' ? (
-          <button
-            type="button"
-            onClick={() => setRecover({ mode: 'email', email: '', code: '', busy: false, error: null })}
-            className="text-xs text-muted underline underline-offset-4"
-          >
-            {t.recoverLink}
-          </button>
-        ) : null}
-
-        {!connect.hasSeller && recover.mode !== 'idle' ? (
-          <div className="space-y-2.5 rounded-sm border border-line bg-paper-tint p-3.5">
-            <p className="text-xs font-medium text-ink">{t.recoverTitle}</p>
-            {recover.mode === 'email' ? (
-              <>
-                <input
-                  type="email"
-                  value={recover.email}
-                  onChange={(event) => setRecover((current) => ({ ...current, email: event.target.value }))}
-                  placeholder={t.email}
-                  className="h-11 w-full rounded-sm border border-line bg-paper px-3 text-sm text-ink outline-none placeholder:text-muted"
-                />
-                <button
-                  type="button"
-                  onClick={requestRecoveryCode}
-                  disabled={recover.busy || !recover.email}
-                  className="inline-flex h-10 w-full items-center justify-center rounded-sm border border-pine/50 text-sm font-medium text-pine disabled:opacity-50"
-                >
-                  {recover.busy ? t.recoverSending : t.recoverSendCode}
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-xs text-muted">{t.recoverSent}</p>
-                <input
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={recover.code}
-                  onChange={(event) => setRecover((current) => ({ ...current, code: event.target.value.replace(/\D/g, '') }))}
-                  placeholder="000000"
-                  className="h-11 w-full rounded-sm border border-line bg-paper px-3 text-center text-lg tracking-[0.3em] text-ink outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={verifyRecoveryCode}
-                  disabled={recover.busy || recover.code.length !== 6}
-                  className="inline-flex h-10 w-full items-center justify-center rounded-sm bg-pine text-sm font-medium text-pine-fg disabled:opacity-50"
-                >
-                  {recover.busy ? t.recoverVerifying : t.recoverVerify}
-                </button>
-              </>
-            )}
-            {recover.error ? <p className="text-xs text-warn">{recover.error}</p> : null}
-            <button
-              type="button"
-              onClick={() => setRecover({ mode: 'idle', email: '', code: '', busy: false, error: null })}
-              className="text-xs text-muted underline underline-offset-4"
-            >
-              {t.recoverCancel}
-            </button>
-          </div>
-        ) : null}
+        <p className="text-xs leading-relaxed text-muted">{sv
+          ? 'Inget lösenord hos Nytto Checkout. Du kommer tillbaka hit automatiskt när du är klar hos Stripe.'
+          : 'No Nytto Checkout password. You come back here automatically when you are done at Stripe.'}</p>
+        {recoverButton}
+        {recovery}
       </div>
     )
   }
 
+  const field = 'h-12 w-full rounded-sm border border-line bg-paper-tint px-3 text-base text-ink outline-none placeholder:text-muted'
+  const step = (n, label) => (
+    <p className="flex items-center gap-2 text-sm font-semibold">
+      <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-full bg-pine text-xs text-pine-fg">{n}</span>
+      {label}
+    </p>
+  )
+
   return (
-    <div className="space-y-5">
-      {!connect.loading && !connect.ready ? (
-        <div className="space-y-3 rounded-md border border-pine/40 bg-paper-tint p-4">
-          <h3 className="text-base font-semibold">{sv ? 'Anslut Stripe för att få betalt' : 'Connect Stripe to get paid'}</h3>
-          <p className="text-xs leading-relaxed text-ink-soft">{sv ? 'Bara din e-post behövs här. Stripe samlar in de juridiska uppgifterna.' : 'Only your email is needed here. Stripe collects the legal details.'}</p>
-          {!connect.hasSeller ? (
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder={t.email}
-              autoComplete="email"
-              className="h-12 w-full rounded-sm border border-line bg-paper px-3 text-base text-ink outline-none placeholder:text-muted"
-            />
-          ) : null}
-          {connectError ? <p className="text-sm text-warn">{connectError}</p> : null}
-          <button
-            type="button"
-            onClick={startConnect}
-            disabled={connecting || (!connect.hasSeller && !email)}
-            className="inline-flex h-12 w-full items-center justify-center rounded-sm bg-pine px-5 text-base font-medium text-pine-fg disabled:opacity-50"
-          >
-            {connecting ? t.openingStripe : connect.hasSeller ? t.continueStripe : t.connectButton}
-          </button>
+    <div className="space-y-7">
+      {connect.loading ? null : connect.ready ? (
+        <p className="flex items-center gap-2 rounded-sm bg-paper-tint px-3 py-2.5 text-xs text-ink-soft">
+          <span aria-hidden="true" className="text-pine">●</span>
+          {sv ? 'Stripe är anslutet. Pengarna går direkt till ditt konto.' : 'Stripe is connected. Money goes straight to your account.'}
+        </p>
+      ) : (
+        <div className="space-y-1">
+          <p className="text-xs leading-relaxed text-muted">{sv
+            ? 'Fyll i produkten först. Stripe ansluter du i sista steget, en gång.'
+            : 'Fill in your product first. You connect Stripe in the last step, once.'}</p>
+          {recoverButton}
+          {recovery}
         </div>
-      ) : null}
-      <p className="text-sm leading-relaxed text-ink-soft">{sv ? 'Köparen får filerna direkt efter betalning. För kläder, ditt eget varumärke eller andra produkter som ska skickas, välj Fysisk vara.' : 'Buyers get the files after payment. For clothing, your own brand or products you ship, choose Physical item.'}</p>
-      <div className="space-y-2">
-        <p className="text-sm font-medium">{t.files}</p>
+      )}
+
+      <section className="space-y-3">
+        {step(1, sv ? 'Välj filerna köparen får' : 'Choose the files buyers get')}
         <label
           htmlFor="file"
           onDragOver={(e) => { e.preventDefault(); setDrag(true) }}
           onDragLeave={() => setDrag(false)}
           onDrop={(e) => { e.preventDefault(); setDrag(false); onFiles(e.dataTransfer.files) }}
-          className={`flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed px-4 py-6 text-center ${
+          className={`flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed px-4 py-6 text-center ${
             drag || files.length ? 'border-pine bg-sheet' : 'border-line bg-sheet hover:border-pine/50 hover:bg-paper-tint'
           }`}
         >
           <input ref={inputRef} id="file" type="file" multiple className="sr-only" onChange={(e) => onFiles(e.target.files)} />
           {files.length ? (
             <div>
-              <p className="font-medium">{files.length} {files.length === 1 ? t.oneFile : t.manyFiles}</p>
-              <p className="mt-1 text-sm text-muted">{(totalBytes / 1024 / 1024).toFixed(1)} MB</p>
+              <p className="font-medium">{files.length} {files.length === 1 ? t.oneFile : t.manyFiles} · {(totalBytes / 1024 / 1024).toFixed(1)} MB</p>
+              <p className="mt-1 text-sm text-pine">{sv ? 'Tryck för att byta' : 'Tap to change'}</p>
             </div>
           ) : (
             <>
               <p className="font-medium">{t.drop}</p>
-              <p className="mt-1 text-sm text-muted">{t.dropHint}</p>
+              <p className="mt-1 text-sm text-muted">{sv ? `Upp till ${MAX_FILES} filer, totalt ${maxMB} MB.` : `Up to ${MAX_FILES} files, ${maxMB} MB total.`}</p>
             </>
           )}
         </label>
         {files.length ? <ul className="grid gap-1 text-sm text-ink-soft">{files.map((file) => <li key={`${file.name}-${file.size}`} className="truncate">✓ {file.name}</li>)}</ul> : null}
-        <details className="nl-chip rounded-md px-3.5 py-2.5 text-sm [&_summary]:cursor-pointer [&_summary]:list-none [&_summary::-webkit-details-marker]:hidden">
-          <summary className="flex items-center justify-between gap-2 font-medium text-ink">
-            {t.sellListTitle}
-            <span aria-hidden="true" className="text-muted">＋</span>
-          </summary>
-          <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-ink-soft">
+        <details className="text-sm [&_summary]:cursor-pointer">
+          <summary className="min-h-11 py-2 text-xs text-muted underline underline-offset-4">{t.sellListTitle}</summary>
+          <ul className="mt-1 space-y-1.5 text-sm leading-relaxed text-ink-soft">
             {t.sellList.map((item) => <li key={item}>· {item}</li>)}
           </ul>
           <p className="mt-3 text-xs text-muted">{t.sellListFoot}</p>
           <p className="mt-2 text-xs text-warn">{t.sellListCodeNote}</p>
         </details>
-      </div>
+      </section>
 
-      <div className="space-y-2">
-        <label htmlFor="title" className="text-sm font-medium">{t.title}</label>
-        <input id="title" value={title} maxLength={100} onChange={(event) => setTitle(event.target.value)} className="h-12 w-full rounded-sm border border-line bg-paper-tint px-3 text-base text-ink outline-none placeholder:text-muted" placeholder={t.titleHint} />
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="cover" className="text-sm font-medium">{sv ? 'Omslagsbild (rekommenderas)' : 'Cover image (recommended)'}</label>
+      <section className="space-y-3">
+        {step(2, sv ? 'Namn och bild' : 'Name and picture')}
+        <input id="title" aria-label={t.title} value={title} maxLength={100} onChange={(event) => setTitle(event.target.value)} className={field} placeholder={t.titleHint} />
         <label htmlFor="cover" className="flex cursor-pointer items-center gap-3 rounded-md border border-dashed border-line bg-sheet p-3 hover:border-pine/50">
-          {coverPreview ? <img src={coverPreview} alt="" className="h-16 w-16 shrink-0 rounded-sm object-cover" /> : <span aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-sm bg-paper-tint text-2xl text-muted">＋</span>}
-          <span className="min-w-0 text-xs leading-relaxed text-muted">{cover ? <span className="block truncate text-sm text-ink">{cover.name}</span> : null}{sv ? 'Visas publikt på köpsidan, i Stripe-kassan och när länken delas. Använd en förhandsbild, inte filen du säljer. Platsdata, kamerauppgifter och annan metadata tas bort innan bilden visas.' : 'Shown publicly on your page, at Stripe checkout and when the link is shared. Use a preview, not the file you sell. Location, camera details and other metadata are removed before the image is shown.'}</span>
+          {coverPreview ? <img src={coverPreview} alt="" className="h-14 w-14 shrink-0 rounded-sm object-cover" /> : <span aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-sm bg-paper-tint text-2xl text-muted">＋</span>}
+          <span className="min-w-0 text-xs leading-relaxed text-muted">
+            <span className="block text-sm font-medium text-ink">{cover ? cover.name : (sv ? 'Omslagsbild (valfri)' : 'Cover image (optional)')}</span>
+            {sv ? 'Visas på köpsidan och när länken delas. Använd en förhandsbild, inte filen du säljer.' : 'Shown on your page and when the link is shared. Use a preview, not the file you sell.'}
+          </span>
         </label>
         <input id="cover" type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { setError(null); setCover(e.target.files?.[0] || null) }} />
-      </div>
+      </section>
 
-      <div className="space-y-2">
-        <label htmlFor="priceUsd" className="text-sm font-medium">{t.price}</label>
-        <div className="relative">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
-          <input
-            id="priceUsd"
-            inputMode="decimal"
-            min={minUsd}
-            step="1"
-            value={price}
-            onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, ''))}
-            className="h-12 w-full rounded-sm border border-line bg-paper-tint pl-7 pr-3 text-base text-ink outline-none placeholder:text-muted"
-            placeholder={String(minUsd)}
-          />
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          {step(3, sv ? 'Pris' : 'Price')}
+          <div className="flex rounded-sm border border-line p-0.5 text-xs font-semibold" role="group" aria-label={sv ? 'Valuta' : 'Currency'}>
+            {[['sek', 'SEK'], ['usd', 'USD']].map(([code, name]) => (
+              <button key={code} type="button" aria-pressed={currency === code} onClick={() => chooseCurrency(code)} className={`min-h-9 rounded-sm px-3 ${currency === code ? 'bg-pine text-pine-fg' : 'text-ink'}`}>{name}</button>
+            ))}
+          </div>
         </div>
-        <input type="range" aria-label={sv ? 'Justera pris' : 'Adjust price'} min={minUsd} max={500} step={1} value={Math.min(500, validUsd ? usd : minUsd)} onChange={(e) => setPrice(e.target.value)} className="w-full accent-pine" />
+        <div className="relative">
+          <input
+            id="price"
+            aria-label={sv ? 'Pris' : 'Price'}
+            inputMode="decimal"
+            value={price}
+            onChange={(e) => setPrice(e.target.value.replace(',', '.').replace(/[^\d.]/g, ''))}
+            className={`${field} ${currency === 'usd' ? 'pl-7' : 'pr-10'}`}
+            placeholder={String(minPrice)}
+          />
+          <span className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-sm text-muted ${currency === 'usd' ? 'left-3' : 'right-3'}`}>{currency === 'usd' ? '$' : 'kr'}</span>
+        </div>
         <div className="flex flex-wrap gap-2">
           {presets.map((n) => (
             <button
               key={n}
               type="button"
               onClick={() => setPrice(String(n))}
-              aria-pressed={usd === n}
-              className={`min-h-11 rounded-sm px-3.5 text-sm font-medium ${usd === n ? 'bg-pine text-pine-fg' : 'nl-chip text-ink'}`}
+              aria-pressed={amount === n}
+              className={`min-h-11 rounded-sm px-3.5 text-sm font-medium ${amount === n ? 'bg-pine text-pine-fg' : 'nl-chip text-ink'}`}
             >
-              {formatUsd(n)}
+              {money(n)}
             </button>
           ))}
         </div>
-        <p className="text-sm text-muted">{connect.subscribed ? t.feeNoteSub : t.feeNote}</p>
-      </div>
+        <p className={`text-sm ${validPrice || !price ? 'text-ink-soft' : 'text-warn'}`}>{validPrice
+          ? (connect.feeBps
+            ? (sv ? `Du får ${money(split.keep)} per köp. Nytto Checkout tar ${money(split.fee)} (${connect.feeBps / 100} %), Stripe drar sin kortavgift.` : `You get ${money(split.keep)} per sale. Nytto Checkout takes ${money(split.fee)} (${connect.feeBps / 100}%), Stripe deducts its card fee.`)
+            : (sv ? `Du får ${money(split.keep)} per köp, minus Stripes kortavgift.` : `You get ${money(split.keep)} per sale, minus Stripe's card fee.`))
+          : (sv ? `Lägsta pris är ${money(minPrice)}.` : `The minimum price is ${money(minPrice)}.`)}</p>
+      </section>
 
       <details className="rounded-md border border-line px-3.5 py-2.5 text-sm">
-        <summary className="cursor-pointer font-medium text-ink">{sv ? 'Valfria uppgifter' : 'Optional details'}</summary>
+        <summary className="min-h-8 cursor-pointer font-medium text-ink">{sv ? 'Fler inställningar (valfritt)' : 'More settings (optional)'}</summary>
         <div className="mt-4 space-y-5">
           <div className="space-y-2">
             <label htmlFor="description" className="text-sm font-medium">{t.descriptionLabel}</label>
@@ -643,31 +699,48 @@ export default function UploadForm({ stripeReady, blobReady, maxMB = MAX_MB }) {
           <p className="text-xs leading-relaxed text-muted">{t.limitHint}</p>
         </div>
       </details>
-      <label className="flex items-start gap-3 text-xs leading-relaxed text-muted">
-        <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} className="mt-0.5" />
-        {t.ageConfirm}
-      </label>
 
-      {error ? <p className="text-sm text-warn">{error}</p> : null}
+      <div className="space-y-4">
+        <label className="flex items-start gap-3 text-xs leading-relaxed text-muted">
+          <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" />
+          {t.ageConfirm}
+        </label>
 
-      {busy && progress > 0 && progress < 100 ? (
-        <div className="space-y-1">
-          <div className="h-1.5 overflow-hidden rounded-full bg-paper-tint">
-            <div className="h-full bg-pine" style={{ width: `${progress}%` }} />
+        {error ? <p role="alert" className="text-sm text-warn">{error}</p> : null}
+
+        {busy && progress > 0 && progress < 100 ? (
+          <div className="space-y-1">
+            <div className="h-1.5 overflow-hidden rounded-full bg-paper-tint">
+              <div className="h-full bg-pine" style={{ width: `${progress}%` }} />
+            </div>
+            <p className="text-right text-xs text-muted">{progress}%</p>
           </div>
-          <p className="text-right text-xs text-muted">{progress}%</p>
-        </div>
-      ) : null}
+        ) : null}
 
-      <button
-        type="button"
-        onClick={submit}
-        disabled={busy || !stripeReady || connect.loading}
-        className="inline-flex h-12 w-full items-center justify-center rounded-sm bg-pine px-5 text-base font-medium text-pine-fg disabled:opacity-50"
-      >
-        {!stripeReady ? t.stripeDown : busy ? `${t.creating} ${progress}%` : t.create}
-      </button>
-      <p className="text-xs text-muted">{connect.subscribed ? t.feeNoteSub : t.feeNote}</p>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={busy || !stripeReady || connect.loading}
+          className="inline-flex h-12 w-full items-center justify-center rounded-sm bg-pine px-5 text-base font-medium text-pine-fg disabled:opacity-50"
+        >
+          {!stripeReady ? t.stripeDown : busy ? `${t.creating} ${progress}%` : connect.ready ? t.create : (sv ? 'Fortsätt: anslut Stripe →' : 'Continue: connect Stripe →')}
+        </button>
+      </div>
     </div>
+  )
+}
+
+function Steps({ current, sv }) {
+  const labels = sv ? ['Produkt', 'Pris', 'Få betalt'] : ['Product', 'Price', 'Get paid']
+  return (
+    <ol className="flex items-center gap-2 text-xs text-muted" aria-label={sv ? 'Steg' : 'Steps'}>
+      {labels.map((label, i) => (
+        <li key={label} className={`flex items-center gap-2 ${i + 1 === current ? 'font-semibold text-ink' : ''}`} aria-current={i + 1 === current ? 'step' : undefined}>
+          <span aria-hidden="true" className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.65rem] ${i + 1 < current ? 'bg-pine/20 text-pine' : i + 1 === current ? 'bg-pine text-pine-fg' : 'border border-line'}`}>{i + 1 < current ? '✓' : i + 1}</span>
+          {label}
+          {i < labels.length - 1 ? <span aria-hidden="true" className="text-line">—</span> : null}
+        </li>
+      ))}
+    </ol>
   )
 }
