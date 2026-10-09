@@ -11,6 +11,18 @@ deducts its processing fee from each sale.
 
 Env (already on the Vercel project): see `.env.example`.
 
+## Status (9 October 2026)
+
+**Live and taking payments.** Sellers connect Stripe, buyers pay by card in
+Stripe Checkout, digital files are delivered after payment and physical orders
+collect a shipping address. The whole flow was tested end to end in Stripe test
+mode, and Production was checked after the `source` metadata change (#44).
+
+**Maintenance mode.** Existing links, checkout, webhooks and downloads keep
+working. Only bug and security fixes are made; no new features are planned.
+Open fixes are tracked in #52 (errors shown to paying buyers in
+`/api/download` and `/api/verify-session` first).
+
 ## Names
 
 The public name is **Nytto Checkout** (earlier: Curl-to-Buy, and briefly
@@ -80,10 +92,11 @@ filter payments by metadata `source` (`threads`, `instagram`, `x`, `tiktok`).
 Products without a campaign source carry no `source` key. This works on every
 Vercel plan and counts each payment exactly once, because Stripe is the record.
 
-## Name restoration — 21 September 2026
+## Name restoration — 21 September 2026 (history)
 
-The product is Curl-to-Buy again at `https://pay.nyttolabs.com`. The GetPaidLink
-name has been withdrawn. This restores branding only; pricing, Stripe account IDs,
+On this date the product went back from GetPaidLink to Curl-to-Buy at
+`https://pay.nyttolabs.com`; it has since been renamed Nytto Checkout (see
+[Names](#names)). The GetPaidLink name has been withdrawn. This restores branding only; pricing, Stripe account IDs,
 storage, subscriptions, seller cookies and existing listing IDs are unchanged.
 
 - Keep `pay.nyttolabs.com` attached to Production, with no Vercel domain redirect.
